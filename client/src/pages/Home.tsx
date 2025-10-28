@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { usePrivy } from '@privy-io/react-auth';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { Trophy } from 'lucide-react';
 import PromptCard from '@/components/PromptCard';
 import ResultsReveal from '@/components/ResultsReveal';
@@ -9,9 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/api';
+import { apiRequest, ApiError } from '@/lib/api';
 import { queryClient } from '@/lib/queryClient';
-import type { VoteChoice, Question, QuestionResults, Vote } from '@shared/schema';
+import type { VoteChoice, Question, QuestionResults, Vote, User } from '@shared/schema';
 
 interface VoteData {
   questionId: string;
@@ -28,20 +28,39 @@ interface ResultWithQuestion {
 export default function Home() {
   const { user } = usePrivy();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
+
+  // Check if user has a profile in the database
+  const { data: currentUser, isLoading: isLoadingUser, isError, error } = useQuery<User>({
+    queryKey: ['/api/user/me'],
+    enabled: !!user,
+    retry: false,
+  });
+
+  // Redirect to create-profile if user doesn't have a profile (404 only, not other errors)
+  useEffect(() => {
+    if (user && !isLoadingUser && isError && error) {
+      // Only redirect on 404 (user not found), not on network/server errors
+      if (error instanceof ApiError && error.status === 404) {
+        localStorage.removeItem('pallyUserHandle');
+        setLocation('/create-profile');
+      }
+    }
+  }, [user, isLoadingUser, isError, error, setLocation]);
 
   const { data: activeQuestions = [], isLoading: isLoadingActive } = useQuery<Question[]>({
     queryKey: ['/api/questions/active'],
-    enabled: !!user,
+    enabled: !!user && !!currentUser,
   });
 
   const { data: revealedQuestions = [], isLoading: isLoadingRevealed } = useQuery<Question[]>({
     queryKey: ['/api/questions/revealed'],
-    enabled: !!user,
+    enabled: !!user && !!currentUser,
   });
 
   const { data: userVotes = [] } = useQuery<Vote[]>({
     queryKey: ['/api/votes/mine'],
-    enabled: !!user,
+    enabled: !!user && !!currentUser,
   });
 
   const seedMutation = useMutation({
@@ -95,11 +114,21 @@ export default function Home() {
       });
     },
     onError: (error: Error) => {
-      toast({
-        title: 'Vote failed',
-        description: error.message,
-        variant: 'destructive',
-      });
+      // If user not found (404), redirect to create profile
+      if (error instanceof ApiError && error.status === 404) {
+        localStorage.removeItem('pallyUserHandle');
+        setLocation('/create-profile');
+        toast({
+          title: 'Profile Required',
+          description: 'Please create your profile to vote',
+        });
+      } else {
+        toast({
+          title: 'Vote failed',
+          description: error.message,
+          variant: 'destructive',
+        });
+      }
     },
   });
 
@@ -133,6 +162,30 @@ export default function Home() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-muted-foreground">Please log in to continue</p>
+      </div>
+    );
+  }
+
+  if (isLoadingUser) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
+  if (isError && error && !(error instanceof ApiError && error.status === 404)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="text-center">
+          <p className="text-destructive mb-2">Unable to load profile</p>
+          <p className="text-sm text-muted-foreground mb-4">
+            {error instanceof ApiError ? error.message : 'Please check your connection and try again'}
+          </p>
+          <Button onClick={() => window.location.reload()} variant="outline" data-testid="button-retry">
+            Retry
+          </Button>
+        </div>
       </div>
     );
   }

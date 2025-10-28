@@ -1,5 +1,12 @@
 import { usePrivy } from '@privy-io/react-auth';
 
+export class ApiError extends Error {
+  constructor(message: string, public status: number) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 export async function apiRequest(
   url: string,
   options: RequestInit = {},
@@ -19,9 +26,9 @@ export async function apiRequest(
     headers,
   });
 
-  if (!response.ok && response.status !== 404) {
+  if (!response.ok) {
     const error = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(error.error || 'Request failed');
+    throw new ApiError(error.error || 'Request failed', response.status);
   }
 
   return response;
