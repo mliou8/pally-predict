@@ -1,17 +1,18 @@
-import { useLocation } from 'wouter';
+import { useLogin } from '@privy-io/react-auth';
 import BrandMark from '@/components/BrandMark';
 import { Button } from '@/components/ui/button';
 import { Wallet, Mail } from 'lucide-react';
-import { SiX } from 'react-icons/si';
+import { SiX, SiGoogle, SiDiscord } from 'react-icons/si';
 
 export default function Splash() {
-  const [, setLocation] = useLocation();
-
-  const handleLogin = (method: string) => {
-    console.log('Login with:', method);
-    // After authentication, redirect to profile creation
-    setLocation('/create-profile');
-  };
+  const { login } = useLogin({
+    onComplete: ({ user }) => {
+      console.log('Login successful:', user.id);
+    },
+    onError: (error) => {
+      console.error('Login error:', error);
+    },
+  });
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -19,16 +20,16 @@ export default function Splash() {
         <div className="mb-8">
           <BrandMark size="lg" animated />
           <p className="mt-4 text-lg text-muted-foreground">
-            Fantasy sports for degens.
+            Predict the crowd. Earn Alpha. Rise the ranks.
           </p>
           <p className="text-sm text-muted-foreground">
-            Predict. Earn Alpha. Rise the Ranks.
+            Daily prediction game where rare picks win big.
           </p>
         </div>
 
         <div className="space-y-3">
           <Button
-            onClick={() => handleLogin('wallet')}
+            onClick={() => login()}
             className="w-full"
             size="lg"
             data-testid="button-connect-wallet"
@@ -37,27 +38,53 @@ export default function Splash() {
             Connect Wallet
           </Button>
 
-          <Button
-            onClick={() => handleLogin('x')}
-            variant="outline"
-            className="w-full"
-            size="lg"
-            data-testid="button-continue-x"
-          >
-            <SiX size={16} className="mr-2" />
-            Continue with X
-          </Button>
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              onClick={() => login()}
+              variant="outline"
+              className="w-full"
+              size="lg"
+              data-testid="button-continue-x"
+            >
+              <SiX size={16} className="mr-2" />
+              X
+            </Button>
 
-          <Button
-            onClick={() => handleLogin('email')}
-            variant="outline"
-            className="w-full"
-            size="lg"
-            data-testid="button-continue-email"
-          >
-            <Mail size={20} className="mr-2" />
-            Continue with Email
-          </Button>
+            <Button
+              onClick={() => login()}
+              variant="outline"
+              className="w-full"
+              size="lg"
+              data-testid="button-continue-google"
+            >
+              <SiGoogle size={16} className="mr-2" />
+              Google
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              onClick={() => login()}
+              variant="outline"
+              className="w-full"
+              size="lg"
+              data-testid="button-continue-discord"
+            >
+              <SiDiscord size={18} className="mr-2" />
+              Discord
+            </Button>
+
+            <Button
+              onClick={() => login()}
+              variant="outline"
+              className="w-full"
+              size="lg"
+              data-testid="button-continue-email"
+            >
+              <Mail size={18} className="mr-2" />
+              Email
+            </Button>
+          </div>
         </div>
 
         <div className="pt-6 text-xs text-muted-foreground space-x-4">

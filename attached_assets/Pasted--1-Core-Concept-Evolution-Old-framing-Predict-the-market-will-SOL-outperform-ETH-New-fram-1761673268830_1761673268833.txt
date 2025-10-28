@@ -1,0 +1,109 @@
+🎯 1. Core Concept Evolution
+
+Old framing:
+
+“Predict the market (will SOL outperform ETH).”
+New framing:
+“Predict the crowd (what will everyone else think, choose, or value).”
+
+That tiny shift moves you from trading game → cultural forecasting game — something between Family Feud, Kahoot, and Polymarket-lite.
+
+So Pally becomes a daily social guessing game about what the crowd believes will happen or prefers — not necessarily what actually happens.
+
+🧠 2. Why Multiple-Choice Works
+
+Most “prediction” games are binary (yes/no).
+That gets boring fast.
+Adding multiple choice unlocks:
+
+Cultural questions (Which memecoin will moon next?)
+
+Preference polls (Which chain feels hottest this week?)
+
+Category battles (Which influencer will go viral next?)
+
+Now the daily drop feels like a game show question, not a bet.
+
+Examples:
+
+Which token will trend most this week?
+A) BONK B) DOGE C) WIF D) PEPE
+
+Which project will announce something first?
+A) ZKSync B) Blast C) LayerZero
+
+Which meme describes 2025 the best?
+A) UpOnly B) DownBad C) Sideways D) ai.eth
+
+⚙️ 3. So Why Have 5 Votes per Day?
+
+If you go this route, the “5 votes” mechanic isn’t random — it’s a design limiter to create scarcity and tension.
+But let’s clarify its purpose:
+
+Option A — Keep 5 votes
+
+Each day might have multiple live questions (like Family Feud rounds).
+
+You get 5 “Alpha Votes.”
+
+You can spend them all on one question or spread them.
+
+Once they’re gone, you wait until the next day.
+
+This makes voting a resource you allocate strategically — adding a light layer of game depth.
+
+Option B — Drop to 1 vote per question
+
+Simplify it: you just answer today’s question once (the Wordle model).
+If you want more engagement, you can introduce “Bonus Questions” or “Side Arenas.”
+
+🏟️ 4. Multiple Question Types (Final Recommendation)
+
+To keep it fun, you can rotate 3 main archetypes — each with slightly different scoring:
+
+Type	Example	What it Tests	Scoring Idea
+🧩 Consensus / Feud	“Which chain do you think most people will vote for?”	Social intuition	Points ∝ 1 / popularity (rarer picks = higher payout)
+📈 Prediction / Reality	“Will BTC close above $80k?”	Market intuition	Binary win/loss after oracle result
+🎭 Preference / Opinion	“Who’s the most iconic crypto founder?”	Cultural taste	Points for matching top 3 crowd picks
+
+That mix makes each drop feel fresh.
+
+Mondays → Market prediction
+
+Wednesdays → Meme/Culture poll
+
+Fridays → Big “Family Feud”-style showdown (multi-choice)
+
+💎 5. Scoring Concept for “Family Feud” Mode
+
+You could borrow Feud logic directly:
+
+Step 1: Collect all votes (A/B/C/D).
+Step 2: Reveal chart at close (e.g., A 50 %, B 30 %, C 15 %, D 5 %).
+Step 3: Award points relative to popularity:
+
+If you guessed top answer (A) → +100 pts.
+
+If you guessed #2 (B) → +60 pts.
+
+If you guessed #3 (C) → +30 pts.
+
+If you guessed #4 (D) → +10 pts.
+
+OR
+Use a weighted rarity bonus (rarer picks get more if they win).
+
+This creates that classic Feud payoff — “Show me… answer C!” — which is super satisfying in animation form.
+
+🔮 6. Daily Structure (if you go Feud-style)
+Time (ET)	Event
+12:00 PM	New multi-choice question drops (users have 12 h to vote)
+12:00 AM	Reveal: crowd chart appears, points distributed
+Saturday	Weekly “Alpha Feud” — 5 questions back-to-back, live show-style
+🪄 7. Emotional Feel (Compared to Trading App)
+Version	Feel	Analogy
+Prediction app	“Serious, analytical, niche.”	Fantasy stock league
+Feud-style app	“Social, funny, sticky.”	Wordle × Family Feud × Crypto
+
+It becomes a daily social ritual that everyone can play — even people who don’t trade.
+That’s what makes it viral on X.

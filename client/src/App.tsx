@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Switch, Route, useLocation } from 'wouter';
+import { PrivyProvider, usePrivy } from '@privy-io/react-auth';
 import { queryClient } from './lib/queryClient';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/toaster';
@@ -17,13 +18,42 @@ import NotificationsDrawer from '@/components/NotificationsDrawer';
 
 function AppContent() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
+  const { ready, authenticated } = usePrivy();
   
   //todo: remove mock functionality
   const nextDrop = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString();
 
+  // Redirect logic based on authentication
+  useEffect(() => {
+    if (!ready) return;
+    
+    if (!authenticated) {
+      if (location !== '/splash') {
+        setLocation('/splash');
+      }
+    } else {
+      if (location === '/splash') {
+        const hasProfile = localStorage.getItem('pallyUserHandle');
+        setLocation(hasProfile ? '/' : '/create-profile');
+      }
+    }
+  }, [ready, authenticated, location, setLocation]);
+
   // Hide nav on splash and profile creation pages
   const hideNav = location === '/splash' || location === '/create-profile';
+
+  // Show loading while Privy initializes
+  if (!ready) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Initializing...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -55,13 +85,45 @@ function AppContent() {
 }
 
 function App() {
+  const privyAppId = import.meta.env.VITE_PRIVY_APP_ID;
+
+  if (!privyAppId) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <div className="text-center max-w-md">
+          <h1 className="text-2xl font-bold text-destructive mb-2">Configuration Error</h1>
+          <p className="text-muted-foreground">
+            Missing VITE_PRIVY_APP_ID environment variable. Please configure your Privy App ID.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <AppContent />
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <PrivyProvider
+      appId={privyAppId}
+      config={{
+        loginMethods: ['wallet', 'email', 'google', 'twitter', 'discord'],
+        appearance: {
+          theme: 'dark',
+          accentColor: '#2BFBD2',
+          logo: undefined,
+        },
+        embeddedWallets: {
+          ethereum: {
+            createOnLogin: 'users-without-wallets',
+          },
+        },
+      }}
+    >
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <AppContent />
+          <Toaster />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </PrivyProvider>
   );
 }
 

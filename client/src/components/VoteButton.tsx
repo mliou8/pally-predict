@@ -1,8 +1,10 @@
+import type { VoteChoice } from '@shared/schema';
+
 interface VoteButtonProps {
   label: string;
-  value: 'A' | 'B';
+  value: VoteChoice;
   disabled?: boolean;
-  onSelect: (value: 'A' | 'B') => void;
+  onSelect: (value: VoteChoice) => void;
 }
 
 export default function VoteButton({ label, value, disabled, onSelect }: VoteButtonProps) {
