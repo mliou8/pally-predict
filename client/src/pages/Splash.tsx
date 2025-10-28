@@ -19,11 +19,11 @@ export default function Splash() {
       <div className="w-full max-w-md space-y-8 text-center">
         <div className="mb-8">
           <BrandMark size="lg" animated />
-          <p className="mt-4 text-lg text-muted-foreground">
-            Predict the crowd. Earn Alpha. Rise the ranks.
+          <p className="mt-4 text-lg font-semibold text-foreground">
+            Crypto Family Feud. Prove you're the best on CT.
           </p>
           <p className="text-sm text-muted-foreground">
-            Daily prediction game where rare picks win big.
+            Daily prediction game where the best are rewarded
           </p>
         </div>
 
