@@ -4,7 +4,7 @@
 
 Pally Traders is a competitive prediction game with a "fantasy sports for degens" concept. Users make daily predictions about crypto markets, crowd consensus, and preferences to earn Alpha points and climb leaderboards. The application combines elements of trading terminals with mobile gaming aesthetics, featuring a dark neon theme with turquoise and magenta gradients.
 
-The core mechanic revolves around predicting what the crowd will think or choose rather than actual market outcomes, creating a cultural forecasting game. Users receive 5 votes per day to allocate across multiple-choice questions, with rare (minority) correct predictions earning higher point multipliers.
+The core mechanic revolves around predicting what the crowd will think or choose rather than actual market outcomes, creating a cultural forecasting game. Users answer one multiple-choice question at a time and can choose Public voting (×2 point multiplier) or Private voting (×1 point multiplier). Rare (minority) correct predictions earn higher base points.
 
 ## User Preferences
 
@@ -12,11 +12,24 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**October 28, 2025**: Completed full backend integration
+**October 28, 2025 (Spec v2)**: Completed full spec v2 implementation
+- **Game Mechanics Update**: Removed daily vote allocation (no 5 votes/day cap), now one answer per question per user
+- **Multiplier System**: Public votes = ×2 points, Private votes = ×1 point (down from ×2/×1 split)
+- **UI/UX Enhancements**: 
+  - Added Profile icon to TopBar for quick access
+  - Implemented Public/Private toggle with live multiplier pill (⚡×2 or ⚡×1)
+  - Added helper text explaining visibility ("Your answer will appear on your profile & public feeds" vs "Only you can see this in History")
+  - Lightning bolt ⚡ now used consistently for all point displays (header, results, profile, leaderboard)
+  - Added Leaderboard buttons to Home and Profile pages for easier navigation
+  - Enhanced Profile page history with detailed vote information (date, question, answer, visibility badge, points earned, outcome)
+  - Added Daily/Weekly/All-time tabs to Leaderboard
+- **Text Updates**: Changed all "Next drop" references to "Next question" throughout app
+- **Question Reset Time**: Questions drop and reveal at 12:00 PM ET (noon), not midnight
+
+**October 28, 2025 (Initial)**: Completed full backend integration
 - Implemented complete database storage layer (DbStorage) replacing in-memory storage
 - Created all API routes for users, questions, voting, results, and leaderboard
 - Connected all frontend pages to use backend APIs with React Query
-- Added daily vote allocation tracking (5 votes per day)
 - Implemented rarity multiplier scoring system
 - Created seed endpoint for test questions
 - Fixed database schema to auto-generate UUIDs for user IDs
@@ -66,15 +79,17 @@ Preferred communication style: Simple, everyday language.
 **Design Decisions**:
 - Storage abstraction pattern with DbStorage implementation for PostgreSQL
 - Middleware for request logging with duration tracking
-- Daily vote allocation tracking (5 votes per day per user)
+- One answer per question per user (no daily vote allocation)
+- Public votes earn ×2 multiplier, Private votes earn ×1 multiplier
 - Automatic results calculation on first fetch after reveal time
 - Rarity multiplier scoring (inverse of percentage)
+- Questions reset at 12:00 PM ET (noon)
 - Separation of server setup, routing, and storage concerns
 
 **API Endpoints**:
 - User: GET /api/user/me, POST /api/user/profile, PATCH /api/user/profile
 - Questions: GET /api/questions/active, GET /api/questions/revealed, GET /api/questions/:id, POST /api/questions
-- Votes: POST /api/votes, GET /api/votes/mine, GET /api/votes/:questionId/mine, GET /api/votes/allocation
+- Votes: POST /api/votes, GET /api/votes/mine, GET /api/votes/:questionId/mine
 - Results: GET /api/results/:questionId (auto-calculates if needed)
 - Leaderboard: GET /api/leaderboard
 - Seed: POST /api/seed/questions (development only)
