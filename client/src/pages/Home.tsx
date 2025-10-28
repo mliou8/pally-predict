@@ -97,13 +97,17 @@ export default function Home() {
   const voteMutation = useMutation({
     mutationFn: async (voteData: VoteData) => {
       if (!user?.id) throw new Error('Not authenticated');
+      console.log('Submitting vote:', voteData);
       const response = await apiRequest('/api/votes', {
         method: 'POST',
         body: JSON.stringify(voteData),
       }, user.id);
-      return response.json();
+      const result = await response.json();
+      console.log('Vote response:', result);
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Vote succeeded:', data);
       queryClient.invalidateQueries({ queryKey: ['/api/votes/mine'] });
       queryClient.invalidateQueries({ queryKey: ['/api/results/revealed'] });
       queryClient.invalidateQueries({ queryKey: ['/api/questions/active'] });
@@ -114,6 +118,7 @@ export default function Home() {
       });
     },
     onError: (error: Error) => {
+      console.error('Vote error:', error);
       // If user not found (404), redirect to create profile
       if (error instanceof ApiError && error.status === 404) {
         localStorage.removeItem('pallyUserHandle');
