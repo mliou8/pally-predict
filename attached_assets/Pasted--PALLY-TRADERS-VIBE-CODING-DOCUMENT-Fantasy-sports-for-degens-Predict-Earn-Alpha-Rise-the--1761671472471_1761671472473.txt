@@ -1,0 +1,294 @@
+🧭 PALLY TRADERS — “VIBE CODING DOCUMENT”
+
+Fantasy sports for degens. Predict. Earn Alpha. Rise the ranks.
+
+🎨 1. APP VIBE OVERVIEW
+Core Feel
+
+Tone: Energetic, competitive, social, and clean — a blend of trading terminal + mobile game.
+
+Color Palette:
+
+Deep charcoal / black background (#0B0B0E)
+
+Neon gradients for highlights (turquoise #2BFBD2, magenta #E652F8)
+
+Muted gray text for non-active states
+
+Gold glow for victory / Alpha Rank highlights
+
+Typography
+
+Title font: Orbitron / Space Grotesk (tech, futuristic)
+
+Body font: Inter / Poppins for readability
+
+Numbers / scores: JetBrains Mono (gives quant + gamer vibe)
+
+Iconography
+
+Minimal line icons (Lucide / Remix)
+
+Animated reaction icons for result reveal (🔥, 🧠, 🥶)
+
+UX Principles
+
+One core decision per screen (no clutter).
+
+Keep tension: hide crowd results until reveal.
+
+Emphasize feedback loops — motion, streaks, sound.
+
+Always show countdowns — users should feel the ticking clock.
+
+📱 2. UI FLOW SUMMARY
+A. Splash → Login
+
+Goal: Quick entry.
+
+Animated logo pulse (PALLY α)
+
+“Connect Wallet” or “Continue with Telegram / X”
+
+After login → Username / handle selection.
+
+B. Home Screen — Live Prompt Arena
+
+Purpose: Daily question at the center of attention.
+
+Layout
+
+Top Nav
+
+Left: ⚡ Alpha Points total
+
+Center: “PALLY ARENA — 12:00 PM DROP”
+
+Right: 🔔 Bell icon for streak + notifications
+
+Prompt Card (Full Width)
+
+Header: Category tag (e.g. “Prediction Arena” or “Consensus Arena”)
+
+Body: The question (large text, centered)
+
+Example:
+
+“Will $SOL outperform $ETH by 12 PM tomorrow?”
+
+Subtext: “Closes in 10h 42m” (live countdown, red/orange glow)
+
+Vote Options
+
+Two large buttons:
+
+Option A: “Yes / Long SOL”
+
+Option B: “No / Long ETH”
+
+After tap → instant haptic feedback + lock animation
+
+Screen slides up: “Vote locked ✅”
+
+Below that: “Your vote is private until results reveal.”
+
+Vote Type Selector
+
+Toggle:
+
+🟢 Public Vote (full points, counts for record)
+
+🕵️ Private Vote (half points, off-record)
+
+Show a small tooltip:
+
+“Public = full rewards, affects Alpha Rank.”
+“Private = half rewards, off-record.”
+
+Post-Vote Card State
+
+Center: “You voted: Long SOL 🧠”
+
+Countdown visible
+
+“Results reveal in: 10h 39m”
+
+No crowd data shown yet.
+
+Bottom Tabs
+
+🏠 Home
+
+🏆 Leaderboard
+
+📊 History
+
+👤 Profile
+
+C. Results Reveal Screen (12h later)
+
+Trigger: When timer hits zero → animation begins.
+
+Animation Flow
+
+Background glow expands → “Results Revealed!”
+
+Chart slides up (animated bar chart of % votes).
+
+“63% voted Long ETH”
+
+“You chose Long SOL.”
+
+Result verdict box:
+
+“Outcome: SOL up +2.3% ✅ You were right!”
+
+or “Outcome: ETH outperformed ❌”
+
+Points animation:
+
+“+120 α points (2× rarity bonus)”
+
+Visual confetti + sound effect.
+
+Share Card CTA:
+
+“Share your call” → Generates image card:
+
+“Michael nailed the $SOL call. +120 Alpha.”
+Timestamp + rank.
+
+D. Leaderboard
+
+Tabs at top:
+
+“All-Time” | “This Week” | “Guilds”
+
+List:
+
+Rank	Avatar	Handle	Accuracy	Points
+1	🧠	@DegenOracle	87%	4,230
+2	🦍	@CryptoTuna	84%	3,970
+
+Highlight:
+
+Your rank fixed at bottom (sticky): “You’re #42 — 1,020 pts.”
+
+Special badges:
+
+🔥 Streak (3+)
+
+🏅 100% public accuracy
+
+🕵️ “Silent Genius” (high private accuracy)
+
+E. Profile Screen
+
+Header:
+
+Avatar + @handle
+
+“Alpha Rank: 🥈 Silver Analyst”
+
+“Win Rate: 68% (Public)”
+
+“Streak: 4”
+
+Tabs:
+
+Public History (cards with result + points)
+
+Private History (hidden to others)
+
+Badges & Achievements
+
+“3 Correct in a Row”
+
+“Contrarian Win”
+
+“Oracle Streak (10+ right)”
+
+F. History Screen (Public Archive)
+
+List of past prompts (reversed chronological)
+
+Each card shows:
+
+Question
+
+Outcome ✅ / ❌
+
+Crowd % split (bar)
+
+Your vote & result
+
+Points earned
+
+G. Notifications Panel
+
+Push-style list:
+
+“New prompt is live 🧠” (12 PM ET)
+
+“Results revealed — you gained 120 α points!”
+
+“You’re now Top 20 in AlphaRank 🏆”
+
+H. Onboarding Walkthrough
+
+When new user joins:
+
+“Each day at 12 PM ET, a new question drops.”
+
+“You get 5 votes per day.”
+
+“Public = full points, Private = half.”
+
+“Results revealed at midnight ET.”
+
+“Climb the leaderboard. Earn your title.”
+
+🧩 3. GAME MECHANICS SUMMARY
+Feature	Description	Implementation Hint
+Hidden Sentiment	Hide crowd % until window closes	if now < close_time → hide chart
+Daily Drop	New question daily @ 12 PM ET	Cron + status=‘scheduled’
+Voting Limit	5 votes per day	user.votes_used_today < 5
+Public/Private Mode	Toggle on vote card	is_public boolean
+Scoring	Public: 100 pts × rarity multiplier; Private: 50 pts × rarity multiplier	SQL trigger / cron
+Reveal	12 hours later	Auto job + animation
+Leaderboards	Weekly + All-Time	SQL aggregate by points
+Badge System	Milestones (streaks, accuracy, transparency)	Secondary table or metadata
+⚙️ 4. SYSTEM & DEV STRUCTURE (High-Level)
+
+Frontend:
+Next.js + Tailwind + Framer Motion (for reveal animations)
+Optional: Expo / React Native if mobile-first.
+
+Backend:
+Supabase (auth, storage, scheduled functions)
+Tables: users, prompts, votes, results, leaderboard, badges.
+
+Jobs:
+
+publish_prompt @ 12:00 PM ET
+
+reveal_prompt @ 12:00 AM ET
+
+score_prediction (after oracle sets correct_outcome)
+
+🪄 5. EMOTIONAL DESIGN MOMENTS
+Moment	Feel	Feedback
+Submitting vote	Suspense	“Locked ✅ – results hidden until reveal.”
+Reveal	Dopamine spike	Sound, color burst, bar chart
+Streak	Achievement	“🔥 You’re on a 4-win streak!”
+Level up	Progress	Rank-up badge + short confetti
+Losing	Playful regret	“🥶 Tough call — 40% agreed with you.”
+💰 6. FUTURE EXTENSIONS
+
+Guilds: Teams pool votes and compete.
+
+Alpha Seasons: Paid entry → pooled prize.
+
+Agent Mode: AI “Trader Personas” join leaderboards.
+
+Token Economy: Use $PAL for entry fees, cosmetics, refills.
