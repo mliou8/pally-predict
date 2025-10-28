@@ -1,62 +1,131 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { usePrivy } from '@privy-io/react-auth';
 import ProfileHeader from '@/components/ProfileHeader';
 import HistoryCard from '@/components/HistoryCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import type { User, Vote, Question, QuestionResults } from '@shared/schema';
+
+interface VoteWithDetails {
+  vote: Vote;
+  question: Question;
+  results: QuestionResults | null;
+}
 
 export default function Profile() {
   const [activeTab, setActiveTab] = useState('public');
+  const { user } = usePrivy();
 
-  //todo: remove mock functionality
-  const mockPublicHistory = [
-    {
-      question: 'Will $SOL outperform $ETH by 12 PM tomorrow?',
-      userChoice: 'Long SOL',
-      outcome: 'correct' as const,
-      pointsEarned: 120,
-      timestamp: new Date().toISOString(),
-      crowdSplitA: 37,
-      crowdSplitB: 63,
-    },
-    {
-      question: 'Will ETH reach $5k before end of month?',
-      userChoice: 'No',
-      outcome: 'correct' as const,
-      pointsEarned: 85,
-      timestamp: new Date(Date.now() - 2 * 86400000).toISOString(),
-      crowdSplitA: 40,
-      crowdSplitB: 60,
-    },
-  ];
+  const { data: currentUser, isLoading: isLoadingUser } = useQuery<User>({
+    queryKey: ['/api/user/me'],
+    enabled: !!user,
+  });
 
-  const mockPrivateHistory = [
-    {
-      question: 'Will BTC break $100k this week?',
-      userChoice: 'Yes',
-      outcome: 'incorrect' as const,
-      pointsEarned: 0,
-      timestamp: new Date(Date.now() - 86400000).toISOString(),
-      crowdSplitA: 65,
-      crowdSplitB: 35,
-    },
-  ];
+  const { data: votes = [], isLoading: isLoadingVotes } = useQuery<Vote[]>({
+    queryKey: ['/api/votes/mine'],
+    enabled: !!user,
+  });
 
-  const badges = [
+  const { data: votesWithDetails = [] } = useQuery<VoteWithDetails[]>({
+    queryKey: ['/api/votes/mine/details'],
+    queryFn: async () => {
+      const details = await Promise.all(
+        votes.map(async (vote) => {
+          try {
+            const questionResponse = await fetch(`/api/questions/${vote.questionId}`);
+            const question = await questionResponse.json();
+
+            let results = null;
+            if (question.isRevealed) {
+              const resultsResponse = await fetch(`/api/results/${vote.questionId}`);
+              results = await resultsResponse.json();
+            }
+
+            return { vote, question, results };
+          } catch (error) {
+            return null;
+          }
+        })
+      );
+      return details.filter((d): d is VoteWithDetails => d !== null);
+    },
+    enabled: !!user && votes.length > 0,
+  });
+
+  const publicHistory = votesWithDetails.filter(({ vote }) => vote.isPublic);
+  const privateHistory = votesWithDetails.filter(({ vote }) => !vote.isPublic);
+
+  const badges = currentUser?.badgesEarned || [];
+  const badgeDetails = [
     { name: '3 Correct in a Row', icon: '🔥', description: 'Win streak of 3+' },
     { name: 'High Accuracy', icon: '🧠', description: 'Public accuracy ≥75%' },
     { name: 'Contrarian Win', icon: '💎', description: 'Correct minority prediction' },
   ];
 
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Please log in to view profile</p>
+      </div>
+    );
+  }
+
+  const renderHistory = (history: VoteWithDetails[]) => {
+    if (history.length === 0) {
+      return (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground mb-2">No history yet</p>
+          <p className="text-sm text-muted-foreground">
+            Start voting to build your track record
+          </p>
+        </div>
+      );
+    }
+
+    return history.map(({ vote, question, results }) => {
+      const optionLabels: Record<string, string> = {
+        A: question.optionA,
+        B: question.optionB,
+        C: question.optionC || '',
+        D: question.optionD || '',
+      };
+
+      const userChoiceLabel = optionLabels[vote.choice] || vote.choice;
+      const outcome = results ? 'correct' : 'pending';
+      const pointsEarned = vote.pointsEarned || 0;
+      const crowdSplitA = results ? results.percentA : 0;
+      const crowdSplitB = results ? results.percentB : 0;
+
+      return (
+        <HistoryCard
+          key={vote.id}
+          question={question.prompt}
+          userChoice={userChoiceLabel}
+          outcome={outcome as 'correct' | 'incorrect'}
+          pointsEarned={pointsEarned}
+          timestamp={vote.votedAt.toString()}
+          crowdSplitA={crowdSplitA}
+          crowdSplitB={crowdSplitB}
+        />
+      );
+    });
+  };
+
   return (
     <div className="min-h-screen pb-20 md:pb-6">
       <div className="max-w-4xl mx-auto px-4 md:px-6 py-6 space-y-6">
-        <ProfileHeader
-          handle="@CryptoOracle"
-          rank="Silver"
-          winRate={68}
-          streak={4}
-          totalPoints={1020}
-        />
+        {isLoadingUser ? (
+          <Skeleton className="h-32 w-full rounded-xl" />
+        ) : currentUser ? (
+          <ProfileHeader
+            handle={currentUser.handle || '@User'}
+            rank={currentUser.rank as 'Bronze' | 'Silver' | 'Gold' | 'Oracle'}
+            winRate={0}
+            streak={currentUser.currentStreak}
+            totalPoints={currentUser.alphaPoints}
+          />
+        ) : null}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-3">
@@ -66,20 +135,32 @@ export default function Profile() {
           </TabsList>
 
           <TabsContent value="public" className="space-y-3 mt-6">
-            {mockPublicHistory.map((entry, i) => (
-              <HistoryCard key={i} {...entry} />
-            ))}
+            {isLoadingVotes ? (
+              <>
+                {[...Array(3)].map((_, i) => (
+                  <Skeleton key={i} className="h-32 w-full rounded-xl" />
+                ))}
+              </>
+            ) : (
+              renderHistory(publicHistory)
+            )}
           </TabsContent>
 
           <TabsContent value="private" className="space-y-3 mt-6">
-            {mockPrivateHistory.map((entry, i) => (
-              <HistoryCard key={i} {...entry} />
-            ))}
+            {isLoadingVotes ? (
+              <>
+                {[...Array(3)].map((_, i) => (
+                  <Skeleton key={i} className="h-32 w-full rounded-xl" />
+                ))}
+              </>
+            ) : (
+              renderHistory(privateHistory)
+            )}
           </TabsContent>
 
           <TabsContent value="badges" className="mt-6">
             <div className="grid gap-4">
-              {badges.map((badge, i) => (
+              {badgeDetails.map((badge, i) => (
                 <div
                   key={i}
                   className="p-4 rounded-xl border border-border bg-card hover-elevate"

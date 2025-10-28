@@ -4,7 +4,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 export const users = pgTable("users", {
-  id: varchar("id").primaryKey(),
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   privyUserId: varchar("privy_user_id").notNull().unique(),
   handle: varchar("handle").unique(),
   alphaPoints: integer("alpha_points").notNull().default(0),

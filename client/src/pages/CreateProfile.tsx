@@ -1,22 +1,53 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
+import { usePrivy } from '@privy-io/react-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import BrandMark from '@/components/BrandMark';
+import { apiRequest } from '@/lib/api';
 
 export default function CreateProfile() {
   const [, setLocation] = useLocation();
   const [handle, setHandle] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = usePrivy();
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (handle.trim()) {
-      console.log('Creating profile:', { handle, avatarUrl });
-      setLocation('/');
+    if (!handle.trim() || !user?.id) return;
+
+    setIsSubmitting(true);
+    try {
+      const response = await apiRequest('/api/user/profile', {
+        method: 'POST',
+        body: JSON.stringify({ handle: handle.trim() }),
+      }, user.id);
+
+      if (response.ok) {
+        localStorage.setItem('pallyUserHandle', handle);
+        setLocation('/');
+      } else {
+        const error = await response.json();
+        toast({
+          title: 'Error',
+          description: error.error || 'Failed to create profile',
+          variant: 'destructive',
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to create profile',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -84,10 +115,10 @@ export default function CreateProfile() {
             type="submit"
             className="w-full"
             size="lg"
-            disabled={!isValid}
+            disabled={!isValid || isSubmitting}
             data-testid="button-create-profile"
           >
-            Start Trading
+            {isSubmitting ? 'Creating...' : 'Start Trading'}
           </Button>
         </form>
 

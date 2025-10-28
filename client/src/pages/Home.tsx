@@ -1,25 +1,144 @@
-import { useState } from 'react';
+import { useEffect } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { usePrivy } from '@privy-io/react-auth';
 import PromptCard from '@/components/PromptCard';
 import ResultsReveal from '@/components/ResultsReveal';
 import VoteMeter from '@/components/VoteMeter';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { VoteChoice, QuestionType } from '@shared/schema';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/api';
+import { queryClient } from '@/lib/queryClient';
+import type { VoteChoice, Question, QuestionResults, Vote } from '@shared/schema';
+
+interface VoteData {
+  questionId: string;
+  choice: VoteChoice;
+  isPublic: boolean;
+  votesAllocated?: number;
+}
+
+interface ResultWithQuestion {
+  question: Question;
+  results: QuestionResults;
+  userVote: Vote | null;
+}
 
 export default function Home() {
-  const [votesUsed, setVotesUsed] = useState(0);
-  
-  const closeTime = new Date(Date.now() + 10 * 60 * 60 * 1000).toISOString();
-  
-  const handleVote = (choice: VoteChoice, isPublic: boolean) => {
-    setVotesUsed(prev => Math.min(prev + 1, 5));
-    console.log('Voted:', choice, 'Public:', isPublic);
+  const { user } = usePrivy();
+  const { toast } = useToast();
+
+  const { data: activeQuestions = [], isLoading: isLoadingActive } = useQuery<Question[]>({
+    queryKey: ['/api/questions/active'],
+    enabled: !!user,
+  });
+
+  const { data: revealedQuestions = [], isLoading: isLoadingRevealed } = useQuery<Question[]>({
+    queryKey: ['/api/questions/revealed'],
+    enabled: !!user,
+  });
+
+  const { data: voteAllocation, isLoading: isLoadingAllocation } = useQuery<{
+    votesUsed: number;
+    votesRemaining: number;
+  }>({
+    queryKey: ['/api/votes/allocation'],
+    enabled: !!user,
+  });
+
+  const { data: userVotes = [] } = useQuery<Vote[]>({
+    queryKey: ['/api/votes/mine'],
+    enabled: !!user,
+  });
+
+  const seedMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('/api/seed/questions', { method: 'POST' });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/questions/active'] });
+    },
+  });
+
+  useEffect(() => {
+    if (user && activeQuestions.length === 0 && revealedQuestions.length === 0 && !isLoadingActive && !isLoadingRevealed && !seedMutation.isPending) {
+      seedMutation.mutate();
+    }
+  }, [user, activeQuestions.length, revealedQuestions.length, isLoadingActive, isLoadingRevealed]);
+
+  const voteMutation = useMutation({
+    mutationFn: async (voteData: VoteData) => {
+      if (!user?.id) throw new Error('Not authenticated');
+      const response = await apiRequest('/api/votes', {
+        method: 'POST',
+        body: JSON.stringify(voteData),
+      }, user.id);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/votes/allocation'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/votes/mine'] });
+      toast({
+        title: 'Vote submitted!',
+        description: 'Your prediction has been locked in.',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Vote failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleVote = (questionId: string, choice: VoteChoice, isPublic: boolean) => {
+    voteMutation.mutate({ questionId, choice, isPublic, votesAllocated: 1 });
   };
+
+  const { data: resultsData = [] } = useQuery<ResultWithQuestion[]>({
+    queryKey: ['/api/results/revealed'],
+    queryFn: async () => {
+      const results = await Promise.all(
+        revealedQuestions.map(async (question) => {
+          try {
+            const resultsResponse = await fetch(`/api/results/${question.id}`);
+            const results = await resultsResponse.json();
+            
+            const userVote = userVotes.find(v => v.questionId === question.id) || null;
+            
+            return { question, results, userVote };
+          } catch (error) {
+            return null;
+          }
+        })
+      );
+      return results.filter((r): r is ResultWithQuestion => r !== null);
+    },
+    enabled: !!user && revealedQuestions.length > 0 && userVotes.length >= 0,
+  });
+
+  const votesUsed = voteAllocation?.votesUsed ?? 0;
+  const votesTotal = (voteAllocation?.votesUsed ?? 0) + (voteAllocation?.votesRemaining ?? 5);
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Please log in to continue</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen pb-20 md:pb-6">
       <div className="max-w-3xl mx-auto px-4 md:px-6 py-6">
         <div className="mb-6 flex justify-center">
-          <VoteMeter used={votesUsed} total={5} />
+          {isLoadingAllocation ? (
+            <Skeleton className="h-10 w-32" />
+          ) : (
+            <VoteMeter used={votesUsed} total={votesTotal} />
+          )}
         </div>
 
         <Tabs defaultValue="active" className="mb-6">
@@ -29,76 +148,111 @@ export default function Home() {
           </TabsList>
 
           <TabsContent value="active" className="space-y-6">
-            <PromptCard
-              questionType="consensus"
-              question="Which token will trend most on Twitter this week?"
-              context="Predict what the crowd thinks will happen"
-              closeAt={closeTime}
-              optionA="BONK"
-              optionB="DOGE"
-              optionC="WIF"
-              optionD="PEPE"
-              onVote={handleVote}
-            />
+            {isLoadingActive ? (
+              <>
+                <Skeleton className="h-64 w-full rounded-3xl" />
+                <Skeleton className="h-64 w-full rounded-3xl" />
+              </>
+            ) : activeQuestions.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground mb-2">No active questions</p>
+                <p className="text-sm text-muted-foreground">
+                  {seedMutation.isPending ? 'Loading questions...' : 'Check back soon for new predictions!'}
+                </p>
+              </div>
+            ) : (
+              activeQuestions.map((question) => {
+                const userVote = userVotes.find(v => v.questionId === question.id);
+                const hasVoted = !!userVote;
 
-            <PromptCard
-              questionType="prediction"
-              question="Will BTC close above $100k this week?"
-              closeAt={closeTime}
-              optionA="Yes, definitely"
-              optionB="No, below $100k"
-              onVote={handleVote}
-            />
-
-            <PromptCard
-              questionType="preference"
-              question="Most iconic crypto founder?"
-              context="Who does the crowd love most?"
-              closeAt={closeTime}
-              optionA="Vitalik"
-              optionB="Satoshi"
-              optionC="CZ"
-              optionD="SBF"
-              onVote={handleVote}
-            />
+                return (
+                  <PromptCard
+                    key={question.id}
+                    questionType={question.type}
+                    question={question.prompt}
+                    context={question.context || undefined}
+                    closeAt={question.revealsAt.toString()}
+                    optionA={question.optionA}
+                    optionB={question.optionB}
+                    optionC={question.optionC || undefined}
+                    optionD={question.optionD || undefined}
+                    onVote={(choice, isPublic) => handleVote(question.id, choice, isPublic)}
+                    disabled={hasVoted || voteMutation.isPending}
+                    userChoice={userVote?.choice}
+                  />
+                );
+              })
+            )}
           </TabsContent>
 
           <TabsContent value="results" className="space-y-6">
-            <ResultsReveal
-              question="Which memecoin mooned hardest in January?"
-              userChoice="D"
-              userChoiceLabel="PEPE"
-              results={[
-                { choice: 'A', label: 'BONK', percentage: 45, votes: 234, rank: 1 },
-                { choice: 'B', label: 'DOGE', percentage: 30, votes: 156, rank: 2 },
-                { choice: 'C', label: 'WIF', percentage: 20, votes: 104, rank: 3 },
-                { choice: 'D', label: 'PEPE', percentage: 5, votes: 26, rank: 4 },
-              ]}
-              pointsEarned={850}
-              multiplier={10}
-            />
+            {isLoadingRevealed ? (
+              <>
+                <Skeleton className="h-80 w-full rounded-3xl" />
+                <Skeleton className="h-80 w-full rounded-3xl" />
+              </>
+            ) : resultsData.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground mb-2">No results yet</p>
+                <p className="text-sm text-muted-foreground">
+                  Vote on active questions to see results when they're revealed!
+                </p>
+              </div>
+            ) : (
+              resultsData.map(({ question, results, userVote }) => {
+                if (!userVote) return null;
 
-            <ResultsReveal
-              question="Which chain will process the most transactions?"
-              userChoice="A"
-              userChoiceLabel="Solana"
-              results={[
-                { choice: 'A', label: 'Solana', percentage: 55, votes: 412, rank: 1 },
-                { choice: 'B', label: 'Ethereum', percentage: 45, votes: 338, rank: 2 },
-              ]}
-              pointsEarned={100}
-              multiplier={1}
-            />
+                const optionLabels: Record<VoteChoice, string> = {
+                  A: question.optionA,
+                  B: question.optionB,
+                  C: question.optionC || '',
+                  D: question.optionD || '',
+                };
+
+                const resultsList: Array<{ choice: VoteChoice; label: string; percentage: number; votes: number; rank: number }> = [
+                  { choice: 'A', label: question.optionA, percentage: results.percentA, votes: results.votesA, rank: 0 },
+                  { choice: 'B', label: question.optionB, percentage: results.percentB, votes: results.votesB, rank: 0 },
+                ];
+
+                if (question.optionC) {
+                  resultsList.push({ choice: 'C', label: question.optionC, percentage: results.percentC || 0, votes: results.votesC || 0, rank: 0 });
+                }
+                if (question.optionD) {
+                  resultsList.push({ choice: 'D', label: question.optionD, percentage: results.percentD || 0, votes: results.votesD || 0, rank: 0 });
+                }
+
+                const sorted = [...resultsList].sort((a, b) => b.percentage - a.percentage);
+                sorted.forEach((item, index) => {
+                  const original = resultsList.find(r => r.choice === item.choice);
+                  if (original) original.rank = index + 1;
+                });
+
+                const multiplier = results.rarityMultipliers?.[userVote.choice] || 1;
+                const pointsEarned = userVote.pointsEarned || (100 * multiplier);
+
+                return (
+                  <ResultsReveal
+                    key={question.id}
+                    question={question.prompt}
+                    userChoice={userVote.choice}
+                    userChoiceLabel={optionLabels[userVote.choice]}
+                    results={resultsList}
+                    pointsEarned={pointsEarned}
+                    multiplier={multiplier}
+                  />
+                );
+              })
+            )}
           </TabsContent>
         </Tabs>
 
-        {votesUsed >= 5 && (
+        {votesUsed >= votesTotal && !isLoadingAllocation && (
           <div className="mt-6 p-6 rounded-2xl bg-muted border border-border text-center">
             <p className="text-sm text-muted-foreground mb-2">
               You've used all your daily votes!
             </p>
             <p className="text-xs text-muted-foreground">
-              Come back tomorrow for 5 new votes.
+              Come back tomorrow for {votesTotal} new votes.
             </p>
           </div>
         )}

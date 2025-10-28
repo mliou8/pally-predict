@@ -16,6 +16,8 @@ interface PromptCardProps {
   optionD?: string;
   context?: string;
   onVote?: (choice: VoteChoice, isPublic: boolean) => void;
+  disabled?: boolean;
+  userChoice?: VoteChoice;
 }
 
 const categoryLabels: Record<QuestionType, string> = {
@@ -33,17 +35,17 @@ export default function PromptCard({
   optionC,
   optionD,
   context,
-  onVote 
+  onVote,
+  disabled = false,
+  userChoice
 }: PromptCardProps) {
   const [voteType, setVoteType] = useState<'public' | 'private'>('public');
-  const [hasVoted, setHasVoted] = useState(false);
-  const [selectedChoice, setSelectedChoice] = useState<VoteChoice | null>(null);
+  const hasVoted = disabled || !!userChoice;
+  const selectedChoice = userChoice || null;
 
   const handleVote = (choice: VoteChoice) => {
-    setHasVoted(true);
-    setSelectedChoice(choice);
+    if (disabled || hasVoted) return;
     onVote?.(choice, voteType === 'public');
-    console.log(`Voted ${choice} as ${voteType}`);
   };
 
   const getOptionLabel = (choice: VoteChoice): string => {

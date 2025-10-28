@@ -1,21 +1,36 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { usePrivy } from '@privy-io/react-auth';
 import LeaderboardRow from '@/components/LeaderboardRow';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
+import type { User } from '@shared/schema';
 
 export default function Leaderboard() {
   const [activeTab, setActiveTab] = useState('week');
+  const { user } = usePrivy();
 
-  //todo: remove mock functionality
-  const mockLeaderboard = [
-    { rank: 1, handle: '@DegenOracle', accuracyPct: 87, points: 4230, badges: ['🔥', '🧠'] },
-    { rank: 2, handle: '@CryptoTuna', accuracyPct: 84, points: 3970, badges: ['🧠'] },
-    { rank: 3, handle: '@AlphaHunter', accuracyPct: 82, points: 3540, badges: ['🔥'] },
-    { rank: 4, handle: '@MoonBoi', accuracyPct: 79, points: 3210, badges: [] },
-    { rank: 5, handle: '@DiamondHands', accuracyPct: 77, points: 2890, badges: ['🕵️'] },
-    { rank: 6, handle: '@WhaleWatcher', accuracyPct: 75, points: 2560, badges: [] },
-    { rank: 7, handle: '@BullMarket', accuracyPct: 73, points: 2340, badges: [] },
-    { rank: 8, handle: '@ChartMaster', accuracyPct: 71, points: 2120, badges: [] },
-  ];
+  const { data: leaderboardData = [], isLoading } = useQuery<User[]>({
+    queryKey: ['/api/leaderboard'],
+    enabled: !!user,
+  });
+
+  const { data: currentUser } = useQuery<User>({
+    queryKey: ['/api/user/me'],
+    enabled: !!user,
+  });
+
+  const currentUserRank = currentUser 
+    ? leaderboardData.findIndex(u => u.id === currentUser.id) + 1
+    : 0;
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Please log in to view leaderboard</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen pb-20 md:pb-6">
@@ -32,15 +47,59 @@ export default function Leaderboard() {
           </TabsList>
 
           <TabsContent value="week" className="space-y-2 mt-6">
-            {mockLeaderboard.map((entry) => (
-              <LeaderboardRow key={entry.rank} {...entry} />
-            ))}
+            {isLoading ? (
+              <>
+                {[...Array(8)].map((_, i) => (
+                  <Skeleton key={i} className="h-16 w-full rounded-xl" />
+                ))}
+              </>
+            ) : leaderboardData.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground mb-2">No leaderboard data yet</p>
+                <p className="text-sm text-muted-foreground">
+                  Start voting to see rankings!
+                </p>
+              </div>
+            ) : (
+              leaderboardData.map((entry, index) => (
+                <LeaderboardRow 
+                  key={entry.id} 
+                  rank={index + 1}
+                  handle={entry.handle || `@User${entry.id.slice(0, 4)}`}
+                  accuracyPct={0}
+                  points={entry.alphaPoints}
+                  badges={entry.badgesEarned}
+                />
+              ))
+            )}
           </TabsContent>
 
           <TabsContent value="alltime" className="space-y-2 mt-6">
-            {mockLeaderboard.map((entry) => (
-              <LeaderboardRow key={entry.rank} {...entry} />
-            ))}
+            {isLoading ? (
+              <>
+                {[...Array(8)].map((_, i) => (
+                  <Skeleton key={i} className="h-16 w-full rounded-xl" />
+                ))}
+              </>
+            ) : leaderboardData.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground mb-2">No leaderboard data yet</p>
+                <p className="text-sm text-muted-foreground">
+                  Start voting to see rankings!
+                </p>
+              </div>
+            ) : (
+              leaderboardData.map((entry, index) => (
+                <LeaderboardRow 
+                  key={entry.id} 
+                  rank={index + 1}
+                  handle={entry.handle || `@User${entry.id.slice(0, 4)}`}
+                  accuracyPct={0}
+                  points={entry.alphaPoints}
+                  badges={entry.badgesEarned}
+                />
+              ))
+            )}
           </TabsContent>
 
           <TabsContent value="guilds" className="mt-6">
@@ -53,15 +112,17 @@ export default function Leaderboard() {
           </TabsContent>
         </Tabs>
 
-        <div className="sticky bottom-20 md:bottom-6 mt-6 p-4 rounded-xl bg-primary/10 border border-primary/50">
-          <LeaderboardRow
-            rank={42}
-            handle="@You"
-            accuracyPct={68}
-            points={1020}
-            isCurrentUser
-          />
-        </div>
+        {currentUser && currentUserRank > 0 && (
+          <div className="sticky bottom-20 md:bottom-6 mt-6 p-4 rounded-xl bg-primary/10 border border-primary/50">
+            <LeaderboardRow
+              rank={currentUserRank}
+              handle={currentUser.handle || '@You'}
+              accuracyPct={0}
+              points={currentUser.alphaPoints}
+              isCurrentUser
+            />
+          </div>
+        )}
       </div>
     </div>
   );
