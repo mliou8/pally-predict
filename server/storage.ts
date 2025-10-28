@@ -27,8 +27,10 @@ export interface IStorage {
   getQuestion(id: string): Promise<Question | undefined>;
   getActiveQuestions(): Promise<Question[]>;
   getRevealedQuestions(limit?: number): Promise<Question[]>;
+  getAllQuestions(): Promise<Question[]>;
   createQuestion(question: InsertQuestion): Promise<Question>;
   updateQuestion(id: string, updates: Partial<Question>): Promise<Question | undefined>;
+  deleteQuestion(id: string): Promise<void>;
   
   // Vote operations
   getVote(userId: string, questionId: string): Promise<Vote | undefined>;
@@ -106,6 +108,13 @@ export class DbStorage implements IStorage {
       .limit(limit);
   }
 
+  async getAllQuestions(): Promise<Question[]> {
+    return await db
+      .select()
+      .from(questions)
+      .orderBy(desc(questions.dropsAt));
+  }
+
   async createQuestion(insertQuestion: InsertQuestion): Promise<Question> {
     const [question] = await db.insert(questions).values([insertQuestion]).returning();
     return question;
@@ -118,6 +127,10 @@ export class DbStorage implements IStorage {
       .where(eq(questions.id, id))
       .returning();
     return question;
+  }
+
+  async deleteQuestion(id: string): Promise<void> {
+    await db.delete(questions).where(eq(questions.id, id));
   }
 
   // Vote operations

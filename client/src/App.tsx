@@ -12,6 +12,7 @@ import Home from '@/pages/Home';
 import Leaderboard from '@/pages/Leaderboard';
 import History from '@/pages/History';
 import Profile from '@/pages/Profile';
+import Admin from '@/pages/Admin';
 import TopBar from '@/components/TopBar';
 import TabBar from '@/components/TabBar';
 
@@ -35,8 +36,8 @@ function AppContent() {
     }
   }, [ready, authenticated, location, setLocation]);
 
-  // Hide nav on splash and profile creation pages
-  const hideNav = location === '/splash' || location === '/create-profile';
+  // Hide nav on splash, profile creation, and admin pages
+  const hideNav = location === '/splash' || location === '/create-profile' || location === '/admin';
 
   // Show loading while Privy initializes
   if (!ready) {
@@ -63,6 +64,7 @@ function AppContent() {
         <Route path="/leaderboard" component={Leaderboard} />
         <Route path="/history" component={History} />
         <Route path="/profile" component={Profile} />
+        <Route path="/admin" component={Admin} />
         <Route component={NotFound} />
       </Switch>
       

@@ -304,6 +304,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ===== ADMIN ROUTES =====
+  
+  // Get all questions (admin only)
+  app.get('/api/admin/questions', async (req, res) => {
+    try {
+      const privyUserId = req.header('x-privy-user-id');
+      if (!privyUserId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      // TODO: Add proper admin check
+      // For now, allow all authenticated users to access admin
+
+      const questions = await storage.getAllQuestions();
+      res.json(questions);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Create question (admin only)
+  app.post('/api/admin/questions', async (req, res) => {
+    try {
+      const privyUserId = req.header('x-privy-user-id');
+      if (!privyUserId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      // TODO: Add proper admin check
+      // For now, allow all authenticated users to create questions
+
+      const questionData = insertQuestionSchema.parse(req.body);
+      const question = await storage.createQuestion(questionData);
+
+      res.status(201).json(question);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Delete question (admin only)
+  app.delete('/api/admin/questions/:id', async (req, res) => {
+    try {
+      const privyUserId = req.header('x-privy-user-id');
+      if (!privyUserId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      // TODO: Add proper admin check
+      // For now, allow all authenticated users to delete questions
+
+      const { id } = req.params;
+      await storage.deleteQuestion(id);
+
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ===== SEED DATA (Development only) =====
   
   app.post('/api/seed/questions', async (req, res) => {
