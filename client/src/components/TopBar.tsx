@@ -1,4 +1,4 @@
-import { Trophy, User } from 'lucide-react';
+import { Trophy, User, Settings } from 'lucide-react';
 import { Link } from 'wouter';
 import { useEffect, useState } from 'react';
 
@@ -123,8 +123,16 @@ export default function TopBar({ alphaPoints }: TopBarProps) {
           </Link>
         </div>
         
-        {/* Right: Leaderboard + Profile */}
+        {/* Right: Admin + Leaderboard + Profile */}
         <div className="flex items-center justify-end gap-2">
+          <Link href="/admin">
+            <button
+              className="p-2 rounded-lg hover-elevate active-elevate-2"
+              data-testid="button-admin"
+            >
+              <Settings size={20} className="text-foreground" />
+            </button>
+          </Link>
           <Link href="/leaderboard">
             <button
               className="p-2 rounded-lg hover-elevate active-elevate-2"
