@@ -12,18 +12,39 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**October 28, 2025 (Navigation Redesign)**: Complete navigation and branding overhaul
+- **New Global TopBar**: 
+  - Left: α Points counter with gradient pill (replaces all ⚡ lightning bolts)
+  - Center: "PALLY ARENA" clickable logo (returns to Home) with universal timer
+  - Right: Leaderboard + Profile icon buttons
+  - Sticky at top across all pages
+- **Universal 24-Hour Timer**: 
+  - Single global timer in TopBar: "Next Question in HH:MM:SS"
+  - Properly handles DST transitions (detects EDT vs EST for target date)
+  - Counts down to 12:00 PM ET (noon) daily
+  - Removed per-question countdown timers from cards
+- **Alpha Symbol (α) Branding**:
+  - Replaced all lightning bolt (⚡) icons with alpha symbol (α)
+  - Consistent across TopBar, results, profile history, leaderboard
+  - Emphasizes "Alpha points" terminology
+- **Rank System on Profile**:
+  - Progress bar showing rank advancement (Bronze → Silver → Gold → Platinum → Diamond)
+  - Tiers: Bronze (0-499), Silver (500-999), Gold (1000-1999), Platinum (2000-4999), Diamond (5000+)
+  - Next tier display with points needed
+- **7-Day Season Countdown**:
+  - Leaderboard shows countdown to season end
+  - Proper rolling 7-day cycle from epoch (Jan 1, 2024 12pm ET)
+  - Format: "Season ends in X days Y hours"
+- **Post-Vote UX Fix**: After voting, immediately shows selected answer highlighted + locked state (no blank screen)
+
 **October 28, 2025 (Spec v2)**: Completed full spec v2 implementation
 - **Game Mechanics Update**: Removed daily vote allocation (no 5 votes/day cap), now one answer per question per user
-- **Multiplier System**: Public votes = ×2 points, Private votes = ×1 point (down from ×2/×1 split)
+- **Multiplier System**: Public votes = ×2 points, Private votes = ×1 point
 - **UI/UX Enhancements**: 
-  - Added Profile icon to TopBar for quick access
-  - Implemented Public/Private toggle with live multiplier pill (⚡×2 or ⚡×1)
-  - Added helper text explaining visibility ("Your answer will appear on your profile & public feeds" vs "Only you can see this in History")
-  - Lightning bolt ⚡ now used consistently for all point displays (header, results, profile, leaderboard)
-  - Added Leaderboard buttons to Home and Profile pages for easier navigation
-  - Enhanced Profile page history with detailed vote information (date, question, answer, visibility badge, points earned, outcome)
+  - Implemented Public/Private toggle with live multiplier pill (α×2 or α×1)
+  - Added helper text explaining visibility
+  - Enhanced Profile page history with detailed vote information
   - Added Daily/Weekly/All-time tabs to Leaderboard
-- **Text Updates**: Changed all "Next drop" references to "Next question" throughout app
 - **Question Reset Time**: Questions drop and reveal at 12:00 PM ET (noon), not midnight
 
 **October 28, 2025 (Initial)**: Completed full backend integration
