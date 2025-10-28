@@ -60,6 +60,21 @@ export default function Home() {
     }
   }, [user, activeQuestions.length, revealedQuestions.length, isLoadingActive, isLoadingRevealed]);
 
+  // Auto-refresh questions when reveal times pass
+  useEffect(() => {
+    if (!user) return;
+
+    const interval = setInterval(() => {
+      // Refresh queries to detect newly revealed questions
+      queryClient.invalidateQueries({ queryKey: ['/api/questions/active'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/questions/revealed'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/results/revealed'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/votes/mine'] });
+    }, 30000); // Check every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [user]);
+
   const voteMutation = useMutation({
     mutationFn: async (voteData: VoteData) => {
       if (!user?.id) throw new Error('Not authenticated');
@@ -71,6 +86,9 @@ export default function Home() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/votes/mine'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/results/revealed'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/questions/active'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/questions/revealed'] });
       toast({
         title: 'Vote submitted!',
         description: 'Your prediction has been locked in.',
@@ -90,7 +108,7 @@ export default function Home() {
   };
 
   const { data: resultsData = [] } = useQuery<ResultWithQuestion[]>({
-    queryKey: ['/api/results/revealed'],
+    queryKey: ['/api/results/revealed', revealedQuestions.map(q => q.id).join(','), userVotes.length],
     queryFn: async () => {
       const results = await Promise.all(
         revealedQuestions.map(async (question) => {
@@ -154,7 +172,57 @@ export default function Home() {
               activeQuestions.map((question) => {
                 const userVote = userVotes.find(v => v.questionId === question.id);
                 const hasVoted = !!userVote;
+                const revealTime = new Date(question.revealsAt).getTime();
+                const hasRevealed = Date.now() > revealTime;
 
+                // If user voted and question has revealed, show results
+                if (hasVoted && hasRevealed && userVote) {
+                  const resultData = resultsData.find(r => r.question.id === question.id);
+                  
+                  if (resultData) {
+                    const optionLabels: Record<VoteChoice, string> = {
+                      A: question.optionA,
+                      B: question.optionB,
+                      C: question.optionC || '',
+                      D: question.optionD || '',
+                    };
+
+                    const resultsList: Array<{ choice: VoteChoice; label: string; percentage: number; votes: number; rank: number }> = [
+                      { choice: 'A', label: question.optionA, percentage: resultData.results.percentA, votes: resultData.results.votesA, rank: 0 },
+                      { choice: 'B', label: question.optionB, percentage: resultData.results.percentB, votes: resultData.results.votesB, rank: 0 },
+                    ];
+
+                    if (question.optionC) {
+                      resultsList.push({ choice: 'C', label: question.optionC, percentage: resultData.results.percentC || 0, votes: resultData.results.votesC || 0, rank: 0 });
+                    }
+                    if (question.optionD) {
+                      resultsList.push({ choice: 'D', label: question.optionD, percentage: resultData.results.percentD || 0, votes: resultData.results.votesD || 0, rank: 0 });
+                    }
+
+                    const sorted = [...resultsList].sort((a, b) => b.percentage - a.percentage);
+                    sorted.forEach((item, index) => {
+                      const original = resultsList.find(r => r.choice === item.choice);
+                      if (original) original.rank = index + 1;
+                    });
+
+                    const multiplier = resultData.results.rarityMultipliers?.[userVote.choice] || 1;
+                    const pointsEarned = userVote.pointsEarned || (100 * multiplier);
+
+                    return (
+                      <ResultsReveal
+                        key={question.id}
+                        question={question.prompt}
+                        userChoice={userVote.choice}
+                        userChoiceLabel={optionLabels[userVote.choice]}
+                        results={resultsList}
+                        pointsEarned={pointsEarned}
+                        multiplier={multiplier}
+                      />
+                    );
+                  }
+                }
+
+                // Otherwise show the prompt card
                 return (
                   <PromptCard
                     key={question.id}
