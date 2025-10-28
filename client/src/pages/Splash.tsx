@@ -29,7 +29,7 @@ export default function Splash() {
 
         <div className="space-y-3">
           <Button
-            onClick={() => login()}
+            onClick={() => login({ loginMethods: ['wallet'] })}
             className="w-full bg-gradient-to-r from-primary to-brand-magenta hover:opacity-90 transition-opacity"
             size="lg"
             data-testid="button-connect-wallet"
