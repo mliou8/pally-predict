@@ -1,4 +1,4 @@
-import { CheckCircle2, XCircle, Zap, Eye, EyeOff } from 'lucide-react';
+import { CheckCircle2, XCircle, Eye, EyeOff } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface HistoryCardProps {
@@ -83,7 +83,7 @@ export default function HistoryCard({
         )}
         {isCorrect && pointsEarned > 0 && (
           <Badge variant="outline" className="text-xs font-mono inline-flex items-center gap-1">
-            <Zap size={12} fill="currentColor" className="text-gold" />
+            <span className="text-gold font-bold" style={{ fontSize: '12px' }}>α</span>
             +{pointsEarned}
           </Badge>
         )}

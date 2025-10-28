@@ -8,6 +8,8 @@ import HistoryCard from '@/components/HistoryCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { getRankInfo, getRankColor } from '@/lib/ranks';
 import type { User, Vote, Question, QuestionResults } from '@shared/schema';
 
 interface VoteWithDetails {
@@ -59,6 +61,7 @@ export default function Profile() {
   const publicHistory = votesWithDetails.filter(({ vote }) => vote.isPublic);
   const privateHistory = votesWithDetails.filter(({ vote }) => !vote.isPublic);
 
+  const rankInfo = currentUser ? getRankInfo(currentUser.alphaPoints) : null;
   const badges = currentUser?.badgesEarned || [];
   const badgeDetails = [
     { name: '3 Correct in a Row', icon: '🔥', description: 'Win streak of 3+' },
@@ -158,6 +161,39 @@ export default function Profile() {
             totalPoints={currentUser.alphaPoints}
           />
         ) : null}
+
+        {!isLoadingUser && currentUser && rankInfo && (
+          <div className="p-6 rounded-3xl border border-border bg-card space-y-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2" data-testid="rank-badge">
+                <span className="text-2xl">{rankInfo.emoji}</span>
+                <span className="font-semibold text-lg text-foreground">
+                  {rankInfo.current}
+                </span>
+              </div>
+              <div className="text-sm font-medium text-muted-foreground">
+                α {currentUser.alphaPoints}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Progress 
+                value={rankInfo.progressPercent} 
+                className="h-2"
+                data-testid="rank-progress"
+              />
+              {rankInfo.nextRank ? (
+                <p className="text-sm text-muted-foreground" data-testid="rank-next">
+                  Next Rank: {rankInfo.nextRank} ({rankInfo.pointsToNext} pts to go)
+                </p>
+              ) : (
+                <p className="text-sm font-semibold text-foreground" data-testid="rank-next">
+                  Max Rank Achieved!
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-3">

@@ -14,15 +14,10 @@ import History from '@/pages/History';
 import Profile from '@/pages/Profile';
 import TopBar from '@/components/TopBar';
 import TabBar from '@/components/TabBar';
-import NotificationsDrawer from '@/components/NotificationsDrawer';
 
 function AppContent() {
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [location, setLocation] = useLocation();
   const { ready, authenticated } = usePrivy();
-  
-  //todo: remove mock functionality
-  const nextDrop = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString();
 
   // Redirect logic based on authentication
   useEffect(() => {
@@ -58,11 +53,7 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-background">
       {!hideNav && (
-        <TopBar 
-          alphaPoints={1020} 
-          nextDropTime={nextDrop}
-          onNotificationsClick={() => setNotificationsOpen(true)}
-        />
+        <TopBar alphaPoints={1020} />
       )}
       
       <Switch>
@@ -76,10 +67,6 @@ function AppContent() {
       </Switch>
       
       {!hideNav && <TabBar />}
-      <NotificationsDrawer 
-        open={notificationsOpen} 
-        onOpenChange={setNotificationsOpen}
-      />
     </div>
   );
 }

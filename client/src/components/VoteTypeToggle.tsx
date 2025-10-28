@@ -1,4 +1,4 @@
-import { Eye, EyeOff, Zap } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface VoteTypeToggleProps {
@@ -50,7 +50,7 @@ export default function VoteTypeToggle({ value, onChange }: VoteTypeToggleProps)
           variant="secondary" 
           className="bg-gradient-to-r from-primary/20 to-brand-magenta/20 border-primary/50"
         >
-          <Zap className="inline mr-1" size={12} fill="currentColor" />
+          <span className="text-gold font-bold mr-1" style={{ fontSize: '12px' }}>α</span>
           ×{multiplier} Point{multiplier > 1 ? 's' : ''}
         </Badge>
       </div>

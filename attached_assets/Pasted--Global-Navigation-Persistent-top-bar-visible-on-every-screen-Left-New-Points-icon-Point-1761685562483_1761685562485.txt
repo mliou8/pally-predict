@@ -1,0 +1,116 @@
+🧭 Global Navigation
+
+Persistent top bar (visible on every screen):
+
+Left:
+
+New Points icon (α Points) — starts at 0 and increments as users earn points.
+
+Replace ⚡ with another symbol (e.g., ⭐ , 🏅 , ⬡ , 🪙 , or custom “α” coin glyph).
+
+Label: α 0 Points → live counter.
+
+Center:
+
+Pali Arena Logo / Home — always clickable, routes to Home (Question of the Day).
+
+Right:
+
+Leaderboard 🏆 → leaderboard page
+
+Profile 👤 → profile page
+
+⏱ Universal 24-Hour Timer (Top Bar Only)
+
+Single global countdown (not per question):
+Next Question in HH:MM:SS → ticks continuously, resets daily at 12 p.m. ET.
+
+Placement: right-aligned in the top nav bar, perfectly vertical-centered with text baseline.
+
+Remove any secondary timers from question cards.
+
+🏠 Home / Question of the Day Screen
+
+Header: (top nav present as above)
+
+Card content:
+
+Question text
+
+Answer options (MCQs or input)
+
+Public / Private toggle → shows multiplier pill (×2 / ×1)
+
+Submit button (disabled until selection made)
+
+After Submit:
+
+Instantly replace the blank options with:
+
+User’s chosen answer highlighted (state saved locally and from API).
+
+“Answer locked in – results reveal at 12 p.m. ET.”
+
+Disable further interaction until reset.
+
+No blank state after vote (submission should re-render immediately).
+
+👤 Profile Page
+
+Header: (top nav persistent)
+
+Profile section:
+
+Username (display and edit option)
+
+Rank badge / title (e.g., Bronze → Silver → Gold → Platinum → Diamond)
+
+Progress bar → {points_to_next_rank} remaining
+
+Example: “Next Rank: Silver (240 pts to go)”
+
+Total Points (α Points)
+
+Streak counter (optional)
+
+History list: Past questions + answers + visibility + points earned + result.
+
+🏆 Leaderboard Page
+
+Accessed directly from nav bar (not nested in profile).
+
+Tabs: Daily · Weekly · All-time
+
+Columns: Rank | Username | Points (α) | Rank Badge (optional)
+
+🎨 UI Details / Alignment Fixes
+
+Ensure the global timer text is horizontally and vertically centered with the nav bar text.
+
+Top-left points icon and count should align visually with the timer text height.
+
+After voting, the UI must react instantly (show highlighted choice + disabled state).
+
+No duplicated countdowns below question card.
+
+Active nav item should be visually highlighted (e.g., underline or glow state).
+
+⚙️ Logic Summary
+Feature	Behavior
+Reset	Daily 12 p.m. ET
+Points	Start at 0 → increment after each correct vote
+Visibility Multiplier	Public ×2 points, Private ×1 point
+Ranks	e.g., Bronze (0–499), Silver (500–999), Gold (1000–1999), etc.
+Leaderboard Scope	Daily / Weekly / All-time
+UI State After Vote	Locked, answer visible, timer at top continues ticking
+🧩 Next Design Tasks
+
+✅ Replace lightning bolt icon with chosen points glyph (define final SVG asset name: alpha_coin.svg or star.svg).
+
+✅ Align universal timer within nav bar.
+
+✅ Implement profile rank progress bar.
+
+✅ Fix vote state re-render logic (post-submit blank bug).
+
+✅ Move Leaderboard link to top nav.
