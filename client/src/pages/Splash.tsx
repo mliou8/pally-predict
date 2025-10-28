@@ -9,7 +9,8 @@ export default function Splash() {
 
   const handleLogin = (method: string) => {
     console.log('Login with:', method);
-    setLocation('/');
+    // After authentication, redirect to profile creation
+    setLocation('/create-profile');
   };
 
   return (
