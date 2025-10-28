@@ -40,7 +40,7 @@ export default function Splash() {
 
           <div className="grid grid-cols-2 gap-3">
             <Button
-              onClick={() => login()}
+              onClick={() => login({ loginMethods: ['twitter'] })}
               variant="outline"
               className="w-full"
               size="lg"
@@ -51,7 +51,7 @@ export default function Splash() {
             </Button>
 
             <Button
-              onClick={() => login()}
+              onClick={() => login({ loginMethods: ['google'] })}
               variant="outline"
               className="w-full"
               size="lg"
@@ -64,7 +64,7 @@ export default function Splash() {
 
           <div className="grid grid-cols-2 gap-3">
             <Button
-              onClick={() => login()}
+              onClick={() => login({ loginMethods: ['discord'] })}
               variant="outline"
               className="w-full"
               size="lg"
@@ -75,7 +75,7 @@ export default function Splash() {
             </Button>
 
             <Button
-              onClick={() => login()}
+              onClick={() => login({ loginMethods: ['email'] })}
               variant="outline"
               className="w-full"
               size="lg"
