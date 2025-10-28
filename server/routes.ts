@@ -143,7 +143,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'User not found' });
       }
 
-      const { questionId, choice, votesAllocated = 1, isPublic = true } = req.body;
+      const { questionId, choice, isPublic = true } = req.body;
 
       // Check if question exists and is active
       const question = await storage.getQuestion(questionId);
@@ -161,45 +161,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Already voted on this question' });
       }
 
-      // Check daily vote allocation
-      const today = new Date().toISOString().split('T')[0];
-      let allocation = await storage.getDailyVoteAllocation(user.id, today);
-      
-      if (!allocation) {
-        // Create new allocation for today
-        allocation = await storage.createDailyVoteAllocation({
-          userId: user.id,
-          date: today,
-          votesUsed: 0,
-          votesRemaining: 5,
-        });
-      }
-
-      if (allocation.votesRemaining < votesAllocated) {
-        return res.status(400).json({ 
-          error: 'Not enough votes remaining',
-          votesRemaining: allocation.votesRemaining 
-        });
-      }
-
       // Create the vote
       const voteData = insertVoteSchema.parse({
         userId: user.id,
         questionId,
         choice,
-        votesAllocated,
         isPublic,
       });
 
       const vote = await storage.createVote(voteData);
 
-      // Update daily allocation
-      await storage.updateDailyVoteAllocation(allocation.id, {
-        votesUsed: allocation.votesUsed + votesAllocated,
-        votesRemaining: allocation.votesRemaining - votesAllocated,
-      });
-
-      res.status(201).json({ vote, votesRemaining: allocation.votesRemaining - votesAllocated });
+      res.status(201).json({ vote });
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }
@@ -245,37 +217,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get daily vote allocation
-  app.get('/api/votes/allocation', async (req, res) => {
-    try {
-      const privyUserId = req.header('x-privy-user-id');
-      if (!privyUserId) {
-        return res.status(401).json({ error: 'Not authenticated' });
-      }
-
-      const user = await storage.getUserByPrivyId(privyUserId);
-      if (!user) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-
-      const today = new Date().toISOString().split('T')[0];
-      let allocation = await storage.getDailyVoteAllocation(user.id, today);
-
-      if (!allocation) {
-        allocation = await storage.createDailyVoteAllocation({
-          userId: user.id,
-          date: today,
-          votesUsed: 0,
-          votesRemaining: 5,
-        });
-      }
-
-      res.json(allocation);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
   // ===== RESULTS ROUTES =====
   
   // Get question results
@@ -294,11 +235,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!results) {
         // Calculate results if not yet calculated
         const votes = await storage.getQuestionVotes(req.params.questionId);
-        const totalVotes = votes.reduce((sum, v) => sum + v.votesAllocated, 0);
+        const totalVotes = votes.length;
 
         const voteCounts = { A: 0, B: 0, C: 0, D: 0 };
         votes.forEach(v => {
-          voteCounts[v.choice] += v.votesAllocated;
+          voteCounts[v.choice] += 1;
         });
 
         const percentages = {
@@ -332,16 +273,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Award points to voters
         for (const vote of votes) {
-          const multiplier = rarityMultipliers[vote.choice];
+          const rarityMultiplier = rarityMultipliers[vote.choice];
+          const publicMultiplier = vote.isPublic ? 2 : 1;
           const basePoints = 100;
-          const points = basePoints * multiplier;
+          const points = basePoints * rarityMultiplier * publicMultiplier;
 
           await storage.updateUser(vote.userId, {
             alphaPoints: (await storage.getUser(vote.userId))!.alphaPoints + points,
           });
-
-          // Store points earned on vote
-          // Note: This would require updating the vote record, which we'll skip for now
         }
 
         return res.json(newResults);

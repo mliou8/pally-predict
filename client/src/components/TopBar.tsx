@@ -1,4 +1,5 @@
-import { Bell } from 'lucide-react';
+import { Bell, User } from 'lucide-react';
+import { Link } from 'wouter';
 import AlphaPointsPill from './AlphaPointsPill';
 import Countdown from './Countdown';
 
@@ -20,18 +21,28 @@ export default function TopBar({ alphaPoints, nextDropTime, onNotificationsClick
           </h1>
           {nextDropTime && (
             <div className="text-xs text-muted-foreground">
-              Next drop <Countdown to={nextDropTime} size="sm" />
+              Next question <Countdown to={nextDropTime} size="sm" />
             </div>
           )}
         </div>
         
-        <button
-          onClick={onNotificationsClick}
-          className="p-2 rounded-lg hover-elevate active-elevate-2"
-          data-testid="button-notifications"
-        >
-          <Bell size={20} className="text-foreground" />
-        </button>
+        <div className="flex items-center gap-2">
+          <Link href="/profile">
+            <button
+              className="p-2 rounded-lg hover-elevate active-elevate-2"
+              data-testid="button-profile"
+            >
+              <User size={20} className="text-foreground" />
+            </button>
+          </Link>
+          <button
+            onClick={onNotificationsClick}
+            className="p-2 rounded-lg hover-elevate active-elevate-2"
+            data-testid="button-notifications"
+          >
+            <Bell size={20} className="text-foreground" />
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
+import { Zap } from 'lucide-react';
 
 interface PointsBurstProps {
   amount: number;
@@ -16,9 +16,9 @@ export default function PointsBurst({ amount, multiplier }: PointsBurstProps) {
       data-testid="points-burst"
     >
       <div className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-primary/20 to-brand-magenta/20 border border-primary/50">
-        <Sparkles className="text-gold" size={24} />
+        <Zap className="text-gold" size={24} fill="currentColor" />
         <span className="font-display text-3xl font-bold bg-gradient-to-r from-primary to-brand-magenta bg-clip-text text-transparent">
-          +{amount} α
+          +{amount}
         </span>
       </div>
       <p className="mt-2 text-sm text-muted-foreground font-mono">

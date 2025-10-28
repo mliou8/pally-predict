@@ -1,0 +1,148 @@
+Got it—thanks for the crisp notes. Here’s a tight update pass to the spec so your build team can implement immediately.
+
+# Daily Question App — Spec Update (v2)
+
+## Core changes
+
+1. **Remove vote caps**
+
+   * **Delete**: “5/5 votes used” meter everywhere.
+   * **No throttling**: Users can answer the daily question once per account; no separate “votes” concept.
+
+2. **“Next drop” → “Next question”**
+
+   * Replace all UI text: **Next Drop** → **Next Question**.
+
+3. **Daily reset**
+
+   * **Reset time**: Every day at **12:00 p.m. ET** (11:00 a.m. CT).
+   * **Countdown**: Show `HH:MM:SS until next question` wherever the question card appears.
+   * **Rule**: One answer per user per daily question; lock answers after submission until the next reset.
+
+4. **Profile & Leaderboard access**
+
+   * Add a top-right **Profile** icon/button.
+
+     * **Profile screen** shows:
+
+       * Username (editable if allowed by policy).
+       * Points balance.
+       * Streak (consecutive days answered).
+       * History: list of past questions, user’s answer, outcome (Majority/Public/Private), points earned.
+     * Actions: **Edit username** (if enabled), **View history** (deep link to the list).
+   * Add a **Leaderboard** button on the Home and Profile.
+
+     * Tabs: **Daily**, **Weekly**, **All-time**.
+     * Each row: rank, username, points, streak badge.
+
+5. **Public vs Private toggle (points multiplier)**
+
+   * Toggle lives on the answer composer.
+   * **Public = ×2 points**, **Private = ×1 point**.
+   * On toggle, show a live multiplier pill next to the submit button:
+
+     * Public: `×2 Points` (use a bold accent).
+     * Private: `×1 Point` (neutral tone).
+   * Also show a tiny helper text:
+
+     * Public: “Your answer will appear on your profile & public feeds.”
+     * Private: “Only you can see this in History.”
+
+6. **Lightning bolt icon ⚡**
+
+   * Purpose: **Points** shorthand + **streak power** indicator.
+   * Use it consistently as the **points glyph**:
+
+     * Next to the points balance in the header: `⚡ 1,240`.
+     * On results: `+⚡20` (Public) or `+⚡10` (Private).
+     * On streak badge: a small ⚡ overlay to signal streak multiplier (e.g., `Streak ×1.1`).
+   * If you **don’t** want streaks/multipliers beyond the Public/Private rule, keep ⚡ purely as the **points icon** (no extra logic).
+
+---
+
+## Updated UI flows
+
+### Home (Question of the Day)
+
+* Header: App logo · `⚡ {points}` · [Profile] · [Leaderboard]
+* Card:
+
+  * Question text
+  * **Answer input** (MCQ or text depending on the day)
+  * **Visibility toggle**: Public / Private with live pill `×2` or `×1`
+  * **Submit** button (disabled until an option/text is chosen)
+  * Footer: `Next question in 05:12:43` (auto-ticking)
+* After submit:
+
+  * Replace input with: “Thanks! Your answer is locked in.”
+  * Show your selection and visibility (Public/Private).
+  * Hide any aggregate sentiment/results until the reveal.
+
+### Results reveal (after 12:00 p.m. ET reset)
+
+* Show the **majority** or **predicted outcome** depending on question type.
+* Show **points earned** with the multiplier badge:
+
+  * `You earned +⚡20 (Public ×2)`
+* CTA: “Go to History” and “Share” (for Public answers).
+
+### Profile
+
+* Username (editable if allowed), avatar (optional), `⚡ points`, streak.
+* Buttons: **Edit Username**, **History**, **Leaderboard**.
+* History list:
+
+  * Row item: Date, question, your answer, visibility (Public/Private), points earned, result (e.g., “Majority” or “Prediction correct/incorrect”).
+  * Tap for detail screen.
+
+### Leaderboard
+
+* Tabs: Daily · Weekly · All-time
+* Row: Rank · Username · `⚡ points` · Streak badge (optional).
+
+---
+
+## Text & labels (exact copy)
+
+* “Next question in {countdown}”
+* Toggle labels: “Public (×2 points)” / “Private (×1 point)”
+* Submit states:
+
+  * Enabled: “Submit”
+  * After submit: “Answer locked. Results reveal at 12:00 p.m. ET.”
+* Points gain: “You earned +⚡{points}”
+* Profile buttons: “Edit username” · “View history”
+* Leaderboard tabs: “Daily” · “Weekly” · “All-time”
+
+---
+
+## Logic rules (succinct)
+
+* **Reset**: `T_reset = 12:00:00 ET` daily. Countdown = `T_reset – now`.
+* **Visibility multiplier**:
+
+  * Public: `award = base_points × 2`
+  * Private: `award = base_points × 1`
+* **Results privacy**: No aggregate sentiment, no majority % until after reveal.
+* **One answer/day**: Enforce per user ID.
+* **Username**: unique validation (if editable). Rate-limit changes.
+
+---
+
+## Edge cases
+
+* User opens just before reset (<10s): submitting after cutover applies to **new** day; show toast if cutoff occurs during submit.
+* Timezone display: lock all reveal messaging to **ET** and optionally show “(resets 11:00 a.m. your time)” for Central users.
+* Offline: allow drafting; submission requires online; cache last seen countdown.
+
+---
+
+## Analytics/events
+
+* `view_question`, `toggle_visibility`, `submit_answer`, `view_profile`, `view_leaderboard`, `view_history`, `reveal_results`, `share_result`.
+
+---
+
+If you want ⚡ to also mean a **streak booster**, I can layer a simple streak table (e.g., +10% per 3-day band, capped at ×1.5) and show it in Profile and the submit card. Otherwise, we’ll keep ⚡ purely as the points glyph.
+
+Want me to push an updated wireframe with these exact labels and states?

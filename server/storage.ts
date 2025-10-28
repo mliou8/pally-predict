@@ -5,7 +5,6 @@ import {
   questions,
   votes,
   questionResults,
-  dailyVoteAllocation,
   type User,
   type InsertUser,
   type Question,
@@ -14,8 +13,6 @@ import {
   type InsertVote,
   type QuestionResults,
   type InsertQuestionResults,
-  type DailyVoteAllocation,
-  type InsertDailyVoteAllocation,
 } from '@shared/schema';
 
 export interface IStorage {
@@ -43,11 +40,6 @@ export interface IStorage {
   getQuestionResults(questionId: string): Promise<QuestionResults | undefined>;
   createQuestionResults(results: InsertQuestionResults): Promise<QuestionResults>;
   updateQuestionResults(questionId: string, updates: Partial<QuestionResults>): Promise<QuestionResults | undefined>;
-  
-  // Daily vote allocation operations
-  getDailyVoteAllocation(userId: string, date: string): Promise<DailyVoteAllocation | undefined>;
-  createDailyVoteAllocation(allocation: InsertDailyVoteAllocation): Promise<DailyVoteAllocation>;
-  updateDailyVoteAllocation(id: string, updates: Partial<DailyVoteAllocation>): Promise<DailyVoteAllocation | undefined>;
   
   // Leaderboard operations
   getLeaderboard(limit?: number): Promise<User[]>;
@@ -183,35 +175,6 @@ export class DbStorage implements IStorage {
       .where(eq(questionResults.questionId, questionId))
       .returning();
     return results;
-  }
-
-  // Daily vote allocation operations
-  async getDailyVoteAllocation(userId: string, date: string): Promise<DailyVoteAllocation | undefined> {
-    const [allocation] = await db
-      .select()
-      .from(dailyVoteAllocation)
-      .where(and(eq(dailyVoteAllocation.userId, userId), eq(dailyVoteAllocation.date, date)))
-      .limit(1);
-    return allocation;
-  }
-
-  async createDailyVoteAllocation(
-    insertAllocation: InsertDailyVoteAllocation
-  ): Promise<DailyVoteAllocation> {
-    const [allocation] = await db.insert(dailyVoteAllocation).values([insertAllocation]).returning();
-    return allocation;
-  }
-
-  async updateDailyVoteAllocation(
-    id: string,
-    updates: Partial<DailyVoteAllocation>
-  ): Promise<DailyVoteAllocation | undefined> {
-    const [allocation] = await db
-      .update(dailyVoteAllocation)
-      .set(updates)
-      .where(eq(dailyVoteAllocation.id, id))
-      .returning();
-    return allocation;
   }
 
   // Leaderboard operations

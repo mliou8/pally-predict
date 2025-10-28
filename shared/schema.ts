@@ -43,7 +43,6 @@ export const votes = pgTable("votes", {
   userId: varchar("user_id").notNull().references(() => users.id),
   questionId: varchar("question_id").notNull().references(() => questions.id),
   choice: varchar("choice").notNull().$type<VoteChoice>(),
-  votesAllocated: integer("votes_allocated").notNull().default(1),
   isPublic: boolean("is_public").notNull().default(true),
   pointsEarned: integer("points_earned"),
   multiplier: integer("multiplier"),
@@ -64,14 +63,6 @@ export const questionResults = pgTable("question_results", {
   votesD: integer("votes_d").default(0),
   rarityMultipliers: jsonb("rarity_multipliers").$type<{A: number, B: number, C?: number, D?: number}>(),
   revealedAt: timestamp("revealed_at"),
-});
-
-export const dailyVoteAllocation = pgTable("daily_vote_allocation", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  date: varchar("date").notNull(),
-  votesUsed: integer("votes_used").notNull().default(0),
-  votesRemaining: integer("votes_remaining").notNull().default(5),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -96,10 +87,6 @@ export const insertQuestionResultsSchema = createInsertSchema(questionResults).o
   revealedAt: true,
 });
 
-export const insertDailyVoteAllocationSchema = createInsertSchema(dailyVoteAllocation).omit({
-  id: true,
-});
-
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
@@ -111,6 +98,3 @@ export type Vote = typeof votes.$inferSelect;
 
 export type InsertQuestionResults = z.infer<typeof insertQuestionResultsSchema>;
 export type QuestionResults = typeof questionResults.$inferSelect;
-
-export type InsertDailyVoteAllocation = z.infer<typeof insertDailyVoteAllocationSchema>;
-export type DailyVoteAllocation = typeof dailyVoteAllocation.$inferSelect;

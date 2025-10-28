@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { usePrivy } from '@privy-io/react-auth';
+import { Link } from 'wouter';
+import { Trophy } from 'lucide-react';
 import ProfileHeader from '@/components/ProfileHeader';
 import HistoryCard from '@/components/HistoryCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 import type { User, Vote, Question, QuestionResults } from '@shared/schema';
 
 interface VoteWithDetails {
@@ -92,21 +95,41 @@ export default function Profile() {
       };
 
       const userChoiceLabel = optionLabels[vote.choice] || vote.choice;
-      const outcome = results ? 'correct' : 'pending';
       const pointsEarned = vote.pointsEarned || 0;
       const crowdSplitA = results ? results.percentA : 0;
       const crowdSplitB = results ? results.percentB : 0;
+
+      let outcome: 'correct' | 'incorrect' | 'pending' = 'pending';
+      let outcomeDescription: string | undefined;
+
+      if (results) {
+        const percentages = [
+          { choice: 'A', percent: results.percentA },
+          { choice: 'B', percent: results.percentB },
+          { choice: 'C', percent: results.percentC || 0 },
+          { choice: 'D', percent: results.percentD || 0 },
+        ];
+        const sorted = [...percentages].sort((a, b) => b.percent - a.percent);
+        const topChoice = sorted[0].choice;
+        const isMajority = vote.choice === topChoice;
+        
+        outcome = pointsEarned > 0 ? 'correct' : 'incorrect';
+        outcomeDescription = isMajority ? 'Majority prediction' : 'Minority prediction';
+      }
 
       return (
         <HistoryCard
           key={vote.id}
           question={question.prompt}
-          userChoice={userChoiceLabel}
-          outcome={outcome as 'correct' | 'incorrect'}
+          choice={vote.choice}
+          userChoiceLabel={userChoiceLabel}
+          outcome={outcome}
           pointsEarned={pointsEarned}
           timestamp={vote.votedAt.toString()}
           crowdSplitA={crowdSplitA}
           crowdSplitB={crowdSplitB}
+          isPublic={vote.isPublic}
+          outcomeDescription={outcomeDescription}
         />
       );
     });
@@ -115,6 +138,15 @@ export default function Profile() {
   return (
     <div className="min-h-screen pb-20 md:pb-6">
       <div className="max-w-4xl mx-auto px-4 md:px-6 py-6 space-y-6">
+        <div className="flex justify-end">
+          <Link href="/leaderboard">
+            <Button variant="outline" className="gap-2" data-testid="button-leaderboard">
+              <Trophy size={16} />
+              Leaderboard
+            </Button>
+          </Link>
+        </div>
+
         {isLoadingUser ? (
           <Skeleton className="h-32 w-full rounded-xl" />
         ) : currentUser ? (

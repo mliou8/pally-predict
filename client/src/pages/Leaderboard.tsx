@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import type { User } from '@shared/schema';
 
 export default function Leaderboard() {
-  const [activeTab, setActiveTab] = useState('week');
+  const [activeTab, setActiveTab] = useState('daily');
   const { user } = usePrivy();
 
   const { data: leaderboardData = [], isLoading } = useQuery<User[]>({
@@ -41,12 +41,40 @@ export default function Leaderboard() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="week" data-testid="tab-week">This Week</TabsTrigger>
-            <TabsTrigger value="alltime" data-testid="tab-alltime">All-Time</TabsTrigger>
-            <TabsTrigger value="guilds" data-testid="tab-guilds">Guilds</TabsTrigger>
+            <TabsTrigger value="daily" data-testid="tab-daily">Daily</TabsTrigger>
+            <TabsTrigger value="weekly" data-testid="tab-weekly">Weekly</TabsTrigger>
+            <TabsTrigger value="alltime" data-testid="tab-alltime">All-time</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="week" className="space-y-2 mt-6">
+          <TabsContent value="daily" className="space-y-2 mt-6">
+            {isLoading ? (
+              <>
+                {[...Array(8)].map((_, i) => (
+                  <Skeleton key={i} className="h-16 w-full rounded-xl" />
+                ))}
+              </>
+            ) : leaderboardData.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground mb-2">No leaderboard data yet</p>
+                <p className="text-sm text-muted-foreground">
+                  Start voting to see rankings!
+                </p>
+              </div>
+            ) : (
+              leaderboardData.map((entry, index) => (
+                <LeaderboardRow 
+                  key={entry.id} 
+                  rank={index + 1}
+                  handle={entry.handle || `@User${entry.id.slice(0, 4)}`}
+                  accuracyPct={0}
+                  points={entry.alphaPoints}
+                  badges={entry.badgesEarned}
+                />
+              ))
+            )}
+          </TabsContent>
+
+          <TabsContent value="weekly" className="space-y-2 mt-6">
             {isLoading ? (
               <>
                 {[...Array(8)].map((_, i) => (
@@ -100,15 +128,6 @@ export default function Leaderboard() {
                 />
               ))
             )}
-          </TabsContent>
-
-          <TabsContent value="guilds" className="mt-6">
-            <div className="text-center py-12">
-              <p className="text-muted-foreground mb-2">Guilds coming soon</p>
-              <p className="text-sm text-muted-foreground">
-                Team up and compete together
-              </p>
-            </div>
           </TabsContent>
         </Tabs>
 

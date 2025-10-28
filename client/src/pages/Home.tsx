@@ -1,11 +1,13 @@
 import { useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { usePrivy } from '@privy-io/react-auth';
+import { Link } from 'wouter';
+import { Trophy } from 'lucide-react';
 import PromptCard from '@/components/PromptCard';
 import ResultsReveal from '@/components/ResultsReveal';
-import VoteMeter from '@/components/VoteMeter';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/api';
 import { queryClient } from '@/lib/queryClient';
@@ -15,7 +17,6 @@ interface VoteData {
   questionId: string;
   choice: VoteChoice;
   isPublic: boolean;
-  votesAllocated?: number;
 }
 
 interface ResultWithQuestion {
@@ -35,14 +36,6 @@ export default function Home() {
 
   const { data: revealedQuestions = [], isLoading: isLoadingRevealed } = useQuery<Question[]>({
     queryKey: ['/api/questions/revealed'],
-    enabled: !!user,
-  });
-
-  const { data: voteAllocation, isLoading: isLoadingAllocation } = useQuery<{
-    votesUsed: number;
-    votesRemaining: number;
-  }>({
-    queryKey: ['/api/votes/allocation'],
     enabled: !!user,
   });
 
@@ -77,7 +70,6 @@ export default function Home() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/votes/allocation'] });
       queryClient.invalidateQueries({ queryKey: ['/api/votes/mine'] });
       toast({
         title: 'Vote submitted!',
@@ -94,7 +86,7 @@ export default function Home() {
   });
 
   const handleVote = (questionId: string, choice: VoteChoice, isPublic: boolean) => {
-    voteMutation.mutate({ questionId, choice, isPublic, votesAllocated: 1 });
+    voteMutation.mutate({ questionId, choice, isPublic });
   };
 
   const { data: resultsData = [] } = useQuery<ResultWithQuestion[]>({
@@ -119,9 +111,6 @@ export default function Home() {
     enabled: !!user && revealedQuestions.length > 0 && userVotes.length >= 0,
   });
 
-  const votesUsed = voteAllocation?.votesUsed ?? 0;
-  const votesTotal = (voteAllocation?.votesUsed ?? 0) + (voteAllocation?.votesRemaining ?? 5);
-
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -133,12 +122,13 @@ export default function Home() {
   return (
     <div className="min-h-screen pb-20 md:pb-6">
       <div className="max-w-3xl mx-auto px-4 md:px-6 py-6">
-        <div className="mb-6 flex justify-center">
-          {isLoadingAllocation ? (
-            <Skeleton className="h-10 w-32" />
-          ) : (
-            <VoteMeter used={votesUsed} total={votesTotal} />
-          )}
+        <div className="mb-6 flex justify-end">
+          <Link href="/leaderboard">
+            <Button variant="outline" className="gap-2" data-testid="button-leaderboard">
+              <Trophy size={16} />
+              Leaderboard
+            </Button>
+          </Link>
         </div>
 
         <Tabs defaultValue="active" className="mb-6">
@@ -245,17 +235,6 @@ export default function Home() {
             )}
           </TabsContent>
         </Tabs>
-
-        {votesUsed >= votesTotal && !isLoadingAllocation && (
-          <div className="mt-6 p-6 rounded-2xl bg-muted border border-border text-center">
-            <p className="text-sm text-muted-foreground mb-2">
-              You've used all your daily votes!
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Come back tomorrow for {votesTotal} new votes.
-            </p>
-          </div>
-        )}
       </div>
     </div>
   );

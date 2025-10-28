@@ -1,5 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Zap } from 'lucide-react';
 
 interface LeaderboardRowProps {
   rank: number;
@@ -47,7 +48,8 @@ export default function LeaderboardRow({
       </div>
       
       <div className="text-right">
-        <div className="text-sm font-semibold text-foreground font-mono" data-testid={`text-points-${rank}`}>
+        <div className="text-sm font-semibold text-foreground font-mono inline-flex items-center gap-1" data-testid={`text-points-${rank}`}>
+          <Zap size={14} fill="currentColor" className="text-gold" />
           {points.toLocaleString()}
         </div>
         <div className="text-xs text-muted-foreground">
