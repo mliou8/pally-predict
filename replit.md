@@ -12,6 +12,24 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**October 28, 2025 (Admin Interface)**: Added manual question management system
+- **Admin Dashboard**: New `/admin` route accessible via Settings icon in TopBar
+- **Question Creation Form**: 
+  - Create questions with type (consensus/prediction/preference)
+  - Set prompt, options (A/B required, C/D optional), and optional context
+  - Schedule dropsAt and revealsAt times
+  - Form validation and reset after successful creation
+- **Question Management**: 
+  - View all questions ordered by drop date
+  - Delete questions with confirmation toast
+  - Visual badges for question status (Revealed, Inactive)
+- **Admin API Endpoints**:
+  - GET /api/admin/questions - Fetch all questions
+  - POST /api/admin/questions - Create new question
+  - DELETE /api/admin/questions/:id - Delete question
+- **Storage Layer**: Added getAllQuestions() and deleteQuestion() methods to DbStorage
+- **Note**: Currently all authenticated users can access admin (TODO: add role-based permissions)
+
 **October 28, 2025 (Navigation Redesign)**: Complete navigation and branding overhaul
 - **New Global TopBar**: 
   - Left: α Points counter with gradient pill (replaces all ⚡ lightning bolts)
@@ -113,6 +131,7 @@ Preferred communication style: Simple, everyday language.
 - Votes: POST /api/votes, GET /api/votes/mine, GET /api/votes/:questionId/mine
 - Results: GET /api/results/:questionId (auto-calculates if needed)
 - Leaderboard: GET /api/leaderboard
+- Admin: GET /api/admin/questions, POST /api/admin/questions, DELETE /api/admin/questions/:id
 - Seed: POST /api/seed/questions (development only)
 
 ### Data Storage Solutions
