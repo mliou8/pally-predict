@@ -15,21 +15,7 @@ import TopBar from '@/components/TopBar';
 import TabBar from '@/components/TabBar';
 import NotificationsDrawer from '@/components/NotificationsDrawer';
 
-function Router() {
-  return (
-    <Switch>
-      <Route path="/splash" component={Splash} />
-      <Route path="/create-profile" component={CreateProfile} />
-      <Route path="/" component={Home} />
-      <Route path="/leaderboard" component={Leaderboard} />
-      <Route path="/history" component={History} />
-      <Route path="/profile" component={Profile} />
-      <Route component={NotFound} />
-    </Switch>
-  );
-}
-
-function App() {
+function AppContent() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [location] = useLocation();
   
@@ -40,23 +26,39 @@ function App() {
   const hideNav = location === '/splash' || location === '/create-profile';
 
   return (
+    <div className="min-h-screen bg-background">
+      {!hideNav && (
+        <TopBar 
+          alphaPoints={1020} 
+          nextDropTime={nextDrop}
+          onNotificationsClick={() => setNotificationsOpen(true)}
+        />
+      )}
+      
+      <Switch>
+        <Route path="/splash" component={Splash} />
+        <Route path="/create-profile" component={CreateProfile} />
+        <Route path="/" component={Home} />
+        <Route path="/leaderboard" component={Leaderboard} />
+        <Route path="/history" component={History} />
+        <Route path="/profile" component={Profile} />
+        <Route component={NotFound} />
+      </Switch>
+      
+      {!hideNav && <TabBar />}
+      <NotificationsDrawer 
+        open={notificationsOpen} 
+        onOpenChange={setNotificationsOpen}
+      />
+    </div>
+  );
+}
+
+function App() {
+  return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <div className="min-h-screen bg-background">
-          {!hideNav && (
-            <TopBar 
-              alphaPoints={1020} 
-              nextDropTime={nextDrop}
-              onNotificationsClick={() => setNotificationsOpen(true)}
-            />
-          )}
-          <Router />
-          {!hideNav && <TabBar />}
-          <NotificationsDrawer 
-            open={notificationsOpen} 
-            onOpenChange={setNotificationsOpen}
-          />
-        </div>
+        <AppContent />
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>
