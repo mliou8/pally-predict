@@ -13,8 +13,8 @@ const RANK_TIERS = [
   { rank: 'Bronze' as Rank, min: 0, max: 499, emoji: '🥉' },
   { rank: 'Silver' as Rank, min: 500, max: 999, emoji: '🥈' },
   { rank: 'Gold' as Rank, min: 1000, max: 1999, emoji: '🥇' },
-  { rank: 'Platinum' as Rank, min: 2000, max: 3999, emoji: '💎' },
-  { rank: 'Diamond' as Rank, min: 4000, max: Infinity, emoji: '💎' },
+  { rank: 'Platinum' as Rank, min: 2000, max: 4999, emoji: '💎' },
+  { rank: 'Diamond' as Rank, min: 5000, max: Infinity, emoji: '💎' },
 ];
 
 export function getRankInfo(alphaPoints: number): RankInfo {

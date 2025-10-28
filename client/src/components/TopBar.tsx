@@ -9,17 +9,53 @@ interface TopBarProps {
 function getNextNoonET(): Date {
   const now = new Date();
   
-  // Create a date for today at 12pm ET (17:00 UTC in standard time, 16:00 UTC in daylight time)
-  // For simplicity, using 17:00 UTC (12pm EST)
-  const nextNoon = new Date(now);
-  nextNoon.setUTCHours(17, 0, 0, 0);
+  // Format current time in ET timezone
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
   
-  // If we've passed today's noon ET, move to tomorrow
-  if (now >= nextNoon) {
-    nextNoon.setDate(nextNoon.getDate() + 1);
-  }
+  const parts = formatter.formatToParts(now);
+  const year = parts.find(p => p.type === 'year')?.value;
+  const month = parts.find(p => p.type === 'month')?.value;
+  const day = parts.find(p => p.type === 'day')?.value;
+  const hour = parseInt(parts.find(p => p.type === 'hour')?.value || '0');
+  const minute = parseInt(parts.find(p => p.type === 'minute')?.value || '0');
+  const second = parseInt(parts.find(p => p.type === 'second')?.value || '0');
   
-  return nextNoon;
+  // Calculate if we've passed noon ET today
+  const secondsSinceMidnight = hour * 3600 + minute * 60 + second;
+  const noonInSeconds = 12 * 3600;
+  const daysToAdd = secondsSinceMidnight >= noonInSeconds ? 1 : 0;
+  
+  // Build a date for the target day at noon
+  const targetDate = new Date(now);
+  targetDate.setDate(targetDate.getDate() + daysToAdd);
+  
+  const targetParts = formatter.formatToParts(targetDate);
+  const targetYear = targetParts.find(p => p.type === 'year')?.value;
+  const targetMonth = targetParts.find(p => p.type === 'month')?.value;
+  const targetDay = targetParts.find(p => p.type === 'day')?.value;
+  
+  // Create a test date for the target day to check DST status on that specific day
+  const testTargetDate = new Date(`${targetYear}-${targetMonth}-${targetDay}T12:00:00`);
+  const targetTzString = testTargetDate.toLocaleString('en-US', {
+    timeZone: 'America/New_York',
+    timeZoneName: 'short'
+  });
+  const isDST = targetTzString.includes('EDT');
+  const offset = isDST ? '-04:00' : '-05:00';
+  
+  // Build ISO string with proper ET offset for the target date
+  const noonET = new Date(`${targetYear}-${targetMonth}-${targetDay}T12:00:00${offset}`);
+  
+  return noonET;
 }
 
 function UniversalTimer() {
@@ -76,14 +112,16 @@ export default function TopBar({ alphaPoints }: TopBarProps) {
         </div>
         
         {/* Center: PALLY ARENA Logo (clickable) */}
-        <Link href="/">
-          <a className="flex flex-col items-center hover-elevate active-elevate-2 rounded-lg px-2 py-1" data-testid="link-home">
-            <h1 className="font-display text-sm md:text-base font-semibold bg-gradient-to-r from-primary to-brand-magenta bg-clip-text text-transparent whitespace-nowrap">
-              PALLY ARENA
-            </h1>
-            <UniversalTimer />
-          </a>
-        </Link>
+        <div className="flex justify-center">
+          <Link href="/">
+            <div className="flex flex-col items-center hover-elevate active-elevate-2 rounded-lg px-2 py-1 cursor-pointer" data-testid="link-home">
+              <h1 className="font-display text-sm md:text-base font-semibold bg-gradient-to-r from-primary to-brand-magenta bg-clip-text text-transparent whitespace-nowrap">
+                PALLY ARENA
+              </h1>
+              <UniversalTimer />
+            </div>
+          </Link>
+        </div>
         
         {/* Right: Leaderboard + Profile */}
         <div className="flex items-center justify-end gap-2">
