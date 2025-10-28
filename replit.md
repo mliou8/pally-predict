@@ -10,6 +10,18 @@ The core mechanic revolves around predicting what the crowd will think or choose
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+**October 28, 2025**: Completed full backend integration
+- Implemented complete database storage layer (DbStorage) replacing in-memory storage
+- Created all API routes for users, questions, voting, results, and leaderboard
+- Connected all frontend pages to use backend APIs with React Query
+- Added daily vote allocation tracking (5 votes per day)
+- Implemented rarity multiplier scoring system
+- Created seed endpoint for test questions
+- Fixed database schema to auto-generate UUIDs for user IDs
+- All pages now use real data from PostgreSQL database
+
 ## System Architecture
 
 ### Frontend Architecture
@@ -42,19 +54,30 @@ Preferred communication style: Simple, everyday language.
 
 **API Structure**:
 - RESTful API pattern with `/api` prefix for all routes
-- Currently using in-memory storage abstraction (MemStorage) that can be swapped for database implementation
-- Storage interface defines CRUD operations for users and related entities
+- DbStorage implementation connected to PostgreSQL database
+- Storage interface defines CRUD operations for users, questions, votes, results, and leaderboard
 - Route registration separated into dedicated routes module
+- Authentication via Privy user ID passed in x-privy-user-id header
 
 **Session Management**:
 - Express sessions configured (connect-pg-simple for PostgreSQL session store)
 - Cookie-based authentication
 
 **Design Decisions**:
-- Storage abstraction pattern allows switching between in-memory and database implementations
+- Storage abstraction pattern with DbStorage implementation for PostgreSQL
 - Middleware for request logging with duration tracking
-- Raw body preservation for webhook verification
+- Daily vote allocation tracking (5 votes per day per user)
+- Automatic results calculation on first fetch after reveal time
+- Rarity multiplier scoring (inverse of percentage)
 - Separation of server setup, routing, and storage concerns
+
+**API Endpoints**:
+- User: GET /api/user/me, POST /api/user/profile, PATCH /api/user/profile
+- Questions: GET /api/questions/active, GET /api/questions/revealed, GET /api/questions/:id, POST /api/questions
+- Votes: POST /api/votes, GET /api/votes/mine, GET /api/votes/:questionId/mine, GET /api/votes/allocation
+- Results: GET /api/results/:questionId (auto-calculates if needed)
+- Leaderboard: GET /api/leaderboard
+- Seed: POST /api/seed/questions (development only)
 
 ### Data Storage Solutions
 
