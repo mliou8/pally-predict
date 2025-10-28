@@ -12,6 +12,7 @@ export const users = pgTable("users", {
   maxStreak: integer("max_streak").notNull().default(0),
   rank: varchar("rank").notNull().default('Rookie'),
   badgesEarned: text("badges_earned").array().notNull().default(sql`ARRAY[]::text[]`),
+  isAdmin: boolean("is_admin").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

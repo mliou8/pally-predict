@@ -314,8 +314,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: 'Not authenticated' });
       }
 
-      // TODO: Add proper admin check
-      // For now, allow all authenticated users to access admin
+      // Check if user is admin
+      const user = await storage.getUserByPrivyId(privyUserId);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      if (!user.isAdmin) {
+        return res.status(403).json({ error: 'Forbidden: Admin access required' });
+      }
 
       const questions = await storage.getAllQuestions();
       res.json(questions);
@@ -332,8 +338,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: 'Not authenticated' });
       }
 
-      // TODO: Add proper admin check
-      // For now, allow all authenticated users to create questions
+      // Check if user is admin
+      const user = await storage.getUserByPrivyId(privyUserId);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      if (!user.isAdmin) {
+        return res.status(403).json({ error: 'Forbidden: Admin access required' });
+      }
 
       const questionData = insertQuestionSchema.parse(req.body);
       const question = await storage.createQuestion(questionData);
@@ -352,10 +364,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: 'Not authenticated' });
       }
 
-      // TODO: Add proper admin check
-      // For now, allow all authenticated users to delete questions
+      // Check if user is admin
+      const user = await storage.getUserByPrivyId(privyUserId);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      if (!user.isAdmin) {
+        return res.status(403).json({ error: 'Forbidden: Admin access required' });
+      }
 
       const { id } = req.params;
+      
+      // Check if question has votes before deleting (optimized count query)
+      const votesCount = await storage.getQuestionVotesCount(id);
+      if (votesCount > 0) {
+        return res.status(409).json({ 
+          error: 'Cannot delete question with existing votes',
+          votesCount 
+        });
+      }
+
       await storage.deleteQuestion(id);
 
       res.json({ success: true });

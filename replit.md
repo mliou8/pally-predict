@@ -21,14 +21,22 @@ Preferred communication style: Simple, everyday language.
   - Form validation and reset after successful creation
 - **Question Management**: 
   - View all questions ordered by drop date
-  - Delete questions with confirmation toast
+  - Delete questions (blocked if question has votes - returns 409 error)
   - Visual badges for question status (Revealed, Inactive)
-- **Admin API Endpoints**:
+- **Admin API Endpoints** (all require isAdmin=true):
   - GET /api/admin/questions - Fetch all questions
   - POST /api/admin/questions - Create new question
-  - DELETE /api/admin/questions/:id - Delete question
-- **Storage Layer**: Added getAllQuestions() and deleteQuestion() methods to DbStorage
-- **Note**: Currently all authenticated users can access admin (TODO: add role-based permissions)
+  - DELETE /api/admin/questions/:id - Delete question (fails with 409 if votes exist)
+- **Storage Layer**: 
+  - Added getAllQuestions() and deleteQuestion() methods
+  - Added getQuestionVotesCount() for optimized vote checking
+- **Authorization**:
+  - Added `isAdmin` boolean field to users table (defaults to false)
+  - All admin endpoints check user.isAdmin, return 403 if not admin
+  - Frontend gates admin queries and shows "Access Denied" for non-admins
+- **Promoting Users to Admin**:
+  - Use SQL to promote a user: `UPDATE users SET is_admin = true WHERE handle = 'your_handle';`
+  - Or use Privy user ID: `UPDATE users SET is_admin = true WHERE privy_user_id = 'privy_user_id';`
 
 **October 28, 2025 (Navigation Redesign)**: Complete navigation and branding overhaul
 - **New Global TopBar**: 

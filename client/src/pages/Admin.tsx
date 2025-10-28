@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Trash2, Plus } from 'lucide-react';
-import type { Question, QuestionType } from '@shared/schema';
+import type { Question, QuestionType, User } from '@shared/schema';
 
 interface QuestionFormData {
   type: QuestionType;
@@ -43,15 +43,15 @@ export default function Admin() {
   });
 
   // Check if user is admin
-  const { data: userProfile, isLoading: profileLoading } = useQuery({
+  const { data: userProfile, isLoading: profileLoading } = useQuery<User>({
     queryKey: ['/api/user/me'],
     enabled: !!user?.id,
   });
 
-  // Fetch all questions
+  // Fetch all questions (only if admin)
   const { data: questions = [], isLoading: questionsLoading } = useQuery<Question[]>({
     queryKey: ['/api/admin/questions'],
-    enabled: !!user?.id,
+    enabled: !!user?.id && userProfile?.isAdmin === true,
   });
 
   // Create question mutation
@@ -166,17 +166,16 @@ export default function Admin() {
     );
   }
 
-  // For now, simple check - in production you'd want proper role-based auth
-  // You can add an 'isAdmin' field to the user schema later
-  const isAdmin = true; // TODO: Add proper admin check
+  // Check if user is admin
+  const isAdmin = userProfile?.isAdmin || false;
 
   if (!isAdmin) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Card>
+        <Card className="max-w-md">
           <CardHeader>
             <CardTitle>Access Denied</CardTitle>
-            <CardDescription>You don't have permission to access this page.</CardDescription>
+            <CardDescription>You don't have permission to access this page. Admin privileges are required.</CardDescription>
           </CardHeader>
         </Card>
       </div>

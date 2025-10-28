@@ -36,6 +36,7 @@ export interface IStorage {
   getVote(userId: string, questionId: string): Promise<Vote | undefined>;
   getUserVotes(userId: string): Promise<Vote[]>;
   getQuestionVotes(questionId: string): Promise<Vote[]>;
+  getQuestionVotesCount(questionId: string): Promise<number>;
   createVote(vote: InsertVote): Promise<Vote>;
   
   // Question results operations
@@ -156,6 +157,14 @@ export class DbStorage implements IStorage {
       .select()
       .from(votes)
       .where(eq(votes.questionId, questionId));
+  }
+
+  async getQuestionVotesCount(questionId: string): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(votes)
+      .where(eq(votes.questionId, questionId));
+    return result[0]?.count || 0;
   }
 
   async createVote(insertVote: InsertVote): Promise<Vote> {
