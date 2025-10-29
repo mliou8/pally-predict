@@ -1,0 +1,59 @@
+Bugs Found
+
+Email Validation Inconsistency (High Severity)
+
+Long/invalid email addresses are marked as invalid visually (with aria-invalid="true"), but the Submit button is still enabled, allowing invalid emails to be submitted. The UI should disable the Submit button for emails that don’t meet standards.
+
+Misleading 404/Route Handling (Medium Severity)
+
+If you try to visit non-existent routes (like /nonexistent, /leaderboard, /predict, /profile), the app silently redirects you to /splash with no error message or feedback. Instead, a proper 404 message or clear explanation should be shown.
+
+Semantic HTML Structure Issue (Low Severity)
+
+The entire page content is wrapped in a single <p> tag, rather than using semantic elements like <main>, <section>, etc. This is not good practice for accessibility or SEO.
+
+Missing Feedback for ‘Resend Code’ Button (Low Severity)
+
+When using the email confirmation flow, clicking “Resend code” does not provide any confirmation or visible feedback that anything happened.
+
+Positive Findings
+
+XSS protection is good (dangerous HTML is escaped)
+
+Valid email addresses—such as those with the + character—are accepted
+
+Proper case-insensitive search for wallet names
+
+Modal overlays, retries, and timeouts work as expected for MetaMask
+
+No duplicate modals allowed
+
+Modal overlays close as expected and are correctly labeled for accessibility
+
+Features Tested
+
+Email authentication and social logins
+
+Wallet connection options
+
+Wallet search/filtering
+
+Navigation to terms, privacy policy, and splash
+
+Edge cases for form validation, XSS, and navigation
+
+Modal interaction and error handling
+
+Recommendations
+
+Fix email validation to block submission of invalid/too-long emails (high priority)
+
+Show proper error/404 messages for invalid routes (medium priority)
+
+Add visual feedback to 'Resend code' button (medium priority)
+
+Use semantic HTML elements instead of wrapping everything in <p> tags (low priority)
+
+Add loading indicators for async actions (low priority)
+
+If you want individual screenshots or further step-by-step breakdowns of any bug, let me know!

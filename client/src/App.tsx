@@ -32,9 +32,16 @@ function AppContent() {
   useEffect(() => {
     if (!ready) return;
     
-    // Allow access to legal pages without authentication
+    // Define all valid routes
+    const validRoutes = ['/', '/splash', '/create-profile', '/leaderboard', '/history', '/profile', '/admin', '/terms', '/privacy'];
     const publicRoutes = ['/splash', '/terms', '/privacy'];
+    const isValidRoute = validRoutes.includes(location);
     const isPublicRoute = publicRoutes.includes(location);
+    
+    // Don't redirect if route doesn't exist - let 404 page show
+    if (!isValidRoute) {
+      return;
+    }
     
     if (!authenticated) {
       if (!isPublicRoute) {

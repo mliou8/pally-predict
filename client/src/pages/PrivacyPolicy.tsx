@@ -12,7 +12,7 @@ export default function PrivacyPolicy() {
           </button>
         </Link>
 
-        <div className="prose prose-invert max-w-none">
+        <main className="prose prose-invert max-w-none">
           <h1 className="text-3xl font-bold mb-2 text-foreground">Privacy Policy</h1>
           <p className="text-sm text-muted-foreground mb-8">Last Updated: October 29, 2025</p>
 
@@ -159,7 +159,7 @@ export default function PrivacyPolicy() {
               If you have questions or concerns about this Privacy Policy or our data practices, please contact us through our support channels.
             </p>
           </section>
-        </div>
+        </main>
       </div>
     </div>
   );

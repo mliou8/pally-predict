@@ -12,7 +12,7 @@ export default function TermsOfService() {
           </button>
         </Link>
 
-        <div className="prose prose-invert max-w-none">
+        <main className="prose prose-invert max-w-none">
           <h1 className="text-3xl font-bold mb-2 text-foreground">Terms of Service</h1>
           <p className="text-sm text-muted-foreground mb-8">Last Updated: October 29, 2025</p>
 
@@ -135,7 +135,7 @@ export default function TermsOfService() {
               If you have any questions about these Terms of Service, please contact us through our support channels.
             </p>
           </section>
-        </div>
+        </main>
       </div>
     </div>
   );
