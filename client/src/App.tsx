@@ -22,11 +22,23 @@ import Footer from '@/components/Footer';
 function AppContent() {
   const [location, setLocation] = useLocation();
   const { ready, authenticated, user } = usePrivy();
+  const [initTimeout, setInitTimeout] = useState(false);
 
   // Set global Privy user ID for API requests
   useEffect(() => {
     setGlobalPrivyUserId(user?.id || null);
   }, [user]);
+
+  // Timeout for Privy initialization
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!ready) {
+        setInitTimeout(true);
+      }
+    }, 10000); // 10 second timeout
+
+    return () => clearTimeout(timer);
+  }, [ready]);
 
   // Redirect logic based on authentication
   useEffect(() => {
@@ -59,12 +71,42 @@ function AppContent() {
   const hideNav = location === '/splash' || location === '/create-profile' || location === '/admin' || location === '/terms' || location === '/privacy';
 
   // Show loading while Privy initializes
-  if (!ready) {
+  if (!ready && !initTimeout) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-muted-foreground">Initializing...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if Privy fails to initialize
+  if (!ready && initTimeout) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="text-center space-y-4 max-w-md">
+          <div className="w-12 h-12 border-4 border-destructive rounded-full flex items-center justify-center mx-auto">
+            <span className="text-2xl">⚠️</span>
+          </div>
+          <h2 className="text-xl font-semibold text-foreground">Connection Issue</h2>
+          <p className="text-sm text-muted-foreground">
+            Unable to initialize authentication. This could be due to:
+          </p>
+          <ul className="text-sm text-muted-foreground text-left space-y-1">
+            <li>• Network connectivity issues</li>
+            <li>• Browser extensions blocking authentication</li>
+            <li>• Ad blockers or privacy tools</li>
+          </ul>
+          <div className="pt-2">
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-gradient-to-r from-primary to-brand-magenta text-white rounded-lg hover:opacity-90"
+            >
+              Reload Page
+            </button>
+          </div>
         </div>
       </div>
     );
