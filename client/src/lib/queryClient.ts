@@ -7,14 +7,27 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+// Global state for Privy user ID (set by App.tsx)
+let globalPrivyUserId: string | null = null;
+
+export function setGlobalPrivyUserId(userId: string | null) {
+  globalPrivyUserId = userId;
+}
+
 export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
+  const headers: Record<string, string> = data ? { "Content-Type": "application/json" } : {};
+  
+  if (globalPrivyUserId) {
+    headers["x-privy-user-id"] = globalPrivyUserId;
+  }
+
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
@@ -29,8 +42,15 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    const headers: Record<string, string> = {};
+    
+    if (globalPrivyUserId) {
+      headers["x-privy-user-id"] = globalPrivyUserId;
+    }
+
     const res = await fetch(queryKey.join("/") as string, {
       credentials: "include",
+      headers,
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
