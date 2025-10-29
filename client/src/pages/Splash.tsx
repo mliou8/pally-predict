@@ -1,4 +1,5 @@
 import { useLogin } from '@privy-io/react-auth';
+import { Link } from 'wouter';
 import BrandMark from '@/components/BrandMark';
 import { Button } from '@/components/ui/button';
 import { Wallet, Mail } from 'lucide-react';
@@ -88,13 +89,21 @@ export default function Splash() {
         </div>
 
         <div className="pt-6 text-xs text-muted-foreground space-x-4">
-          <a href="#" className="hover:text-foreground transition-colors">
+          <Link 
+            href="/terms" 
+            className="hover:text-foreground transition-colors" 
+            data-testid="link-terms"
+          >
             Terms of Service
-          </a>
+          </Link>
           <span>•</span>
-          <a href="#" className="hover:text-foreground transition-colors">
+          <Link 
+            href="/privacy" 
+            className="hover:text-foreground transition-colors" 
+            data-testid="link-privacy"
+          >
             Privacy Policy
-          </a>
+          </Link>
         </div>
       </div>
     </div>

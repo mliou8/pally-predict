@@ -13,8 +13,11 @@ import Leaderboard from '@/pages/Leaderboard';
 import History from '@/pages/History';
 import Profile from '@/pages/Profile';
 import Admin from '@/pages/Admin';
+import TermsOfService from '@/pages/TermsOfService';
+import PrivacyPolicy from '@/pages/PrivacyPolicy';
 import TopBar from '@/components/TopBar';
 import TabBar from '@/components/TabBar';
+import Footer from '@/components/Footer';
 
 function AppContent() {
   const [location, setLocation] = useLocation();
@@ -24,8 +27,12 @@ function AppContent() {
   useEffect(() => {
     if (!ready) return;
     
+    // Allow access to legal pages without authentication
+    const publicRoutes = ['/splash', '/terms', '/privacy'];
+    const isPublicRoute = publicRoutes.includes(location);
+    
     if (!authenticated) {
-      if (location !== '/splash') {
+      if (!isPublicRoute) {
         setLocation('/splash');
       }
     } else {
@@ -36,8 +43,8 @@ function AppContent() {
     }
   }, [ready, authenticated, location, setLocation]);
 
-  // Hide nav on splash, profile creation, and admin pages
-  const hideNav = location === '/splash' || location === '/create-profile' || location === '/admin';
+  // Hide nav on splash, profile creation, admin, and legal pages
+  const hideNav = location === '/splash' || location === '/create-profile' || location === '/admin' || location === '/terms' || location === '/privacy';
 
   // Show loading while Privy initializes
   if (!ready) {
@@ -57,18 +64,23 @@ function AppContent() {
         <TopBar alphaPoints={1020} />
       )}
       
-      <Switch>
-        <Route path="/splash" component={Splash} />
-        <Route path="/create-profile" component={CreateProfile} />
-        <Route path="/" component={Home} />
-        <Route path="/leaderboard" component={Leaderboard} />
-        <Route path="/history" component={History} />
-        <Route path="/profile" component={Profile} />
-        <Route path="/admin" component={Admin} />
-        <Route component={NotFound} />
-      </Switch>
-      
-      {!hideNav && <TabBar />}
+      <div className="flex flex-col min-h-screen">
+        <Switch>
+          <Route path="/splash" component={Splash} />
+          <Route path="/create-profile" component={CreateProfile} />
+          <Route path="/" component={Home} />
+          <Route path="/leaderboard" component={Leaderboard} />
+          <Route path="/history" component={History} />
+          <Route path="/profile" component={Profile} />
+          <Route path="/admin" component={Admin} />
+          <Route path="/terms" component={TermsOfService} />
+          <Route path="/privacy" component={PrivacyPolicy} />
+          <Route component={NotFound} />
+        </Switch>
+        
+        {!hideNav && <TabBar />}
+        {!hideNav && <Footer />}
+      </div>
     </div>
   );
 }

@@ -12,6 +12,22 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**October 29, 2025 (Legal Pages)**: Added Terms of Service and Privacy Policy
+- **Legal Documents**: Created comprehensive legal pages
+  - Terms of Service page at `/terms` with 13 sections covering usage rules, game mechanics, prohibited conduct, IP rights, disclaimers, and liability
+  - Privacy Policy page at `/privacy` with 13 sections covering data collection, usage, sharing, security, and user rights
+- **Public Access**: Legal pages accessible without authentication
+  - Updated authentication redirect logic to allow `/terms` and `/privacy` for unauthenticated users
+  - Users can access legal documents before signing up
+- **Footer Component**: Added global footer with legal links
+  - Displays on all authenticated pages (hidden on splash, create-profile, admin, and legal pages)
+  - Links to Terms of Service and Privacy Policy
+  - Copyright notice
+- **Splash Page Integration**: Updated splash page with working legal links
+  - Fixed wouter Link usage (removed nested anchor tags)
+  - Terms and Privacy links in splash page footer
+- **Navigation**: "Back to Profile" buttons on legal pages redirect unauthenticated users to `/splash`
+
 **October 28, 2025 (Admin Interface)**: Added manual question management system
 - **Admin Dashboard**: New `/admin` route accessible via Settings icon in TopBar
 - **Question Creation Form**: 
