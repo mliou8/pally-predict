@@ -22,7 +22,7 @@ export default function Profile() {
   const [activeTab, setActiveTab] = useState('public');
   const { user } = usePrivy();
 
-  const { data: currentUser, isLoading: isLoadingUser } = useQuery<User>({
+  const { data: currentUser, isLoading: isLoadingUser, error: userError } = useQuery<User>({
     queryKey: ['/api/user/me'],
     enabled: !!user,
   });
@@ -73,6 +73,22 @@ export default function Profile() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-muted-foreground">Please log in to view profile</p>
+      </div>
+    );
+  }
+
+  if (userError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="text-center space-y-4 max-w-md">
+          <p className="text-destructive font-semibold">Unable to load profile</p>
+          <p className="text-sm text-muted-foreground">
+            {userError instanceof Error ? userError.message : 'An error occurred'}
+          </p>
+          <Link href="/create-profile">
+            <Button className="w-full">Create Profile</Button>
+          </Link>
+        </div>
       </div>
     );
   }
