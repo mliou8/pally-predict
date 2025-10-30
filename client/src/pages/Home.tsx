@@ -186,7 +186,9 @@ export default function Home() {
     );
   }
 
-  if (isLoadingUser) {
+  // Show loading while waiting for user or while query is loading/retrying
+  // Don't show error during retries - only after all retries exhausted
+  if (!currentUser && (isLoadingUser || !isError)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-muted-foreground">Loading...</p>
@@ -194,6 +196,7 @@ export default function Home() {
     );
   }
 
+  // Only show error after retries are exhausted and it's not a 404 (which redirects to create-profile)
   if (isError && error && !(error instanceof ApiError && error.status === 404)) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
