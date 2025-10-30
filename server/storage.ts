@@ -90,39 +90,50 @@ export class DbStorage implements IStorage {
   async getActiveQuestions(): Promise<Question[]> {
     const now = new Date();
     
-    // Get current time parts in ET timezone
-    const etFormatter = new Intl.DateTimeFormat('en-US', {
+    // Get current ET time to determine if we're before/after noon
+    const etTimeStr = now.toLocaleString('en-US', { 
       timeZone: 'America/New_York',
+      hour12: false,
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
-      hour12: false,
+      minute: '2-digit',
+      second: '2-digit'
     });
     
-    const etParts = etFormatter.formatToParts(now);
-    const etHour = parseInt(etParts.find(p => p.type === 'hour')!.value);
+    // Parse the ET time string (format: "MM/DD/YYYY, HH:mm:ss")
+    const [datePart, timePart] = etTimeStr.split(', ');
+    const [month, day, year] = datePart.split('/');
+    const etHour = parseInt(timePart.split(':')[0]);
     
-    // Create a date string for 12 PM ET today, then convert to UTC
-    // Format: "YYYY-MM-DD 12:00:00" in ET timezone
-    const etDateStr = etParts.find(p => p.type === 'year')!.value + '-' +
-                      etParts.find(p => p.type === 'month')!.value + '-' +
-                      etParts.find(p => p.type === 'day')!.value;
-    
-    // If it's before noon ET, use yesterday's date
+    // Calculate which noon to use (today or yesterday in ET)
     let cycleStartDate: Date;
+    
     if (etHour < 12) {
-      // Use yesterday at 12 PM ET
-      const yesterday = new Date(now);
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayParts = etFormatter.formatToParts(yesterday);
-      const yesterdayStr = yesterdayParts.find(p => p.type === 'year')!.value + '-' +
-                          yesterdayParts.find(p => p.type === 'month')!.value + '-' +
-                          yesterdayParts.find(p => p.type === 'day')!.value;
-      cycleStartDate = new Date(yesterdayStr + 'T12:00:00-05:00'); // EST offset, will auto-adjust for EDT
+      // Before noon ET - use yesterday's noon
+      // Create date for today noon ET, then subtract 24 hours
+      const todayNoonET = new Date(`${year}-${month}-${day}T12:00:00-05:00`); // Use EST offset as base
+      
+      // Adjust for EDT vs EST
+      const etOffset = now.toLocaleString('en-US', { 
+        timeZone: 'America/New_York', 
+        timeZoneName: 'short' 
+      }).includes('EDT') ? -4 : -5;
+      
+      const adjustedNoonET = new Date(`${year}-${month}-${day}T12:00:00`);
+      adjustedNoonET.setHours(12 - etOffset); // Convert to UTC
+      
+      cycleStartDate = new Date(adjustedNoonET.getTime() - 24 * 60 * 60 * 1000);
     } else {
-      // Use today at 12 PM ET
-      cycleStartDate = new Date(etDateStr + 'T12:00:00-05:00'); // EST offset, will auto-adjust for EDT
+      // After noon ET - use today's noon
+      const etOffset = now.toLocaleString('en-US', { 
+        timeZone: 'America/New_York', 
+        timeZoneName: 'short' 
+      }).includes('EDT') ? -4 : -5;
+      
+      cycleStartDate = new Date(`${year}-${month}-${day}T12:00:00`);
+      cycleStartDate.setHours(12 - etOffset); // Convert to UTC
     }
     
     // Get only the 3 most recent active questions from current 24h period

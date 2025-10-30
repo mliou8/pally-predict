@@ -27,8 +27,14 @@ Preferred communication style: Simple, everyday language.
   - Profile history now correctly shows earned points and multipliers for revealed questions
   - User alpha points automatically updated when results are first calculated
 - **Home Page Loading**: Fixed race condition on first load
-  - Added retry logic (1 retry with 500ms delay) to user profile query
+  - Added 300ms delay before enabling profile query to ensure Privy user ID is set
+  - Increased retry attempts from 1 to 3 with exponential backoff (1s, 2s, 3s)
+  - Added 1-minute cache for user profile to reduce repeated requests
   - Prevents premature "Unable to load profile" errors
+- **ET Timezone Calculation**: Fixed timezone offset calculation in getActiveQuestions()
+  - Properly detects EDT vs EST using timeZoneName
+  - Correctly converts ET noon to UTC for database queries
+  - Handles DST transitions accurately
 
 **October 29, 2025 (Legal Pages)**: Added Terms of Service and Privacy Policy
 - **Legal Documents**: Created comprehensive legal pages

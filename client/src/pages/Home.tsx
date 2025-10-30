@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { usePrivy } from '@privy-io/react-auth';
 import { Link, useLocation } from 'wouter';
@@ -31,11 +31,25 @@ export default function Home() {
   const [, setLocation] = useLocation();
 
   // Check if user has a profile in the database
+  // Wait a bit before enabling the query to ensure Privy is fully ready
+  const [enableQuery, setEnableQuery] = useState(false);
+  
+  useEffect(() => {
+    if (user) {
+      // Add a small delay to ensure Privy user ID is properly set
+      const timer = setTimeout(() => setEnableQuery(true), 300);
+      return () => clearTimeout(timer);
+    } else {
+      setEnableQuery(false);
+    }
+  }, [user]);
+  
   const { data: currentUser, isLoading: isLoadingUser, isError, error } = useQuery<User>({
     queryKey: ['/api/user/me'],
-    enabled: !!user,
-    retry: 1, // Retry once before showing error
-    retryDelay: 500, // Wait 500ms before retry
+    enabled: enableQuery,
+    retry: 3, // Retry 3 times for better reliability
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 3000), // Exponential backoff
+    staleTime: 60000, // Cache for 1 minute
   });
 
   // Redirect to create-profile if user doesn't have a profile (404 only, not other errors)
