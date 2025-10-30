@@ -15,7 +15,8 @@ export default function CreateProfile() {
   const [handle, setHandle] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user } = usePrivy();
+  const [profileError, setProfileError] = useState('');
+  const { user, logout } = usePrivy();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -23,6 +24,7 @@ export default function CreateProfile() {
     if (!handle.trim() || !user?.id) return;
 
     setIsSubmitting(true);
+    setProfileError('');
     try {
       const response = await apiRequest('/api/user/profile', {
         method: 'POST',
@@ -34,6 +36,7 @@ export default function CreateProfile() {
         setLocation('/');
       } else {
         const error = await response.json();
+        setProfileError(error.error || 'Failed to create profile');
         toast({
           title: 'Error',
           description: error.error || 'Failed to create profile',
@@ -41,9 +44,11 @@ export default function CreateProfile() {
         });
       }
     } catch (error: any) {
+      const errorMsg = error.message || 'Failed to create profile';
+      setProfileError(errorMsg);
       toast({
         title: 'Error',
-        description: error.message || 'Failed to create profile',
+        description: errorMsg,
         variant: 'destructive',
       });
     } finally {
@@ -121,6 +126,33 @@ export default function CreateProfile() {
             {isSubmitting ? 'Creating...' : 'Start Trading'}
           </Button>
         </form>
+
+        {profileError === 'User already has a profile' && (
+          <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 space-y-3">
+            <h3 className="font-semibold text-foreground">Profile Already Exists</h3>
+            <p className="text-sm text-muted-foreground">
+              You already have a profile, but it's linked to a different login method. 
+              Try logging out and logging in with the same wallet or social account you used before.
+            </p>
+            <div className="space-y-2 text-xs">
+              <p className="text-muted-foreground">Current login ID:</p>
+              <p className="font-mono text-xs bg-background/50 p-2 rounded break-all">
+                {user?.id || 'Not available'}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => {
+                logout();
+                localStorage.removeItem('pallyUserHandle');
+              }}
+              className="w-full"
+              data-testid="button-logout-switch"
+            >
+              Log Out & Try Different Account
+            </Button>
+          </div>
+        )}
 
         <div className="text-center">
           <p className="text-xs text-muted-foreground">
