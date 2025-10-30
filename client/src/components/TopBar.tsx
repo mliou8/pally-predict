@@ -1,6 +1,13 @@
-import { Trophy, User, Settings } from 'lucide-react';
+import { Trophy, User, Settings, LogOut } from 'lucide-react';
 import { Link } from 'wouter';
 import { useEffect, useState } from 'react';
+import { usePrivy } from '@privy-io/react-auth';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface TopBarProps {
   alphaPoints: number;
@@ -95,6 +102,13 @@ function UniversalTimer() {
 }
 
 export default function TopBar({ alphaPoints }: TopBarProps) {
+  const { logout } = usePrivy();
+
+  const handleLogout = () => {
+    logout();
+    localStorage.removeItem('pallyUserHandle');
+  };
+
   return (
     <div className="sticky top-0 z-40 bg-background/80 backdrop-blur border-b border-border">
       <div className="grid grid-cols-3 items-center px-4 md:px-6 py-3">
@@ -123,7 +137,7 @@ export default function TopBar({ alphaPoints }: TopBarProps) {
           </Link>
         </div>
         
-        {/* Right: Admin + Leaderboard + Profile */}
+        {/* Right: Admin + Leaderboard + Profile Dropdown */}
         <div className="flex items-center justify-end gap-2">
           <Link href="/admin">
             <button
@@ -141,14 +155,38 @@ export default function TopBar({ alphaPoints }: TopBarProps) {
               <Trophy size={20} className="text-foreground" />
             </button>
           </Link>
-          <Link href="/profile">
-            <button
-              className="p-2 rounded-lg hover-elevate active-elevate-2"
-              data-testid="button-profile"
-            >
-              <User size={20} className="text-foreground" />
-            </button>
-          </Link>
+          
+          {/* Profile Dropdown with Logout */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="p-2 rounded-lg hover-elevate active-elevate-2"
+                data-testid="button-profile"
+              >
+                <User size={20} className="text-foreground" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" data-testid="dropdown-profile-menu">
+              <DropdownMenuItem asChild>
+                <Link href="/profile">
+                  <div className="flex items-center gap-2 cursor-pointer w-full" data-testid="menu-item-profile">
+                    <User size={16} />
+                    <span>Profile</span>
+                  </div>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={handleLogout}
+                data-testid="menu-item-logout"
+                className="cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <LogOut size={16} />
+                  <span>Log Out</span>
+                </div>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </div>
