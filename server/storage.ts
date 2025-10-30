@@ -31,6 +31,7 @@ export interface IStorage {
   createQuestion(question: InsertQuestion): Promise<Question>;
   updateQuestion(id: string, updates: Partial<Question>): Promise<Question | undefined>;
   deleteQuestion(id: string): Promise<void>;
+  revealExpiredQuestions(now: Date): Promise<void>;
   
   // Vote operations
   getVote(userId: string, questionId: string): Promise<Vote | undefined>;
@@ -89,16 +90,40 @@ export class DbStorage implements IStorage {
   async getActiveQuestions(): Promise<Question[]> {
     const now = new Date();
     
-    // Get the start of the current 24-hour period (12:00 PM ET today)
-    const etNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-    const currentHour = etNow.getHours();
+    // Get current time parts in ET timezone
+    const etFormatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      hour12: false,
+    });
     
-    // If before noon ET, use yesterday's noon as the start
-    const startOfPeriod = new Date(etNow);
-    if (currentHour < 12) {
-      startOfPeriod.setDate(startOfPeriod.getDate() - 1);
+    const etParts = etFormatter.formatToParts(now);
+    const etHour = parseInt(etParts.find(p => p.type === 'hour')!.value);
+    
+    // Create a date string for 12 PM ET today, then convert to UTC
+    // Format: "YYYY-MM-DD 12:00:00" in ET timezone
+    const etDateStr = etParts.find(p => p.type === 'year')!.value + '-' +
+                      etParts.find(p => p.type === 'month')!.value + '-' +
+                      etParts.find(p => p.type === 'day')!.value;
+    
+    // If it's before noon ET, use yesterday's date
+    let cycleStartDate: Date;
+    if (etHour < 12) {
+      // Use yesterday at 12 PM ET
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayParts = etFormatter.formatToParts(yesterday);
+      const yesterdayStr = yesterdayParts.find(p => p.type === 'year')!.value + '-' +
+                          yesterdayParts.find(p => p.type === 'month')!.value + '-' +
+                          yesterdayParts.find(p => p.type === 'day')!.value;
+      cycleStartDate = new Date(yesterdayStr + 'T12:00:00-05:00'); // EST offset, will auto-adjust for EDT
+    } else {
+      // Use today at 12 PM ET
+      cycleStartDate = new Date(etDateStr + 'T12:00:00-05:00'); // EST offset, will auto-adjust for EDT
     }
-    startOfPeriod.setHours(12, 0, 0, 0);
     
     // Get only the 3 most recent active questions from current 24h period
     return await db
@@ -109,7 +134,7 @@ export class DbStorage implements IStorage {
           eq(questions.isActive, true),
           eq(questions.isRevealed, false),
           lte(questions.dropsAt, now),
-          gte(questions.dropsAt, startOfPeriod)
+          gte(questions.dropsAt, cycleStartDate)
         )
       )
       .orderBy(desc(questions.dropsAt))
@@ -148,6 +173,19 @@ export class DbStorage implements IStorage {
 
   async deleteQuestion(id: string): Promise<void> {
     await db.delete(questions).where(eq(questions.id, id));
+  }
+
+  async revealExpiredQuestions(now: Date): Promise<void> {
+    // Update all questions that should be revealed in a single efficient query
+    await db
+      .update(questions)
+      .set({ isRevealed: true })
+      .where(
+        and(
+          eq(questions.isRevealed, false),
+          lte(questions.revealsAt, now)
+        )
+      );
   }
 
   // Vote operations

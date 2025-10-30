@@ -12,6 +12,24 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**October 30, 2025 (Critical Bug Fixes)**: Fixed question display, auto-reveal, and results calculation
+- **Question Display Bug**: Fixed duplicate questions appearing on homepage
+  - Added limit of 3 questions per 24-hour period (12 PM ET to 12 PM ET)
+  - Questions now properly filtered by current 24-hour cycle
+  - Updated `getActiveQuestions()` to enforce maximum 3 questions per day
+- **Automatic Question Reveal**: Questions now automatically marked as revealed when revealsAt time passes
+  - Added `checkAndRevealQuestions()` helper function
+  - Called automatically in `/api/questions/active`, `/api/questions/revealed`, and `/api/results/:questionId` endpoints
+  - No manual admin action needed to reveal questions
+- **Results Calculation**: Points and multipliers now properly stored on vote records
+  - Added `updateVote()` method to storage layer
+  - Results endpoint now updates each vote with `pointsEarned` and `multiplier` fields
+  - Profile history now correctly shows earned points and multipliers for revealed questions
+  - User alpha points automatically updated when results are first calculated
+- **Home Page Loading**: Fixed race condition on first load
+  - Added retry logic (1 retry with 500ms delay) to user profile query
+  - Prevents premature "Unable to load profile" errors
+
 **October 29, 2025 (Legal Pages)**: Added Terms of Service and Privacy Policy
 - **Legal Documents**: Created comprehensive legal pages
   - Terms of Service page at `/terms` with 13 sections covering usage rules, game mechanics, prohibited conduct, IP rights, disclaimers, and liability

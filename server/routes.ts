@@ -4,15 +4,12 @@ import { storage } from './storage';
 import { insertUserSchema, insertQuestionSchema, insertVoteSchema } from '@shared/schema';
 
 // Helper function to check and mark questions as revealed
+// Optimized to update all eligible questions in a single query
 async function checkAndRevealQuestions() {
   const now = new Date();
-  const activeQuestions = await storage.getAllQuestions();
   
-  for (const question of activeQuestions) {
-    if (!question.isRevealed && question.revealsAt && new Date(question.revealsAt) <= now) {
-      await storage.updateQuestion(question.id, { isRevealed: true });
-    }
-  }
+  // Update all questions that should be revealed in a single query
+  await storage.revealExpiredQuestions(now);
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
