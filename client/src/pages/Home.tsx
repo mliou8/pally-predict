@@ -34,7 +34,8 @@ export default function Home() {
   const { data: currentUser, isLoading: isLoadingUser, isError, error } = useQuery<User>({
     queryKey: ['/api/user/me'],
     enabled: !!user,
-    retry: false,
+    retry: 1, // Retry once before showing error
+    retryDelay: 500, // Wait 500ms before retry
   });
 
   // Redirect to create-profile if user doesn't have a profile (404 only, not other errors)

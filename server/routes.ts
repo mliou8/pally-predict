@@ -3,6 +3,18 @@ import { createServer, type Server } from 'http';
 import { storage } from './storage';
 import { insertUserSchema, insertQuestionSchema, insertVoteSchema } from '@shared/schema';
 
+// Helper function to check and mark questions as revealed
+async function checkAndRevealQuestions() {
+  const now = new Date();
+  const activeQuestions = await storage.getAllQuestions();
+  
+  for (const question of activeQuestions) {
+    if (!question.isRevealed && question.revealsAt && new Date(question.revealsAt) <= now) {
+      await storage.updateQuestion(question.id, { isRevealed: true });
+    }
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // ===== USER ROUTES =====
   
@@ -86,6 +98,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get active questions (voting open)
   app.get('/api/questions/active', async (req, res) => {
     try {
+      // Check and reveal questions that have passed their reveal time
+      await checkAndRevealQuestions();
+      
       const questions = await storage.getActiveQuestions();
       res.json(questions);
     } catch (error: any) {
@@ -96,6 +111,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get revealed questions (results available)
   app.get('/api/questions/revealed', async (req, res) => {
     try {
+      // Check and reveal questions that have passed their reveal time
+      await checkAndRevealQuestions();
+      
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
       const questions = await storage.getRevealedQuestions(limit);
       res.json(questions);
@@ -222,6 +240,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get question results
   app.get('/api/results/:questionId', async (req, res) => {
     try {
+      // Check and reveal questions that have passed their reveal time
+      await checkAndRevealQuestions();
+      
       const question = await storage.getQuestion(req.params.questionId);
       if (!question) {
         return res.status(404).json({ error: 'Question not found' });
