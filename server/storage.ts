@@ -38,6 +38,7 @@ export interface IStorage {
   getQuestionVotes(questionId: string): Promise<Vote[]>;
   getQuestionVotesCount(questionId: string): Promise<number>;
   createVote(vote: InsertVote): Promise<Vote>;
+  updateVote(voteId: string, updates: Partial<Vote>): Promise<Vote | undefined>;
   
   // Question results operations
   getQuestionResults(questionId: string): Promise<QuestionResults | undefined>;
@@ -184,6 +185,15 @@ export class DbStorage implements IStorage {
 
   async createVote(insertVote: InsertVote): Promise<Vote> {
     const [vote] = await db.insert(votes).values([insertVote]).returning();
+    return vote;
+  }
+
+  async updateVote(voteId: string, updates: Partial<Vote>): Promise<Vote | undefined> {
+    const [vote] = await db
+      .update(votes)
+      .set(updates)
+      .where(eq(votes.id, voteId))
+      .returning();
     return vote;
   }
 

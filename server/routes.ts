@@ -292,15 +292,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           rarityMultipliers,
         });
 
-        // Award points to voters
+        // Award points to voters and update vote records
         for (const vote of votes) {
           const rarityMultiplier = rarityMultipliers[vote.choice];
           const publicMultiplier = vote.isPublic ? 2 : 1;
           const basePoints = 100;
-          const points = basePoints * rarityMultiplier * publicMultiplier;
+          const totalMultiplier = rarityMultiplier * publicMultiplier;
+          const points = basePoints * totalMultiplier;
 
-          await storage.updateUser(vote.userId, {
-            alphaPoints: (await storage.getUser(vote.userId))!.alphaPoints + points,
+          // Update user's alpha points
+          const currentUser = await storage.getUser(vote.userId);
+          if (currentUser) {
+            await storage.updateUser(vote.userId, {
+              alphaPoints: currentUser.alphaPoints + points,
+            });
+          }
+
+          // Update vote record with points earned and total multiplier
+          await storage.updateVote(vote.id, {
+            pointsEarned: points,
+            multiplier: totalMultiplier,
           });
         }
 
