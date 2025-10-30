@@ -20,7 +20,7 @@ interface VoteWithDetails {
 
 export default function Profile() {
   const [activeTab, setActiveTab] = useState('public');
-  const { user } = usePrivy();
+  const { user, logout } = usePrivy();
 
   const { data: currentUser, isLoading: isLoadingUser, error: userError } = useQuery<User>({
     queryKey: ['/api/user/me'],
@@ -261,6 +261,19 @@ export default function Profile() {
             </div>
           </TabsContent>
         </Tabs>
+
+        <div className="flex justify-center pt-6 pb-4">
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              logout();
+              localStorage.removeItem('pallyUserHandle');
+            }}
+            data-testid="button-logout"
+          >
+            Log Out
+          </Button>
+        </div>
       </div>
     </div>
   );
