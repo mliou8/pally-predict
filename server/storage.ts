@@ -87,6 +87,19 @@ export class DbStorage implements IStorage {
 
   async getActiveQuestions(): Promise<Question[]> {
     const now = new Date();
+    
+    // Get the start of the current 24-hour period (12:00 PM ET today)
+    const etNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+    const currentHour = etNow.getHours();
+    
+    // If before noon ET, use yesterday's noon as the start
+    const startOfPeriod = new Date(etNow);
+    if (currentHour < 12) {
+      startOfPeriod.setDate(startOfPeriod.getDate() - 1);
+    }
+    startOfPeriod.setHours(12, 0, 0, 0);
+    
+    // Get only the 3 most recent active questions from current 24h period
     return await db
       .select()
       .from(questions)
@@ -94,10 +107,12 @@ export class DbStorage implements IStorage {
         and(
           eq(questions.isActive, true),
           eq(questions.isRevealed, false),
-          lte(questions.dropsAt, now)
+          lte(questions.dropsAt, now),
+          gte(questions.dropsAt, startOfPeriod)
         )
       )
-      .orderBy(desc(questions.dropsAt));
+      .orderBy(desc(questions.dropsAt))
+      .limit(3);
   }
 
   async getRevealedQuestions(limit: number = 10): Promise<Question[]> {
