@@ -11,10 +11,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Plus } from 'lucide-react';
+import { Trash2, Plus, CheckCircle2, Calendar } from 'lucide-react';
 import type { Question, QuestionType, User } from '@shared/schema';
 
-interface QuestionFormData {
+interface SingleQuestionData {
   type: QuestionType;
   prompt: string;
   optionA: string;
@@ -22,15 +22,57 @@ interface QuestionFormData {
   optionC: string;
   optionD: string;
   context: string;
-  dropsAt: string;
-  revealsAt: string;
+}
+
+function getTomorrowNoonET(): { dropsAt: Date; revealsAt: Date } {
+  const now = new Date();
+  
+  // Get tomorrow's date in ET timezone
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  
+  const parts = formatter.formatToParts(tomorrow);
+  const year = parts.find(p => p.type === 'year')?.value;
+  const month = parts.find(p => p.type === 'month')?.value;
+  const day = parts.find(p => p.type === 'day')?.value;
+  
+  // Determine if we're in EDT or EST for tomorrow
+  const testDate = new Date(`${year}-${month}-${day}T12:00:00`);
+  const tzString = testDate.toLocaleString('en-US', {
+    timeZone: 'America/New_York',
+    timeZoneName: 'short'
+  });
+  const isDST = tzString.includes('EDT');
+  const offset = isDST ? '-04:00' : '-05:00';
+  
+  // Tomorrow noon ET
+  const dropsAt = new Date(`${year}-${month}-${day}T12:00:00${offset}`);
+  
+  // Day after tomorrow noon ET (reveal time)
+  const dayAfterTomorrow = new Date(tomorrow);
+  dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
+  const parts2 = formatter.formatToParts(dayAfterTomorrow);
+  const year2 = parts2.find(p => p.type === 'year')?.value;
+  const month2 = parts2.find(p => p.type === 'month')?.value;
+  const day2 = parts2.find(p => p.type === 'day')?.value;
+  
+  const revealsAt = new Date(`${year2}-${month2}-${day2}T12:00:00${offset}`);
+  
+  return { dropsAt, revealsAt };
 }
 
 export default function Admin() {
   const { user } = usePrivy();
   const { toast } = useToast();
   
-  const [formData, setFormData] = useState<QuestionFormData>({
+  const emptyQuestion: SingleQuestionData = {
     type: 'consensus',
     prompt: '',
     optionA: '',
@@ -38,9 +80,13 @@ export default function Admin() {
     optionC: '',
     optionD: '',
     context: '',
-    dropsAt: '',
-    revealsAt: '',
-  });
+  };
+
+  const [questions, setQuestions] = useState<SingleQuestionData[]>([
+    { ...emptyQuestion },
+    { ...emptyQuestion },
+    { ...emptyQuestion },
+  ]);
 
   // Check if user is admin
   const { data: userProfile, isLoading: profileLoading } = useQuery<User>({
@@ -49,59 +95,68 @@ export default function Admin() {
   });
 
   // Fetch all questions (only if admin)
-  const { data: questions = [], isLoading: questionsLoading } = useQuery<Question[]>({
+  const { data: allQuestions = [], isLoading: questionsLoading } = useQuery<Question[]>({
     queryKey: ['/api/admin/questions'],
     enabled: !!user?.id && userProfile?.isAdmin === true,
   });
 
-  // Create question mutation
+  // Check if tomorrow's questions already exist
+  const tomorrowSchedule = getTomorrowNoonET();
+  const tomorrowQuestions = allQuestions.filter(q => {
+    const dropDate = new Date(q.dropsAt);
+    return dropDate.getTime() === tomorrowSchedule.dropsAt.getTime();
+  });
+  const hasTomorrowQuestions = tomorrowQuestions.length >= 3;
+
+  // Create questions mutation
   const createMutation = useMutation({
-    mutationFn: async (data: QuestionFormData) => {
+    mutationFn: async (questionsData: SingleQuestionData[]) => {
       if (!user?.id) throw new Error('Not authenticated');
       
-      // Convert form data to API format
-      const payload = {
-        type: data.type,
-        prompt: data.prompt,
-        optionA: data.optionA,
-        optionB: data.optionB,
-        optionC: data.optionC || null,
-        optionD: data.optionD || null,
-        context: data.context || null,
-        dropsAt: new Date(data.dropsAt).toISOString(),
-        revealsAt: new Date(data.revealsAt).toISOString(),
-        isActive: true,
-        isRevealed: false,
-      };
+      const { dropsAt, revealsAt } = getTomorrowNoonET();
+      
+      const createdQuestions = [];
+      for (const q of questionsData) {
+        const payload = {
+          type: q.type,
+          prompt: q.prompt,
+          optionA: q.optionA,
+          optionB: q.optionB,
+          optionC: q.optionC || null,
+          optionD: q.optionD || null,
+          context: q.context || null,
+          dropsAt: dropsAt.toISOString(),
+          revealsAt: revealsAt.toISOString(),
+          isActive: true,
+          isRevealed: false,
+        };
 
-      const response = await apiRequest('/api/admin/questions', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      }, user.id);
-      return response.json();
+        const response = await apiRequest('/api/admin/questions', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        }, user.id);
+        const created = await response.json();
+        createdQuestions.push(created);
+      }
+      
+      return createdQuestions;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/questions'] });
       toast({
-        title: 'Question created!',
-        description: 'The question has been added successfully.',
+        title: 'Questions created!',
+        description: `All 3 questions added for tomorrow at noon ET.`,
       });
       // Reset form
-      setFormData({
-        type: 'consensus',
-        prompt: '',
-        optionA: '',
-        optionB: '',
-        optionC: '',
-        optionD: '',
-        context: '',
-        dropsAt: '',
-        revealsAt: '',
-      });
+      setQuestions([
+        { ...emptyQuestion },
+        { ...emptyQuestion },
+        { ...emptyQuestion },
+      ]);
     },
     onError: (error: Error) => {
       toast({
-        title: 'Failed to create question',
+        title: 'Failed to create questions',
         description: error.message,
         variant: 'destructive',
       });
@@ -136,26 +191,26 @@ export default function Admin() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation
-    if (!formData.prompt || !formData.optionA || !formData.optionB) {
-      toast({
-        title: 'Missing required fields',
-        description: 'Prompt and at least options A and B are required.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    
-    if (!formData.dropsAt || !formData.revealsAt) {
-      toast({
-        title: 'Missing dates',
-        description: 'Both drops at and reveals at dates are required.',
-        variant: 'destructive',
-      });
-      return;
+    // Validate all questions
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      if (!q.prompt || !q.optionA || !q.optionB) {
+        toast({
+          title: 'Missing required fields',
+          description: `Question ${i + 1}: Prompt and at least options A and B are required.`,
+          variant: 'destructive',
+        });
+        return;
+      }
     }
 
-    createMutation.mutate(formData);
+    createMutation.mutate(questions);
+  };
+
+  const updateQuestion = (index: number, field: keyof SingleQuestionData, value: string) => {
+    const updated = [...questions];
+    updated[index] = { ...updated[index], [field]: value };
+    setQuestions(updated);
   };
 
   if (profileLoading) {
@@ -189,148 +244,155 @@ export default function Admin() {
           <h1 className="text-4xl font-bold bg-gradient-to-r from-[#00D9FF] to-[#FF00E5] bg-clip-text text-transparent">
             Admin Dashboard
           </h1>
-          <p className="text-muted-foreground mt-2">Create and manage daily questions</p>
+          <p className="text-muted-foreground mt-2">Add tomorrow's questions (all 3 at once)</p>
         </div>
 
-        {/* Create Question Form */}
+        {/* Tomorrow's Schedule Status */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5" />
-              Create New Question
+              <Calendar className="h-5 w-5" />
+              Tomorrow's Schedule
             </CardTitle>
-            <CardDescription>Schedule a new question for the community</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="type">Question Type</Label>
-                  <Select
-                    value={formData.type}
-                    onValueChange={(value) => setFormData({ ...formData, type: value as QuestionType })}
-                  >
-                    <SelectTrigger id="type" data-testid="select-question-type">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="consensus">Consensus</SelectItem>
-                      <SelectItem value="prediction">Prediction</SelectItem>
-                      <SelectItem value="preference">Preference</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="context">Context (optional)</Label>
-                  <Input
-                    id="context"
-                    value={formData.context}
-                    onChange={(e) => setFormData({ ...formData, context: e.target.value })}
-                    placeholder="e.g., Crypto Market"
-                    data-testid="input-context"
-                  />
-                </div>
+            {hasTomorrowQuestions ? (
+              <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                <CheckCircle2 className="h-5 w-5" />
+                <span className="font-semibold">
+                  Tomorrow's questions are ready! ({tomorrowQuestions.length}/3 scheduled)
+                </span>
               </div>
-
+            ) : (
               <div className="space-y-2">
-                <Label htmlFor="prompt">Question Prompt *</Label>
-                <Textarea
-                  id="prompt"
-                  value={formData.prompt}
-                  onChange={(e) => setFormData({ ...formData, prompt: e.target.value })}
-                  placeholder="What will most traders predict about BTC this week?"
-                  rows={3}
-                  required
-                  data-testid="input-prompt"
-                />
+                <p className="text-muted-foreground">
+                  No questions scheduled for tomorrow yet. Add 3 questions below.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Questions will drop at: <span className="font-mono font-semibold">{tomorrowSchedule.dropsAt.toLocaleString('en-US', { timeZone: 'America/New_York', dateStyle: 'full', timeStyle: 'short' })}</span>
+                </p>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="optionA">Option A *</Label>
-                  <Input
-                    id="optionA"
-                    value={formData.optionA}
-                    onChange={(e) => setFormData({ ...formData, optionA: e.target.value })}
-                    placeholder="Bullish pump incoming"
-                    required
-                    data-testid="input-option-a"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="optionB">Option B *</Label>
-                  <Input
-                    id="optionB"
-                    value={formData.optionB}
-                    onChange={(e) => setFormData({ ...formData, optionB: e.target.value })}
-                    placeholder="Bearish dump expected"
-                    required
-                    data-testid="input-option-b"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="optionC">Option C (optional)</Label>
-                  <Input
-                    id="optionC"
-                    value={formData.optionC}
-                    onChange={(e) => setFormData({ ...formData, optionC: e.target.value })}
-                    placeholder="Sideways crab market"
-                    data-testid="input-option-c"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="optionD">Option D (optional)</Label>
-                  <Input
-                    id="optionD"
-                    value={formData.optionD}
-                    onChange={(e) => setFormData({ ...formData, optionD: e.target.value })}
-                    placeholder="Volatility explosion"
-                    data-testid="input-option-d"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="dropsAt">Drops At (Question becomes visible) *</Label>
-                  <Input
-                    id="dropsAt"
-                    type="datetime-local"
-                    value={formData.dropsAt}
-                    onChange={(e) => setFormData({ ...formData, dropsAt: e.target.value })}
-                    required
-                    data-testid="input-drops-at"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="revealsAt">Reveals At (Results revealed) *</Label>
-                  <Input
-                    id="revealsAt"
-                    type="datetime-local"
-                    value={formData.revealsAt}
-                    onChange={(e) => setFormData({ ...formData, revealsAt: e.target.value })}
-                    required
-                    data-testid="input-reveals-at"
-                  />
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                disabled={createMutation.isPending}
-                className="w-full"
-                data-testid="button-create-question"
-              >
-                {createMutation.isPending ? 'Creating...' : 'Create Question'}
-              </Button>
-            </form>
+            )}
           </CardContent>
         </Card>
+
+        {/* Create Questions Form (only show if tomorrow not scheduled) */}
+        {!hasTomorrowQuestions && (
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {questions.map((question, index) => (
+              <Card key={index}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Plus className="h-5 w-5" />
+                    Question {index + 1} of 3
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor={`type-${index}`}>Question Type</Label>
+                      <Select
+                        value={question.type}
+                        onValueChange={(value) => updateQuestion(index, 'type', value)}
+                      >
+                        <SelectTrigger id={`type-${index}`} data-testid={`select-question-type-${index}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="consensus">Consensus</SelectItem>
+                          <SelectItem value="prediction">Prediction</SelectItem>
+                          <SelectItem value="preference">Preference</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor={`context-${index}`}>Context (optional)</Label>
+                      <Input
+                        id={`context-${index}`}
+                        value={question.context}
+                        onChange={(e) => updateQuestion(index, 'context', e.target.value)}
+                        placeholder="e.g., Crypto Market"
+                        data-testid={`input-context-${index}`}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor={`prompt-${index}`}>Question Prompt *</Label>
+                    <Textarea
+                      id={`prompt-${index}`}
+                      value={question.prompt}
+                      onChange={(e) => updateQuestion(index, 'prompt', e.target.value)}
+                      placeholder="What will most traders predict about BTC this week?"
+                      rows={3}
+                      required
+                      data-testid={`input-prompt-${index}`}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor={`optionA-${index}`}>Option A *</Label>
+                      <Input
+                        id={`optionA-${index}`}
+                        value={question.optionA}
+                        onChange={(e) => updateQuestion(index, 'optionA', e.target.value)}
+                        placeholder="Bullish pump incoming"
+                        required
+                        data-testid={`input-option-a-${index}`}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor={`optionB-${index}`}>Option B *</Label>
+                      <Input
+                        id={`optionB-${index}`}
+                        value={question.optionB}
+                        onChange={(e) => updateQuestion(index, 'optionB', e.target.value)}
+                        placeholder="Bearish dump expected"
+                        required
+                        data-testid={`input-option-b-${index}`}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor={`optionC-${index}`}>Option C (optional)</Label>
+                      <Input
+                        id={`optionC-${index}`}
+                        value={question.optionC}
+                        onChange={(e) => updateQuestion(index, 'optionC', e.target.value)}
+                        placeholder="Sideways crab market"
+                        data-testid={`input-option-c-${index}`}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor={`optionD-${index}`}>Option D (optional)</Label>
+                      <Input
+                        id={`optionD-${index}`}
+                        value={question.optionD}
+                        onChange={(e) => updateQuestion(index, 'optionD', e.target.value)}
+                        placeholder="Volatility explosion"
+                        data-testid={`input-option-d-${index}`}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+
+            <Button
+              type="submit"
+              disabled={createMutation.isPending}
+              className="w-full"
+              size="lg"
+              data-testid="button-create-questions"
+            >
+              {createMutation.isPending ? 'Creating Questions...' : 'Add All 3 Questions for Tomorrow'}
+            </Button>
+          </form>
+        )}
 
         {/* Questions List */}
         <Card>
@@ -341,13 +403,13 @@ export default function Admin() {
           <CardContent>
             {questionsLoading ? (
               <div className="text-center text-muted-foreground py-8">Loading questions...</div>
-            ) : questions.length === 0 ? (
+            ) : allQuestions.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
-                No questions yet. Create your first one above!
+                No questions yet. Create your first set above!
               </div>
             ) : (
               <div className="space-y-4">
-                {questions.map((question) => (
+                {allQuestions.map((question) => (
                   <div
                     key={question.id}
                     className="border border-border rounded-lg p-4 space-y-3"
