@@ -426,8 +426,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/seed/questions', async (req, res) => {
     try {
       const now = new Date();
-      const dropTime = new Date(now.getTime() - 2 * 60 * 60 * 1000); // 2 hours ago
-      const revealTime = new Date(now.getTime() + 10 * 60 * 60 * 1000); // 10 hours from now
+      
+      // Calculate today's noon ET in UTC
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      
+      // Determine if we're in EDT or EST
+      const etOffset = now.toLocaleString('en-US', { 
+        timeZone: 'America/New_York', 
+        timeZoneName: 'short' 
+      }).includes('EDT') ? -4 : -5;
+      
+      // Today's noon ET in UTC
+      const todayNoonET = new Date(`${year}-${month}-${day}T12:00:00`);
+      todayNoonET.setHours(12 - etOffset); // Convert to UTC
+      
+      // Tomorrow's noon ET in UTC (reveal time)
+      const tomorrowNoonET = new Date(todayNoonET.getTime() + 24 * 60 * 60 * 1000);
+      
+      const dropTime = todayNoonET;
+      const revealTime = tomorrowNoonET;
 
       const questions = [
         {
