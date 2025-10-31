@@ -23,6 +23,7 @@ function AppContent() {
   const [location, setLocation] = useLocation();
   const { ready, authenticated, user } = usePrivy();
   const [initTimeout, setInitTimeout] = useState(false);
+  const [checkingProfile, setCheckingProfile] = useState(false);
 
   // Set global Privy user ID for API requests
   useEffect(() => {
@@ -40,11 +41,39 @@ function AppContent() {
     return () => clearTimeout(timer);
   }, [ready]);
 
-  // Redirect logic based on authentication
+  // Redirect authenticated users from splash
+  useEffect(() => {
+    if (!ready || !authenticated || !user?.id) return;
+    
+    if (location === '/splash' && !checkingProfile) {
+      setCheckingProfile(true);
+      
+      // Check if user actually has a profile in the database
+      fetch('/api/user/me', {
+        headers: {
+          'x-privy-user-id': user.id,
+        },
+      })
+        .then(async (response) => {
+          if (response.ok) {
+            const userData = await response.json();
+            localStorage.setItem('pallyUserHandle', userData.handle);
+            setLocation('/');
+          } else if (response.status === 404) {
+            setLocation('/create-profile');
+          }
+        })
+        .catch((err) => {
+          console.error('Profile check failed:', err);
+          setCheckingProfile(false);
+        });
+    }
+  }, [ready, authenticated, location, setLocation, user, checkingProfile]);
+
+  // Redirect unauthenticated users to splash
   useEffect(() => {
     if (!ready) return;
     
-    // Define all valid routes
     const validRoutes = ['/', '/splash', '/create-profile', '/leaderboard', '/history', '/profile', '/admin', '/terms', '/privacy'];
     const publicRoutes = ['/splash', '/terms', '/privacy'];
     const isValidRoute = validRoutes.includes(location);
@@ -55,15 +84,8 @@ function AppContent() {
       return;
     }
     
-    if (!authenticated) {
-      if (!isPublicRoute) {
-        setLocation('/splash');
-      }
-    } else {
-      if (location === '/splash') {
-        const hasProfile = localStorage.getItem('pallyUserHandle');
-        setLocation(hasProfile ? '/' : '/create-profile');
-      }
+    if (!authenticated && !isPublicRoute) {
+      setLocation('/splash');
     }
   }, [ready, authenticated, location, setLocation]);
 
