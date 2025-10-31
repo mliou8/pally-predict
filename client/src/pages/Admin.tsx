@@ -119,12 +119,12 @@ export default function Admin() {
       for (const q of questionsData) {
         const payload = {
           type: q.type,
-          prompt: q.prompt,
-          optionA: q.optionA,
-          optionB: q.optionB,
-          optionC: q.optionC || null,
-          optionD: q.optionD || null,
-          context: q.context || null,
+          prompt: q.prompt.trim(),
+          optionA: q.optionA.trim(),
+          optionB: q.optionB.trim(),
+          optionC: q.optionC.trim() || null,
+          optionD: q.optionD.trim() || null,
+          context: q.context.trim() || null,
           dropsAt: dropsAt.toISOString(),
           revealsAt: revealsAt.toISOString(),
           isActive: true,
@@ -135,6 +135,12 @@ export default function Admin() {
           method: 'POST',
           body: JSON.stringify(payload),
         }, user.id);
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to create question');
+        }
+        
         const created = await response.json();
         createdQuestions.push(created);
       }
