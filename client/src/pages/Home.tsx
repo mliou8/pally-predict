@@ -291,6 +291,8 @@ export default function Home() {
                         results={resultsList}
                         pointsEarned={pointsEarned}
                         multiplier={multiplier}
+                        questionDate={question.dropsAt.toString()}
+                        isPublic={userVote.isPublic}
                       />
                     );
                   }
@@ -318,6 +320,16 @@ export default function Home() {
           </TabsContent>
 
           <TabsContent value="results" className="space-y-6">
+            {resultsData.length > 0 && (
+              <div className="flex justify-end mb-4">
+                <Link href="/all-results">
+                  <Button variant="outline" data-testid="button-view-all-results">
+                    View All Results
+                  </Button>
+                </Link>
+              </div>
+            )}
+            
             {isLoadingRevealed ? (
               <>
                 <Skeleton className="h-80 w-full rounded-3xl" />
@@ -371,6 +383,8 @@ export default function Home() {
                     results={resultsList}
                     pointsEarned={pointsEarned}
                     multiplier={multiplier}
+                    questionDate={question.dropsAt.toString()}
+                    isPublic={userVote.isPublic}
                   />
                 );
               })

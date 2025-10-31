@@ -19,6 +19,8 @@ interface ResultsRevealProps {
   results: OptionResult[];
   pointsEarned?: number;
   multiplier?: number;
+  questionDate?: string;
+  isPublic?: boolean;
 }
 
 export default function ResultsReveal({
@@ -27,11 +29,20 @@ export default function ResultsReveal({
   userChoiceLabel,
   results,
   pointsEarned,
-  multiplier
+  multiplier,
+  questionDate,
+  isPublic
 }: ResultsRevealProps) {
   const sortedResults = [...results].sort((a, b) => b.percentage - a.percentage);
   const userResult = results.find(r => r.choice === userChoice);
   const userRank = userResult?.rank || 0;
+  const winningOption = sortedResults[0];
+  
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
+  };
 
   const rankColors = {
     1: 'from-yellow-400 to-yellow-600',
@@ -51,6 +62,19 @@ export default function ResultsReveal({
       animate={{ opacity: 1, y: 0 }}
       className="bg-card rounded-3xl p-6 md:p-8 border border-card-border shadow-[0_10px_30px_rgba(0,0,0,0.35)]"
     >
+      <div className="flex items-center justify-between mb-4">
+        {questionDate && (
+          <span className="text-xs text-muted-foreground" data-testid="text-result-date">
+            {formatDate(questionDate)}
+          </span>
+        )}
+        {isPublic !== undefined && (
+          <span className="text-xs px-2 py-1 rounded-md bg-muted text-muted-foreground" data-testid="text-vote-type">
+            {isPublic ? 'Public' : 'Private'}
+          </span>
+        )}
+      </div>
+
       <motion.h2
         initial={{ scale: 0.9 }}
         animate={{ scale: 1 }}
@@ -62,11 +86,23 @@ export default function ResultsReveal({
       <div className="mb-6">
         <p className="text-sm text-muted-foreground mb-3 text-center">{question}</p>
         <div className="flex items-center justify-center gap-2 mb-4">
-          <span className="text-muted-foreground">You voted:</span>
-          <span className="font-semibold text-foreground px-3 py-1 rounded-lg bg-muted">
-            {userChoiceLabel}
+          <span className="text-muted-foreground">Your answer:</span>
+          <span className="font-semibold text-foreground px-3 py-1 rounded-lg bg-muted" data-testid="text-user-choice">
+            {userChoice} - {userChoiceLabel}
           </span>
           <span className="text-2xl">{getRankEmoji(userRank)}</span>
+        </div>
+      </div>
+
+      <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-primary/10 to-brand-magenta/10 border border-primary/20">
+        <div className="text-center">
+          <div className="text-sm text-muted-foreground mb-1">Majority prediction</div>
+          <div className="text-lg font-bold bg-gradient-to-r from-primary to-brand-magenta bg-clip-text text-transparent" data-testid="text-majority-prediction">
+            {winningOption.choice} - {winningOption.label}
+          </div>
+          <div className="text-sm text-muted-foreground mt-1">
+            {winningOption.percentage}% of voters
+          </div>
         </div>
       </div>
 

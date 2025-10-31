@@ -13,6 +13,7 @@ import Leaderboard from '@/pages/Leaderboard';
 import History from '@/pages/History';
 import Profile from '@/pages/Profile';
 import Admin from '@/pages/Admin';
+import AllResults from '@/pages/AllResults';
 import TermsOfService from '@/pages/TermsOfService';
 import PrivacyPolicy from '@/pages/PrivacyPolicy';
 import TopBar from '@/components/TopBar';
@@ -72,7 +73,7 @@ function AppContent() {
   useEffect(() => {
     if (!ready) return;
     
-    const validRoutes = ['/', '/splash', '/create-profile', '/leaderboard', '/history', '/profile', '/admin', '/terms', '/privacy'];
+    const validRoutes = ['/', '/splash', '/create-profile', '/leaderboard', '/history', '/profile', '/admin', '/all-results', '/terms', '/privacy'];
     const publicRoutes = ['/splash', '/terms', '/privacy'];
     const isValidRoute = validRoutes.includes(location);
     const isPublicRoute = publicRoutes.includes(location);
@@ -147,6 +148,7 @@ function AppContent() {
           <Route path="/history" component={History} />
           <Route path="/profile" component={Profile} />
           <Route path="/admin" component={Admin} />
+          <Route path="/all-results" component={AllResults} />
           <Route path="/terms" component={TermsOfService} />
           <Route path="/privacy" component={PrivacyPolicy} />
           <Route component={NotFound} />
