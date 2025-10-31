@@ -106,7 +106,6 @@ export default function TopBar({ alphaPoints }: TopBarProps) {
 
   const handleLogout = () => {
     logout();
-    localStorage.removeItem('pallyUserHandle');
   };
 
   return (

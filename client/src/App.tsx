@@ -56,8 +56,6 @@ function AppContent() {
       })
         .then(async (response) => {
           if (response.ok) {
-            const userData = await response.json();
-            localStorage.setItem('pallyUserHandle', userData.handle);
             setLocation('/');
           } else if (response.status === 404) {
             setLocation('/create-profile');

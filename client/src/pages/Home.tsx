@@ -57,7 +57,6 @@ export default function Home() {
     if (user && !isLoadingUser && isError && error) {
       // Only redirect on 404 (user not found), not on network/server errors
       if (error instanceof ApiError && error.status === 404) {
-        localStorage.removeItem('pallyUserHandle');
         setLocation('/create-profile');
       }
     }
@@ -136,7 +135,6 @@ export default function Home() {
       console.error('Vote error:', error);
       // If user not found (404), redirect to create profile
       if (error instanceof ApiError && error.status === 404) {
-        localStorage.removeItem('pallyUserHandle');
         setLocation('/create-profile');
         toast({
           title: 'Profile Required',

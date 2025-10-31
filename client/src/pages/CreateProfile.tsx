@@ -32,7 +32,6 @@ export default function CreateProfile() {
       }, user.id);
 
       if (response.ok) {
-        localStorage.setItem('pallyUserHandle', handle);
         setLocation('/');
       } else {
         const error = await response.json();
@@ -144,7 +143,6 @@ export default function CreateProfile() {
               variant="outline"
               onClick={() => {
                 logout();
-                localStorage.removeItem('pallyUserHandle');
               }}
               className="w-full"
               data-testid="button-logout-switch"
