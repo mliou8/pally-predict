@@ -74,6 +74,9 @@ export const insertUserSchema = createInsertSchema(users).pick({
 export const insertQuestionSchema = createInsertSchema(questions).omit({
   id: true,
   createdAt: true,
+}).extend({
+  dropsAt: z.string().transform((str) => new Date(str)),
+  revealsAt: z.string().transform((str) => new Date(str)),
 });
 
 export const insertVoteSchema = createInsertSchema(votes).omit({
