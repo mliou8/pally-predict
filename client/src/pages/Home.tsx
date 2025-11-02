@@ -320,16 +320,6 @@ export default function Home() {
           </TabsContent>
 
           <TabsContent value="results" className="space-y-6">
-            {resultsData.length > 0 && (
-              <div className="flex justify-end mb-4">
-                <Link href="/all-results">
-                  <Button variant="outline" data-testid="button-view-all-results">
-                    View All Results
-                  </Button>
-                </Link>
-              </div>
-            )}
-            
             {isLoadingRevealed ? (
               <>
                 <Skeleton className="h-80 w-full rounded-3xl" />
@@ -339,13 +329,11 @@ export default function Home() {
               <div className="text-center py-12">
                 <p className="text-muted-foreground mb-2">No results yet</p>
                 <p className="text-sm text-muted-foreground">
-                  Vote on active questions to see results when they're revealed!
+                  Check back after questions are revealed to see results!
                 </p>
               </div>
             ) : (
               resultsData.map(({ question, results, userVote }) => {
-                if (!userVote) return null;
-
                 const optionLabels: Record<VoteChoice, string> = {
                   A: question.optionA,
                   B: question.optionB,
@@ -371,21 +359,105 @@ export default function Home() {
                   if (original) original.rank = index + 1;
                 });
 
-                const multiplier = results.rarityMultipliers?.[userVote.choice] || 1;
-                const pointsEarned = userVote.pointsEarned || (100 * multiplier);
+                // If user voted, show their details
+                if (userVote) {
+                  const multiplier = results.rarityMultipliers?.[userVote.choice] || 1;
+                  const pointsEarned = userVote.pointsEarned || (100 * multiplier);
 
+                  return (
+                    <ResultsReveal
+                      key={question.id}
+                      question={question.prompt}
+                      userChoice={userVote.choice}
+                      userChoiceLabel={optionLabels[userVote.choice]}
+                      results={resultsList}
+                      pointsEarned={pointsEarned}
+                      multiplier={multiplier}
+                      questionDate={question.dropsAt.toString()}
+                      isPublic={userVote.isPublic}
+                    />
+                  );
+                }
+
+                // If user didn't vote, show results without user-specific info
                 return (
-                  <ResultsReveal
-                    key={question.id}
-                    question={question.prompt}
-                    userChoice={userVote.choice}
-                    userChoiceLabel={optionLabels[userVote.choice]}
-                    results={resultsList}
-                    pointsEarned={pointsEarned}
-                    multiplier={multiplier}
-                    questionDate={question.dropsAt.toString()}
-                    isPublic={userVote.isPublic}
-                  />
+                  <div key={question.id} className="bg-card rounded-3xl p-6 md:p-8 border border-card-border shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-xs text-muted-foreground" data-testid="text-result-date">
+                        {new Date(question.dropsAt).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
+                      </span>
+                      <span className="text-xs px-2 py-1 rounded-md bg-muted text-muted-foreground">
+                        No vote
+                      </span>
+                    </div>
+
+                    <h2 className="text-xl font-semibold mb-6 text-center bg-gradient-to-r from-primary to-brand-magenta bg-clip-text text-transparent">
+                      Results
+                    </h2>
+
+                    <div className="mb-6">
+                      <p className="text-sm text-muted-foreground mb-3 text-center">{question.prompt}</p>
+                    </div>
+
+                    <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-primary/10 to-brand-magenta/10 border border-primary/20">
+                      <div className="text-center">
+                        <div className="text-sm text-muted-foreground mb-1">Majority prediction</div>
+                        <div className="text-lg font-bold bg-gradient-to-r from-primary to-brand-magenta bg-clip-text text-transparent" data-testid="text-majority-prediction">
+                          {sorted[0].choice} - {sorted[0].label}
+                        </div>
+                        <div className="text-sm text-muted-foreground mt-1">
+                          {sorted[0].percentage}% of voters
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {sorted.map((result) => {
+                        const rankColors = {
+                          1: 'from-yellow-400 to-yellow-600',
+                          2: 'from-gray-300 to-gray-500',
+                          3: 'from-orange-400 to-orange-600',
+                          4: 'from-slate-400 to-slate-600',
+                        };
+                        
+                        const getRankEmoji = (rank: number) => {
+                          const emojis: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉', 4: '4️⃣' };
+                          return emojis[rank] || '';
+                        };
+
+                        const barColor = rankColors[result.rank as keyof typeof rankColors] || 'from-slate-400 to-slate-600';
+                        
+                        return (
+                          <div
+                            key={result.choice}
+                            className="relative rounded-xl overflow-hidden"
+                          >
+                            <div className="relative p-4 bg-muted">
+                              <div
+                                style={{ width: `${result.percentage}%` }}
+                                className={`absolute inset-0 bg-gradient-to-r ${barColor} opacity-20`}
+                              />
+                              
+                              <div className="relative flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <span className="text-2xl">{getRankEmoji(result.rank)}</span>
+                                  <div>
+                                    <div className="font-semibold text-foreground">{result.label}</div>
+                                    <div className="text-xs text-muted-foreground">{result.votes} votes</div>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-2xl font-bold bg-gradient-to-r from-primary to-brand-magenta bg-clip-text text-transparent">
+                                    {result.percentage}%
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 );
               })
             )}

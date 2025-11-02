@@ -6,6 +6,32 @@ Pally Traders is a competitive prediction game inspired by "fantasy sports for d
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+**November 02, 2025 (Results Tab Enhancement)**: Automatic display of all previous results
+- **Results Tab**: Now automatically displays all revealed questions without requiring navigation
+  - Removed "View All Results" button - all results shown inline
+  - Questions where user voted: Full ResultsReveal component with points and multiplier
+  - Questions where user didn't vote: Summary view with majority prediction and ranked options
+  - Consistent UI with ranked emojis (🥇🥈🥉) and percentage bars
+- **User Experience**: Simplified navigation - no need to click through to /all-results page
+  - All historical results visible in one place
+  - Better visibility of community predictions on questions user missed
+
+**November 02, 2025 (Leaderboard Accuracy)**: Implemented accuracy calculation for leaderboard
+- **Accuracy Calculation**: Leaderboard now displays each user's prediction accuracy
+  - Accuracy = (correct votes / total votes on revealed questions) * 100
+  - Correct vote = user picked the winning option (highest vote count)
+  - Only counts votes on questions with calculated results
+  - Users with no votes show 0% accuracy
+- **Performance Optimization**: Batch-loading question results for efficient calculation
+  - Single query to load all revealed question results upfront
+  - In-memory map for O(1) result lookups
+  - Improved from 3.6s to 655ms for 10 users (5.5x faster)
+- **Frontend Display**: Updated LeaderboardRow components to show calculated accuracy
+  - All three tabs (Daily/Weekly/All-time) display accuracy percentages
+  - Current user's row shows their personal accuracy
+
 ## System Architecture
 
 ### Frontend Architecture
