@@ -285,6 +285,19 @@ export class DbStorage implements IStorage {
       .orderBy(desc(users.alphaPoints), desc(users.currentStreak))
       .limit(limit);
 
+    // Batch-load all question results for revealed questions upfront
+    const allResults = await db
+      .select()
+      .from(questionResults)
+      .innerJoin(questions, eq(questionResults.questionId, questions.id))
+      .where(eq(questions.isRevealed, true));
+
+    // Create a map of questionId -> results for fast lookup
+    const resultsMap = new Map<string, QuestionResults>();
+    for (const row of allResults) {
+      resultsMap.set(row.question_results.questionId, row.question_results);
+    }
+
     // Calculate accuracy for each user
     const usersWithAccuracy = await Promise.all(
       allUsers.map(async (user) => {
@@ -308,9 +321,13 @@ export class DbStorage implements IStorage {
 
         // Check each vote to see if it was correct
         let correctVotes = 0;
+        let votesWithResults = 0;
+        
         for (const vote of userVotesQuery) {
-          const results = await this.getQuestionResults(vote.questionId);
-          if (!results) continue;
+          const results = resultsMap.get(vote.questionId);
+          if (!results) continue; // Skip votes for questions without results
+          
+          votesWithResults++;
 
           // Determine winning option (highest vote count)
           const voteCounts = {
@@ -328,7 +345,11 @@ export class DbStorage implements IStorage {
           }
         }
 
-        const accuracy = Math.round((correctVotes / userVotesQuery.length) * 100);
+        // Only calculate accuracy if there are votes with results
+        const accuracy = votesWithResults > 0 
+          ? Math.round((correctVotes / votesWithResults) * 100)
+          : 0;
+          
         return { ...user, accuracy };
       })
     );
