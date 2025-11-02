@@ -8,6 +8,10 @@ import { Badge } from '@/components/ui/badge';
 import { Clock } from 'lucide-react';
 import type { User } from '@shared/schema';
 
+interface LeaderboardEntry extends User {
+  accuracy: number;
+}
+
 // Season start epoch: Monday, January 1, 2024 at 12:00 PM ET
 // This is our reference point for 7-day cycles
 const SEASON_START_EPOCH = new Date('2024-01-01T12:00:00-05:00').getTime();
@@ -65,7 +69,7 @@ export default function Leaderboard() {
   const { user } = usePrivy();
   const seasonCountdown = useSeasonCountdown();
 
-  const { data: leaderboardData = [], isLoading } = useQuery<User[]>({
+  const { data: leaderboardData = [], isLoading } = useQuery<LeaderboardEntry[]>({
     queryKey: ['/api/leaderboard'],
     enabled: !!user,
   });
@@ -78,6 +82,10 @@ export default function Leaderboard() {
   const currentUserRank = currentUser 
     ? leaderboardData.findIndex(u => u.id === currentUser.id) + 1
     : 0;
+  
+  const currentUserEntry = currentUser 
+    ? leaderboardData.find(u => u.id === currentUser.id)
+    : null;
 
   if (!user) {
     return (
@@ -130,7 +138,7 @@ export default function Leaderboard() {
                   key={entry.id} 
                   rank={index + 1}
                   handle={entry.handle || `@User${entry.id.slice(0, 4)}`}
-                  accuracyPct={0}
+                  accuracyPct={entry.accuracy}
                   points={entry.alphaPoints}
                   badges={entry.badgesEarned}
                 />
@@ -158,7 +166,7 @@ export default function Leaderboard() {
                   key={entry.id} 
                   rank={index + 1}
                   handle={entry.handle || `@User${entry.id.slice(0, 4)}`}
-                  accuracyPct={0}
+                  accuracyPct={entry.accuracy}
                   points={entry.alphaPoints}
                   badges={entry.badgesEarned}
                 />
@@ -186,7 +194,7 @@ export default function Leaderboard() {
                   key={entry.id} 
                   rank={index + 1}
                   handle={entry.handle || `@User${entry.id.slice(0, 4)}`}
-                  accuracyPct={0}
+                  accuracyPct={entry.accuracy}
                   points={entry.alphaPoints}
                   badges={entry.badgesEarned}
                 />
@@ -195,12 +203,12 @@ export default function Leaderboard() {
           </TabsContent>
         </Tabs>
 
-        {currentUser && currentUserRank > 0 && (
+        {currentUser && currentUserRank > 0 && currentUserEntry && (
           <div className="sticky bottom-20 md:bottom-6 mt-6 p-4 rounded-xl bg-primary/10 border border-primary/50">
             <LeaderboardRow
               rank={currentUserRank}
               handle={currentUser.handle || '@You'}
-              accuracyPct={0}
+              accuracyPct={currentUserEntry.accuracy}
               points={currentUser.alphaPoints}
               isCurrentUser
             />

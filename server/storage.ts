@@ -47,7 +47,11 @@ export interface IStorage {
   updateQuestionResults(questionId: string, updates: Partial<QuestionResults>): Promise<QuestionResults | undefined>;
   
   // Leaderboard operations
-  getLeaderboard(limit?: number): Promise<User[]>;
+  getLeaderboard(limit?: number): Promise<LeaderboardEntry[]>;
+}
+
+export interface LeaderboardEntry extends User {
+  accuracy: number;
 }
 
 export class DbStorage implements IStorage {
@@ -274,12 +278,62 @@ export class DbStorage implements IStorage {
   }
 
   // Leaderboard operations
-  async getLeaderboard(limit: number = 50): Promise<User[]> {
-    return await db
+  async getLeaderboard(limit: number = 50): Promise<LeaderboardEntry[]> {
+    const allUsers = await db
       .select()
       .from(users)
       .orderBy(desc(users.alphaPoints), desc(users.currentStreak))
       .limit(limit);
+
+    // Calculate accuracy for each user
+    const usersWithAccuracy = await Promise.all(
+      allUsers.map(async (user) => {
+        // Get all user votes on revealed questions
+        const userVotesQuery = await db
+          .select({
+            voteId: votes.id,
+            voteChoice: votes.choice,
+            questionId: votes.questionId,
+          })
+          .from(votes)
+          .innerJoin(questions, eq(votes.questionId, questions.id))
+          .where(and(
+            eq(votes.userId, user.id),
+            eq(questions.isRevealed, true)
+          ));
+
+        if (userVotesQuery.length === 0) {
+          return { ...user, accuracy: 0 };
+        }
+
+        // Check each vote to see if it was correct
+        let correctVotes = 0;
+        for (const vote of userVotesQuery) {
+          const results = await this.getQuestionResults(vote.questionId);
+          if (!results) continue;
+
+          // Determine winning option (highest vote count)
+          const voteCounts = {
+            A: results.votesA,
+            B: results.votesB,
+            C: results.votesC || 0,
+            D: results.votesD || 0,
+          };
+
+          const winningChoice = Object.entries(voteCounts)
+            .reduce((a, b) => (b[1] > a[1] ? b : a))[0] as 'A' | 'B' | 'C' | 'D';
+
+          if (vote.voteChoice === winningChoice) {
+            correctVotes++;
+          }
+        }
+
+        const accuracy = Math.round((correctVotes / userVotesQuery.length) * 100);
+        return { ...user, accuracy };
+      })
+    );
+
+    return usersWithAccuracy;
   }
 }
 
