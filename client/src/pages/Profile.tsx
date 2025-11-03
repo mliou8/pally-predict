@@ -3,11 +3,12 @@ import { useQuery } from '@tanstack/react-query';
 import { usePrivy } from '@privy-io/react-auth';
 import { Link } from 'wouter';
 import { Trophy } from 'lucide-react';
-import ProfileHeader from '@/components/ProfileHeader';
 import HistoryCard from '@/components/HistoryCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { getRankInfo, getRankColor } from '@/lib/ranks';
 import type { User, Vote, Question, QuestionResults } from '@shared/schema';
@@ -154,6 +155,14 @@ export default function Profile() {
     });
   };
 
+  const allRankTiers = [
+    { rank: 'Bronze', min: 0, max: 499, emoji: '🥉', color: 'from-amber-700 to-amber-900' },
+    { rank: 'Silver', min: 500, max: 999, emoji: '🥈', color: 'from-slate-400 to-slate-600' },
+    { rank: 'Gold', min: 1000, max: 1999, emoji: '🥇', color: 'from-yellow-400 to-yellow-600' },
+    { rank: 'Platinum', min: 2000, max: 4999, emoji: '💎', color: 'from-cyan-400 to-blue-500' },
+    { rank: 'Diamond', min: 5000, max: Infinity, emoji: '💎', color: 'from-purple-400 to-pink-500' },
+  ];
+
   return (
     <div className="min-h-screen pb-20 md:pb-6">
       <div className="max-w-4xl mx-auto px-4 md:px-6 py-6 space-y-6">
@@ -167,49 +176,144 @@ export default function Profile() {
         </div>
 
         {isLoadingUser ? (
-          <Skeleton className="h-32 w-full rounded-xl" />
-        ) : currentUser ? (
-          <ProfileHeader
-            handle={currentUser.handle || '@User'}
-            rank={currentUser.rank as 'Bronze' | 'Silver' | 'Gold' | 'Oracle'}
-            winRate={0}
-            streak={currentUser.currentStreak}
-            totalPoints={currentUser.alphaPoints}
-          />
+          <>
+            <Skeleton className="h-64 w-full rounded-3xl" />
+            <Skeleton className="h-32 w-full rounded-3xl" />
+          </>
+        ) : currentUser && rankInfo ? (
+          <>
+            {/* Hero Rank Display */}
+            <div className="relative overflow-hidden rounded-3xl border border-card-border bg-gradient-to-br from-card via-card to-muted p-6 md:p-8" data-testid="hero-rank-display">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-brand-magenta/5" />
+              
+              <div className="relative space-y-6">
+                {/* User Info */}
+                <div className="flex items-center gap-4" data-testid="user-info-section">
+                  <Avatar className="h-16 w-16 border-2 border-primary/20" data-testid="user-avatar">
+                    <AvatarFallback className="text-xl bg-gradient-to-br from-primary/20 to-brand-magenta/20">
+                      {currentUser.handle?.substring(0, 2).toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h2 className="text-2xl font-bold text-foreground mb-1" data-testid="text-handle">
+                      {currentUser.handle || '@User'}
+                    </h2>
+                    <p className="text-sm text-muted-foreground">Alpha Trader</p>
+                  </div>
+                </div>
+
+                {/* Current Rank Showcase */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 rounded-2xl bg-gradient-to-r from-muted/50 to-muted/30 border border-border" data-testid="rank-showcase">
+                  <div className="flex items-center gap-4">
+                    <div className="text-5xl sm:text-6xl" data-testid="rank-emoji">
+                      {rankInfo.emoji}
+                    </div>
+                    <div>
+                      <div className="text-sm text-muted-foreground mb-1">Current Rank</div>
+                      <div className={`text-2xl sm:text-3xl font-bold bg-gradient-to-r ${getRankColor(rankInfo.current)} bg-clip-text text-transparent`} data-testid="rank-badge">
+                        {rankInfo.current}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-left sm:text-right w-full sm:w-auto">
+                    <div className="text-sm text-muted-foreground mb-1">Alpha Points</div>
+                    <div className="text-2xl sm:text-3xl font-bold font-mono bg-gradient-to-r from-primary to-brand-magenta bg-clip-text text-transparent" data-testid="text-points">
+                      {currentUser.alphaPoints.toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Progress to Next Rank */}
+                {rankInfo.nextRank && (
+                  <div className="space-y-3" data-testid="rank-progress-section">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Progress to {rankInfo.nextRank}</span>
+                      <span className="font-semibold text-foreground" data-testid="text-points-to-next">{rankInfo.pointsToNext.toLocaleString()} pts to go</span>
+                    </div>
+                    <Progress 
+                      value={rankInfo.progressPercent} 
+                      className="h-3"
+                      data-testid="rank-progress"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4" data-testid="stats-grid">
+              <div className="p-6 rounded-2xl bg-card border border-card-border" data-testid="stat-winrate">
+                <div className="text-xs text-muted-foreground mb-2">Win Rate</div>
+                <div className="text-3xl font-bold font-mono text-foreground" data-testid="text-winrate">
+                  0%
+                </div>
+              </div>
+              <div className="p-6 rounded-2xl bg-card border border-card-border" data-testid="stat-streak">
+                <div className="text-xs text-muted-foreground mb-2">Streak</div>
+                <div className="text-3xl font-bold font-mono text-foreground" data-testid="text-streak">
+                  {currentUser.currentStreak}
+                </div>
+              </div>
+              <div className="p-6 rounded-2xl bg-card border border-card-border" data-testid="stat-max-streak">
+                <div className="text-xs text-muted-foreground mb-2">Max Streak</div>
+                <div className="text-3xl font-bold font-mono text-foreground" data-testid="text-max-streak">
+                  {currentUser.maxStreak}
+                </div>
+              </div>
+            </div>
+
+            {/* All Ranks Overview */}
+            <div className="p-6 rounded-3xl bg-card border border-card-border space-y-4">
+              <h3 className="text-lg font-semibold text-foreground mb-4">Rank Tiers</h3>
+              <div className="space-y-3">
+                {allRankTiers.map((tier, index) => {
+                  const isCurrentRank = tier.rank === rankInfo.current;
+                  const isUnlocked = currentUser.alphaPoints >= tier.min;
+                  
+                  return (
+                    <div
+                      key={tier.rank}
+                      className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
+                        isCurrentRank 
+                          ? 'border-primary bg-gradient-to-r from-primary/10 to-brand-magenta/10' 
+                          : isUnlocked
+                          ? 'border-border bg-muted/30'
+                          : 'border-border bg-muted/10 opacity-50'
+                      }`}
+                      data-testid={`tier-${tier.rank.toLowerCase()}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-3xl">{tier.emoji}</span>
+                        <div>
+                          <div className={`font-bold text-lg ${
+                            isCurrentRank 
+                              ? `bg-gradient-to-r ${tier.color} bg-clip-text text-transparent`
+                              : isUnlocked ? 'text-foreground' : 'text-muted-foreground'
+                          }`}>
+                            {tier.rank}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {tier.min.toLocaleString()} - {tier.max === Infinity ? '∞' : tier.max.toLocaleString()} pts
+                          </div>
+                        </div>
+                      </div>
+                      {isCurrentRank && (
+                        <Badge variant="outline" className="border-primary text-primary">
+                          Current
+                        </Badge>
+                      )}
+                      {!isCurrentRank && isUnlocked && (
+                        <Badge variant="outline" className="border-green-500/50 text-green-500">
+                          Unlocked
+                        </Badge>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </>
         ) : null}
-
-        {!isLoadingUser && currentUser && rankInfo && (
-          <div className="p-6 rounded-3xl border border-border bg-card space-y-4">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2" data-testid="rank-badge">
-                <span className="text-2xl">{rankInfo.emoji}</span>
-                <span className="font-semibold text-lg text-foreground">
-                  {rankInfo.current}
-                </span>
-              </div>
-              <div className="text-sm font-medium text-muted-foreground">
-                α {currentUser.alphaPoints}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Progress 
-                value={rankInfo.progressPercent} 
-                className="h-2"
-                data-testid="rank-progress"
-              />
-              {rankInfo.nextRank ? (
-                <p className="text-sm text-muted-foreground" data-testid="rank-next">
-                  Next Rank: {rankInfo.nextRank} ({rankInfo.pointsToNext} pts to go)
-                </p>
-              ) : (
-                <p className="text-sm font-semibold text-foreground" data-testid="rank-next">
-                  Max Rank Achieved!
-                </p>
-              )}
-            </div>
-          </div>
-        )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-3">
@@ -222,7 +326,7 @@ export default function Profile() {
             {isLoadingVotes ? (
               <>
                 {[...Array(3)].map((_, i) => (
-                  <Skeleton key={i} className="h-32 w-full rounded-xl" />
+                  <Skeleton key={i} className="h-32 w-full rounded-xl" data-testid={`skeleton-public-${i}`} />
                 ))}
               </>
             ) : (
@@ -234,7 +338,7 @@ export default function Profile() {
             {isLoadingVotes ? (
               <>
                 {[...Array(3)].map((_, i) => (
-                  <Skeleton key={i} className="h-32 w-full rounded-xl" />
+                  <Skeleton key={i} className="h-32 w-full rounded-xl" data-testid={`skeleton-private-${i}`} />
                 ))}
               </>
             ) : (
