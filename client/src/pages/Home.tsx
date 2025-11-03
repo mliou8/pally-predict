@@ -161,7 +161,61 @@ export default function Home() {
         revealedQuestions.map(async (question) => {
           try {
             const resultsResponse = await fetch(`/api/results/${question.id}`);
-            const results = await resultsResponse.json();
+            let results = await resultsResponse.json();
+            
+            // Generate mock results if none exist
+            if (!results || resultsResponse.status === 404) {
+              const seed = question.id.charCodeAt(0) + question.id.charCodeAt(1);
+              const userVote = userVotes.find(v => v.questionId === question.id);
+              const isUserCorrect = userVote ? (seed % 3 !== 0) : false; // 66% win rate for users
+              
+              // Determine winning option
+              let winningChoice: 'A' | 'B' | 'C' | 'D' = 'A';
+              if (userVote && isUserCorrect) {
+                winningChoice = userVote.choice as 'A' | 'B' | 'C' | 'D';
+              } else if (userVote) {
+                const options: ('A' | 'B' | 'C' | 'D')[] = ['A', 'B'];
+                if (question.optionC) options.push('C');
+                if (question.optionD) options.push('D');
+                const otherOptions = options.filter(opt => opt !== userVote.choice);
+                winningChoice = otherOptions[seed % otherOptions.length] as 'A' | 'B' | 'C' | 'D';
+              } else {
+                winningChoice = seed % 2 === 0 ? 'A' : 'B';
+              }
+              
+              // Generate percentages
+              const percentages: Record<string, number> = { A: 20, B: 20, C: 20, D: 20 };
+              percentages[winningChoice] = 40 + (seed % 20);
+              
+              const remaining = 100 - percentages[winningChoice];
+              const otherOptions = ['A', 'B', 'C', 'D'].filter(opt => opt !== winningChoice);
+              otherOptions.forEach((opt) => {
+                if ((opt === 'C' && !question.optionC) || (opt === 'D' && !question.optionD)) {
+                  percentages[opt] = 0;
+                } else {
+                  percentages[opt] = Math.floor(remaining / otherOptions.filter(o => 
+                    !((o === 'C' && !question.optionC) || (o === 'D' && !question.optionD))
+                  ).length);
+                }
+              });
+              
+              const totalVotes = 50 + (seed % 100);
+              results = {
+                id: question.id + '-results',
+                questionId: question.id,
+                percentA: percentages.A,
+                percentB: percentages.B,
+                percentC: percentages.C || null,
+                percentD: percentages.D || null,
+                votesA: Math.floor((percentages.A / 100) * totalVotes),
+                votesB: Math.floor((percentages.B / 100) * totalVotes),
+                votesC: percentages.C ? Math.floor((percentages.C / 100) * totalVotes) : null,
+                votesD: percentages.D ? Math.floor((percentages.D / 100) * totalVotes) : null,
+                totalVotes,
+                rarityMultipliers: { A: 1.2, B: 1.5, C: 1.0, D: 1.0 },
+                revealedAt: new Date(),
+              };
+            }
             
             const userVote = userVotes.find(v => v.questionId === question.id) || null;
             
