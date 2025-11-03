@@ -8,6 +8,27 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**November 03, 2025 (Profile Page Redesign)**: Hero-style ranking display with visual tier progression
+- **Hero Rank Display**: Prominent showcase of current rank, emoji, and Alpha points
+  - Large gradient card with user avatar and handle
+  - Current rank displayed with emoji and gradient text
+  - Alpha points highlighted with dual-color gradient (primary to magenta)
+  - Progress bar showing advancement to next rank with points remaining
+- **Stats Grid**: Three-column responsive grid (stacks on mobile)
+  - Win Rate (placeholder at 0%)
+  - Current Streak (live data)
+  - Max Streak (historical best)
+- **Tier Progression System**: Visual overview of all 5 ranks
+  - Shows Bronze → Silver → Gold → Platinum → Diamond
+  - Current rank highlighted with gradient accent
+  - Unlocked ranks marked with green success badge
+  - Locked ranks dimmed to show future progression
+- **Responsive Design**: Fully mobile-optimized layout
+  - Grid stacks on mobile (grid-cols-1 sm:grid-cols-3)
+  - Text sizes scale (text-2xl sm:text-3xl)
+  - Rank showcase flexes column on mobile
+- **Testing Instrumentation**: Comprehensive data-testid coverage for all interactive elements and display stats
+
 **November 02, 2025 (Results Tab Enhancement)**: Automatic display of all previous results
 - **Results Tab**: Now automatically displays all revealed questions without requiring navigation
   - Removed "View All Results" button - all results shown inline
