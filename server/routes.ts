@@ -421,6 +421,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Fast-track tomorrow's questions to today (admin only)
+  app.post('/api/admin/fast-track', async (req, res) => {
+    try {
+      const privyUserId = req.header('x-privy-user-id');
+      if (!privyUserId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      // Check if user is admin
+      const user = await storage.getUserByPrivyId(privyUserId);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      if (!user.isAdmin) {
+        return res.status(403).json({ error: 'Forbidden: Admin access required' });
+      }
+
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      
+      // Determine if we're in EDT or EST
+      const etOffset = now.toLocaleString('en-US', { 
+        timeZone: 'America/New_York', 
+        timeZoneName: 'short' 
+      }).includes('EDT') ? -4 : -5;
+      
+      // Today's noon ET in UTC
+      const todayNoonET = new Date(`${year}-${month}-${day}T12:00:00`);
+      todayNoonET.setHours(12 - etOffset);
+      
+      // Tomorrow's noon ET in UTC (new reveal time)
+      const tomorrowNoonET = new Date(todayNoonET.getTime() + 24 * 60 * 60 * 1000);
+
+      // Fast-track questions
+      const updatedCount = await storage.fastTrackQuestions(todayNoonET, tomorrowNoonET);
+
+      res.json({ 
+        success: true, 
+        message: `${updatedCount} questions fast-tracked to today`,
+        updatedCount 
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ===== SEED DATA (Development only) =====
   
   // Seed 5 days of historical polls with 100 mock users

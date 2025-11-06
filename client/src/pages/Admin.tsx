@@ -108,6 +108,33 @@ export default function Admin() {
   });
   const hasTomorrowQuestions = tomorrowQuestions.length >= 3;
 
+  // Fast-track mutation
+  const fastTrackMutation = useMutation({
+    mutationFn: async () => {
+      if (!user?.id) throw new Error('Not authenticated');
+      const response = await apiRequest('/api/admin/fast-track', {
+        method: 'POST',
+      }, user.id);
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/questions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/questions/active'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/questions/revealed'] });
+      toast({
+        title: 'Questions fast-tracked!',
+        description: `${data.updatedCount} questions are now available today.`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Failed to fast-track questions',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
   // Create questions mutation
   const createMutation = useMutation({
     mutationFn: async (questionsData: SingleQuestionData[]) => {
@@ -263,11 +290,25 @@ export default function Admin() {
           </CardHeader>
           <CardContent>
             {hasTomorrowQuestions ? (
-              <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                <CheckCircle2 className="h-5 w-5" />
-                <span className="font-semibold">
-                  Tomorrow's questions are ready! ({tomorrowQuestions.length}/3 scheduled)
-                </span>
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                  <CheckCircle2 className="h-5 w-5" />
+                  <span className="font-semibold">
+                    Tomorrow's questions are ready! ({tomorrowQuestions.length}/3 scheduled)
+                  </span>
+                </div>
+                <Button 
+                  onClick={() => fastTrackMutation.mutate()}
+                  disabled={fastTrackMutation.isPending}
+                  variant="default"
+                  className="w-full sm:w-auto"
+                  data-testid="button-fast-track"
+                >
+                  {fastTrackMutation.isPending ? 'Fast-tracking...' : '⚡ Fast-Track to Today'}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  This will move tomorrow's questions to today's schedule (drops immediately, reveals tomorrow at noon ET)
+                </p>
               </div>
             ) : (
               <div className="space-y-2">

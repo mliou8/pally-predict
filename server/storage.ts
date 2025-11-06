@@ -32,6 +32,7 @@ export interface IStorage {
   updateQuestion(id: string, updates: Partial<Question>): Promise<Question | undefined>;
   deleteQuestion(id: string): Promise<void>;
   revealExpiredQuestions(now: Date): Promise<void>;
+  fastTrackQuestions(newDropsAt: Date, newRevealsAt: Date): Promise<number>;
   
   // Vote operations
   getVote(userId: string, questionId: string): Promise<Vote | undefined>;
@@ -201,6 +202,32 @@ export class DbStorage implements IStorage {
           lte(questions.revealsAt, now)
         )
       );
+  }
+
+  async fastTrackQuestions(newDropsAt: Date, newRevealsAt: Date): Promise<number> {
+    // Calculate tomorrow's drop time (what we're searching for)
+    const tomorrowDropsAt = new Date(newDropsAt.getTime() + 24 * 60 * 60 * 1000);
+    
+    // Find tomorrow's questions (24 hours ahead of newDropsAt)
+    const tomorrowQuestions = await db
+      .select()
+      .from(questions)
+      .where(eq(questions.dropsAt, tomorrowDropsAt));
+    
+    if (tomorrowQuestions.length === 0) {
+      return 0;
+    }
+    
+    // Update their times to today/tomorrow
+    await db
+      .update(questions)
+      .set({
+        dropsAt: newDropsAt,
+        revealsAt: newRevealsAt
+      })
+      .where(eq(questions.dropsAt, tomorrowDropsAt));
+    
+    return tomorrowQuestions.length;
   }
 
   // Vote operations
