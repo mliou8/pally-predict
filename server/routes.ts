@@ -158,7 +158,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'User not found' });
       }
 
-      const { questionId, choice, isPublic = true } = req.body;
+      const { questionId, choice, isPublic = true, wagerAmount } = req.body;
 
       // Check if question exists and is active
       const question = await storage.getQuestion(questionId);
@@ -176,15 +176,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Already voted on this question' });
       }
 
-      // Create the vote
-      const voteData = insertVoteSchema.parse({
+      // Create the vote with optional wager
+      const voteData: any = {
         userId: user.id,
         questionId,
         choice,
         isPublic,
-      });
+      };
 
-      const vote = await storage.createVote(voteData);
+      // Add wagerAmount if provided (convert string to BigInt)
+      if (wagerAmount !== undefined && wagerAmount !== null) {
+        voteData.wagerAmount = BigInt(wagerAmount);
+      }
+
+      const parsedVoteData = insertVoteSchema.parse(voteData);
+
+      const vote = await storage.createVote(parsedVoteData);
 
       res.status(201).json({ vote });
     } catch (error: any) {
@@ -301,36 +308,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const winningVotes = votes.filter(v => v.choice === winningChoice && v.wagerAmount > BigInt(0));
         const totalWinningWagers = winningVotes.reduce((sum, v) => sum + v.wagerAmount, BigInt(0));
 
-        // Award points and distribute bet payouts
-        for (const vote of votes) {
-          const rarityMultiplier = rarityMultipliers[vote.choice];
-          const publicMultiplier = vote.isPublic ? 2 : 1;
-          const basePoints = 100;
-          const totalMultiplier = rarityMultiplier * publicMultiplier;
-          const points = basePoints * totalMultiplier;
+        // Award points and distribute bet payouts (idempotency: only if not already processed)
+        // Check if rewards have already been processed by checking if any vote has pointsEarned set
+        const alreadyProcessed = votes.some(v => v.pointsEarned !== null && v.pointsEarned !== undefined);
+        
+        if (!alreadyProcessed) {
+          for (const vote of votes) {
+            const rarityMultiplier = rarityMultipliers[vote.choice];
+            const publicMultiplier = vote.isPublic ? 2 : 1;
+            const basePoints = 100;
+            const totalMultiplier = rarityMultiplier * publicMultiplier;
+            const points = basePoints * totalMultiplier;
 
-          // Calculate payout for winners who wagered
-          let payout = BigInt(0);
-          if (vote.choice === winningChoice && vote.wagerAmount > BigInt(0) && totalWinningWagers > BigInt(0)) {
-            // Winner gets proportional share of the total pot using BigInt arithmetic
-            // payout = (totalPot * wagerAmount) / totalWinningWagers
-            payout = (totalPot * vote.wagerAmount) / totalWinningWagers;
-          }
+            // Calculate payout for winners who wagered
+            let payout = BigInt(0);
+            if (vote.choice === winningChoice && vote.wagerAmount > BigInt(0) && totalWinningWagers > BigInt(0)) {
+              // Winner gets proportional share of the total pot using BigInt arithmetic
+              // payout = (totalPot * wagerAmount) / totalWinningWagers
+              payout = (totalPot * vote.wagerAmount) / totalWinningWagers;
+            }
 
-          // Update user's alpha points
-          const currentUser = await storage.getUser(vote.userId);
-          if (currentUser) {
-            await storage.updateUser(vote.userId, {
-              alphaPoints: currentUser.alphaPoints + points,
+            // Update user's alpha points
+            const currentUser = await storage.getUser(vote.userId);
+            if (currentUser) {
+              await storage.updateUser(vote.userId, {
+                alphaPoints: currentUser.alphaPoints + points,
+              });
+            }
+
+            // Update vote record with points earned, multiplier, and payout
+            await storage.updateVote(vote.id, {
+              pointsEarned: points,
+              multiplier: totalMultiplier,
+              payoutAmount: payout,
             });
           }
-
-          // Update vote record with points earned, multiplier, and payout
-          await storage.updateVote(vote.id, {
-            pointsEarned: points,
-            multiplier: totalMultiplier,
-            payoutAmount: payout,
-          });
         }
 
         return res.json(newResults);
