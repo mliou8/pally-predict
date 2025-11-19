@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Trophy, Share2, TrendingUp } from 'lucide-react';
+import { Trophy, Share2, TrendingUp, Coins } from 'lucide-react';
 import PointsBurst from './PointsBurst';
 import { Button } from '@/components/ui/button';
 import type { VoteChoice } from '@shared/schema';
@@ -21,6 +21,9 @@ interface ResultsRevealProps {
   multiplier?: number;
   questionDate?: string;
   isPublic?: boolean;
+  userWager?: bigint;
+  userPayout?: bigint;
+  totalPot?: bigint;
 }
 
 export default function ResultsReveal({
@@ -31,7 +34,10 @@ export default function ResultsReveal({
   pointsEarned,
   multiplier,
   questionDate,
-  isPublic
+  isPublic,
+  userWager,
+  userPayout,
+  totalPot
 }: ResultsRevealProps) {
   const sortedResults = [...results].sort((a, b) => b.percentage - a.percentage);
   const userResult = results.find(r => r.choice === userChoice);
@@ -42,6 +48,12 @@ export default function ResultsReveal({
     if (!dateStr) return '';
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
+  };
+
+  const formatEth = (wei?: bigint): string => {
+    if (wei === undefined) return '0.0000';
+    const eth = Number(wei) / 1e18;
+    return eth.toFixed(4);
   };
 
   const rankColors = {
@@ -177,6 +189,65 @@ export default function ResultsReveal({
       {pointsEarned && multiplier && (
         <div className="mb-6 flex justify-center">
           <PointsBurst amount={pointsEarned} multiplier={multiplier} />
+        </div>
+      )}
+
+      {userWager !== undefined && userWager > BigInt(0) && (
+        <div className="mb-6 space-y-3">
+          <div className="p-4 rounded-xl bg-gradient-to-r from-primary/10 to-brand-magenta/10 border border-primary/20">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Coins className="h-5 w-5 text-primary" />
+                <span className="font-semibold text-foreground">Betting Results</span>
+              </div>
+            </div>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Your wager:</span>
+                <span className="font-semibold text-foreground" data-testid="text-wager-amount">
+                  {formatEth(userWager)} ETH
+                </span>
+              </div>
+              {userPayout !== undefined && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Your payout:</span>
+                  <span className={`font-bold ${userPayout > BigInt(0) ? 'text-green-500' : 'text-red-500'}`} data-testid="text-payout-amount">
+                    {userPayout > BigInt(0) ? '+' : ''}{formatEth(userPayout)} ETH
+                  </span>
+                </div>
+              )}
+              {totalPot !== undefined && totalPot > BigInt(0) && (
+                <div className="flex justify-between pt-2 border-t border-border">
+                  <span className="text-muted-foreground">Total pot:</span>
+                  <span className="font-semibold text-foreground" data-testid="text-total-pot">
+                    {formatEth(totalPot)} ETH
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+          {userPayout !== undefined && userPayout > BigInt(0) && (
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-green-500/10 to-emerald-600/10 border border-green-500/30">
+              <Trophy className="text-green-500" size={24} />
+              <div>
+                <div className="font-semibold text-foreground">Bet Won! 💰</div>
+                <div className="text-sm text-muted-foreground">
+                  You won {formatEth(userPayout)} ETH from the pot
+                </div>
+              </div>
+            </div>
+          )}
+          {userWager > BigInt(0) && (userPayout === undefined || userPayout === BigInt(0)) && (
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-muted border border-border">
+              <div className="text-2xl">😔</div>
+              <div>
+                <div className="font-semibold text-foreground">Bet Lost</div>
+                <div className="text-sm text-muted-foreground">
+                  Better luck next time!
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

@@ -2,6 +2,9 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
+// Add BigInt support to JSON.stringify
+(BigInt.prototype as any).toJSON = function() { return this.toString(); };
+
 const app = express();
 
 declare module 'http' {

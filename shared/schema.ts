@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp, boolean, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, boolean, jsonb, bigint } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -47,6 +47,8 @@ export const votes = pgTable("votes", {
   isPublic: boolean("is_public").notNull().default(true),
   pointsEarned: integer("points_earned"),
   multiplier: integer("multiplier"),
+  wagerAmount: bigint("wager_amount", { mode: 'bigint' }).notNull().default(BigInt(0)),
+  payoutAmount: bigint("payout_amount", { mode: 'bigint' }).default(BigInt(0)),
   votedAt: timestamp("voted_at").notNull().defaultNow(),
 });
 
@@ -63,6 +65,7 @@ export const questionResults = pgTable("question_results", {
   votesC: integer("votes_c").default(0),
   votesD: integer("votes_d").default(0),
   rarityMultipliers: jsonb("rarity_multipliers").$type<{A: number, B: number, C?: number, D?: number}>(),
+  totalPot: bigint("total_pot", { mode: 'bigint' }).notNull().default(BigInt(0)),
   revealedAt: timestamp("revealed_at"),
 });
 
@@ -84,6 +87,11 @@ export const insertVoteSchema = createInsertSchema(votes).omit({
   votedAt: true,
   pointsEarned: true,
   multiplier: true,
+  payoutAmount: true,
+}).extend({
+  wagerAmount: z.union([z.string(), z.bigint()]).transform(val => 
+    typeof val === 'string' ? BigInt(val) : val
+  ).optional(),
 });
 
 export const insertQuestionResultsSchema = createInsertSchema(questionResults).omit({

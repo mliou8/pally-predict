@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { CheckCircle2, Coins } from 'lucide-react';
 import VoteTypeToggle from './VoteTypeToggle';
 import VoteButton from './VoteButton';
 import type { QuestionType, VoteChoice } from '@shared/schema';
@@ -14,9 +16,10 @@ interface PromptCardProps {
   optionC?: string;
   optionD?: string;
   context?: string;
-  onVote?: (choice: VoteChoice, isPublic: boolean) => void;
+  onVote?: (choice: VoteChoice, isPublic: boolean, wagerAmount?: string) => void;
   disabled?: boolean;
   userChoice?: VoteChoice;
+  userWager?: bigint;
 }
 
 const categoryLabels: Record<QuestionType, string> = {
@@ -36,15 +39,22 @@ export default function PromptCard({
   context,
   onVote,
   disabled = false,
-  userChoice
+  userChoice,
+  userWager
 }: PromptCardProps) {
   const [voteType, setVoteType] = useState<'public' | 'private'>('public');
+  const [wagerAmount, setWagerAmount] = useState<string>('');
   const hasVoted = disabled || !!userChoice;
   const selectedChoice = userChoice || null;
 
   const handleVote = (choice: VoteChoice) => {
     if (disabled || hasVoted) return;
-    onVote?.(choice, voteType === 'public');
+    onVote?.(choice, voteType === 'public', wagerAmount || undefined);
+  };
+
+  const formatEth = (wei: bigint): string => {
+    const eth = Number(wei) / 1e18;
+    return eth.toFixed(4);
   };
 
   const getOptionLabel = (choice: VoteChoice): string => {
@@ -86,6 +96,36 @@ export default function PromptCard({
             {optionD && <VoteButton label={optionD} value="D" onSelect={handleVote} />}
           </div>
 
+          <div className="space-y-4 mb-6 p-4 bg-muted/30 rounded-2xl border border-border">
+            <div className="flex items-center gap-2">
+              <Coins className="h-5 w-5 text-primary" />
+              <Label htmlFor="wager-amount" className="text-sm font-semibold">
+                Add a wager (optional)
+              </Label>
+            </div>
+            <div className="space-y-2">
+              <div className="relative">
+                <Input
+                  id="wager-amount"
+                  type="number"
+                  step="0.0001"
+                  min="0"
+                  placeholder="0.0000"
+                  value={wagerAmount}
+                  onChange={(e) => setWagerAmount(e.target.value)}
+                  className="pr-16"
+                  data-testid="input-wager-amount"
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-muted-foreground">
+                  ETH
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Show your conviction by betting Base ETH on your answer. Winners split the pot!
+              </p>
+            </div>
+          </div>
+
           <VoteTypeToggle value={voteType} onChange={setVoteType} />
         </>
       ) : (
@@ -98,6 +138,14 @@ export default function PromptCard({
             <p className="text-sm text-muted-foreground">
               Results reveal at 12 p.m. ET
             </p>
+            {userWager !== undefined && userWager > BigInt(0) ? (
+              <div className="mt-4 flex items-center justify-center gap-2 text-primary">
+                <Coins className="h-4 w-4" />
+                <span className="text-sm font-semibold" data-testid="text-user-wager">
+                  Your wager: {formatEth(userWager)} ETH
+                </span>
+              </div>
+            ) : null}
           </div>
 
           <div className="space-y-3">

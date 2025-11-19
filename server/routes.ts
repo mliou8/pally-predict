@@ -275,6 +275,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           D: percentages.D > 0 ? Math.min(Math.round(100 / percentages.D), 10) : 1,
         };
 
+        // Calculate total pot from all wagers
+        const totalPot = votes.reduce((sum, v) => sum + v.wagerAmount, BigInt(0));
+
+        // Determine winning choice (highest percentage)
+        const winningChoice = Object.entries(voteCounts)
+          .reduce((a, b) => voteCounts[a[0] as keyof typeof voteCounts] > voteCounts[b[0] as keyof typeof voteCounts] ? a : b)[0] as 'A' | 'B' | 'C' | 'D';
+
         const newResults = await storage.createQuestionResults({
           questionId: req.params.questionId,
           totalVotes,
@@ -287,15 +294,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
           votesC: voteCounts.C,
           votesD: voteCounts.D,
           rarityMultipliers,
+          totalPot,
         });
 
-        // Award points to voters and update vote records
+        // Calculate bet distribution for winners
+        const winningVotes = votes.filter(v => v.choice === winningChoice && v.wagerAmount > BigInt(0));
+        const totalWinningWagers = winningVotes.reduce((sum, v) => sum + v.wagerAmount, BigInt(0));
+
+        // Award points and distribute bet payouts
         for (const vote of votes) {
           const rarityMultiplier = rarityMultipliers[vote.choice];
           const publicMultiplier = vote.isPublic ? 2 : 1;
           const basePoints = 100;
           const totalMultiplier = rarityMultiplier * publicMultiplier;
           const points = basePoints * totalMultiplier;
+
+          // Calculate payout for winners who wagered
+          let payout = BigInt(0);
+          if (vote.choice === winningChoice && vote.wagerAmount > BigInt(0) && totalWinningWagers > BigInt(0)) {
+            // Winner gets proportional share of the total pot using BigInt arithmetic
+            // payout = (totalPot * wagerAmount) / totalWinningWagers
+            payout = (totalPot * vote.wagerAmount) / totalWinningWagers;
+          }
 
           // Update user's alpha points
           const currentUser = await storage.getUser(vote.userId);
@@ -305,10 +325,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
           }
 
-          // Update vote record with points earned and total multiplier
+          // Update vote record with points earned, multiplier, and payout
           await storage.updateVote(vote.id, {
             pointsEarned: points,
             multiplier: totalMultiplier,
+            payoutAmount: payout,
           });
         }
 

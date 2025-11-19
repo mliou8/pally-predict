@@ -17,6 +17,7 @@ interface VoteData {
   questionId: string;
   choice: VoteChoice;
   isPublic: boolean;
+  wagerAmount?: string;
 }
 
 interface ResultWithQuestion {
@@ -150,8 +151,15 @@ export default function Home() {
     },
   });
 
-  const handleVote = (questionId: string, choice: VoteChoice, isPublic: boolean) => {
-    voteMutation.mutate({ questionId, choice, isPublic });
+  const handleVote = (questionId: string, choice: VoteChoice, isPublic: boolean, wagerEth?: string) => {
+    // Convert ETH to wei if wager is provided
+    let wagerAmount: string | undefined;
+    if (wagerEth && parseFloat(wagerEth) > 0) {
+      const weiAmount = BigInt(Math.floor(parseFloat(wagerEth) * 1e18));
+      wagerAmount = weiAmount.toString();
+    }
+    
+    voteMutation.mutate({ questionId, choice, isPublic, wagerAmount });
   };
 
   const { data: resultsData = [] } = useQuery<ResultWithQuestion[]>({
@@ -347,6 +355,9 @@ export default function Home() {
                         multiplier={multiplier}
                         questionDate={question.dropsAt.toString()}
                         isPublic={userVote.isPublic}
+                        userWager={userVote.wagerAmount}
+                        userPayout={userVote.payoutAmount || undefined}
+                        totalPot={resultData.results.totalPot || undefined}
                       />
                     );
                   }
@@ -364,9 +375,10 @@ export default function Home() {
                     optionB={question.optionB}
                     optionC={question.optionC || undefined}
                     optionD={question.optionD || undefined}
-                    onVote={(choice, isPublic) => handleVote(question.id, choice, isPublic)}
+                    onVote={(choice, isPublic, wagerAmount) => handleVote(question.id, choice, isPublic, wagerAmount)}
                     disabled={hasVoted || voteMutation.isPending}
                     userChoice={userVote?.choice}
+                    userWager={userVote?.wagerAmount}
                   />
                 );
               })
@@ -429,6 +441,9 @@ export default function Home() {
                       multiplier={multiplier}
                       questionDate={question.dropsAt.toString()}
                       isPublic={userVote.isPublic}
+                      userWager={userVote.wagerAmount}
+                      userPayout={userVote.payoutAmount || undefined}
+                      totalPot={results.totalPot || undefined}
                     />
                   );
                 }
