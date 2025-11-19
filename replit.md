@@ -8,6 +8,31 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**November 19, 2025 (Crypto Betting Integration)**: Added Base ETH wagering system for predictions
+- **Betting Mechanism**: Users can now wager Base ETH on their predictions to demonstrate conviction
+  - Optional wager input in PromptCard with ETH amount field
+  - Wagers stored in wei (BigInt) for precision: 1 ETH = 10^18 wei
+  - Frontend converts ETH input to wei before sending to backend
+- **Payout Distribution**: Winners split total pot proportionally based on their wager amounts
+  - Winning choice determined by highest vote count
+  - Payout calculation: `(totalPot * userWager) / totalWinningWagers`
+  - Pure BigInt arithmetic prevents precision loss for large wei values
+  - Losers receive no payout (wager goes to winners)
+- **Results Display**: ResultsReveal component shows comprehensive betting statistics
+  - User's wager amount displayed in ETH
+  - Payout amount shown for winners (in ETH)
+  - Total pot size visible to all users
+  - Animated gradient cards for visual appeal
+- **Database Schema**: Extended votes and question_results tables
+  - `wager_amount` (bigint): User's wager in wei, default 0
+  - `payout_amount` (bigint, nullable): Calculated payout for winners
+  - `total_pot` (bigint): Sum of all wagers on a question
+- **Technical Implementation**:
+  - BigInt JSON serialization via `BigInt.prototype.toJSON`
+  - Idempotency guard prevents re-awarding points on repeated API calls
+  - Results calculation checks if votes already have `pointsEarned` set
+  - MVP implementation simulates betting without actual blockchain transactions
+
 **November 03, 2025 (Profile Page Redesign)**: Hero-style ranking display with visual tier progression
 - **Hero Rank Display**: Prominent showcase of current rank, emoji, and Alpha points
   - Large gradient card with user avatar and handle
