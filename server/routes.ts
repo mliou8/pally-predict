@@ -2,6 +2,34 @@ import type { Express } from 'express';
 import { createServer, type Server } from 'http';
 import { storage } from './storage';
 import { insertUserSchema, insertQuestionSchema, insertVoteSchema } from '@shared/schema';
+import { randomBytes } from 'crypto';
+import { PublicKey, Connection } from '@solana/web3.js';
+import nacl from 'tweetnacl';
+
+// Solana connection for transaction verification
+const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com';
+const solanaConnection = new Connection(SOLANA_RPC_URL, 'confirmed');
+
+// In-memory nonce storage (in production, use Redis or database)
+// Stores nonce, wallet address, timestamp, and user ID to prevent replay attacks
+const nonceStore = new Map<string, { nonce: string; address: string; timestamp: number; userId: string }>();
+const NONCE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
+
+// Helper function to serialize BigInt fields to strings for JSON responses
+// This is necessary because JSON.stringify cannot handle BigInt values
+function serializeBigInt<T>(obj: T): T {
+  if (obj === null || obj === undefined) return obj;
+  if (typeof obj === 'bigint') return obj.toString() as any;
+  if (Array.isArray(obj)) return obj.map(serializeBigInt) as any;
+  if (typeof obj === 'object') {
+    const result: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      result[key] = serializeBigInt(value);
+    }
+    return result;
+  }
+  return obj;
+}
 
 // Helper function to check and mark questions as revealed
 // Optimized to update all eligible questions in a single query
@@ -193,7 +221,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const vote = await storage.createVote(parsedVoteData);
 
-      res.status(201).json({ vote });
+      res.status(201).json({ vote: serializeBigInt(vote) });
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }
@@ -213,7 +241,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const votes = await storage.getUserVotes(user.id);
-      res.json(votes);
+      res.json(serializeBigInt(votes));
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -233,7 +261,291 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const vote = await storage.getVote(user.id, req.params.questionId);
-      res.json(vote || null);
+      res.json(vote ? serializeBigInt(vote) : null);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ===== WAGER ROUTES =====
+  
+  // Initiate a wager (creates vote with pending wager)
+  app.post('/api/wager/initiate', async (req, res) => {
+    try {
+      const privyUserId = req.header('x-privy-user-id');
+      if (!privyUserId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const user = await storage.getUserByPrivyId(privyUserId);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Require linked wallet for wagering
+      if (!user.solanaAddress) {
+        return res.status(400).json({ error: 'Please link a Solana wallet first' });
+      }
+
+      const { questionId, choice, isPublic = true, wagerAmount } = req.body;
+
+      if (!questionId || !choice) {
+        return res.status(400).json({ error: 'Question ID and choice are required' });
+      }
+
+      // Validate wager amount (must be positive if provided)
+      const wagerLamports = wagerAmount ? BigInt(wagerAmount) : BigInt(0);
+      if (wagerLamports < BigInt(0)) {
+        return res.status(400).json({ error: 'Wager amount must be positive' });
+      }
+
+      // Check if question exists and is active
+      const question = await storage.getQuestion(questionId);
+      if (!question) {
+        return res.status(404).json({ error: 'Question not found' });
+      }
+
+      if (!question.isActive || question.isRevealed) {
+        return res.status(400).json({ error: 'Question is not open for voting' });
+      }
+
+      // Check if user has already voted on this question
+      const existingVote = await storage.getVote(user.id, questionId);
+      if (existingVote) {
+        return res.status(400).json({ error: 'Already voted on this question' });
+      }
+
+      // Get escrow address from environment (for real transactions)
+      // Note: For wagers > 0, ESCROW_WALLET_ADDRESS must be set for verify to work
+      const escrowAddress = process.env.ESCROW_WALLET_ADDRESS || 'NOT_CONFIGURED';
+
+      // Create the vote with pending wager status
+      const voteData = {
+        userId: user.id,
+        questionId,
+        choice,
+        isPublic,
+        wagerAmount: wagerLamports,
+      };
+
+      const parsedVoteData = insertVoteSchema.parse(voteData);
+      const vote = await storage.createVote(parsedVoteData);
+
+      // Return info needed for user to send transaction
+      res.status(201).json({ 
+        vote: serializeBigInt(vote),
+        escrowAddress,
+        wagerAmount: wagerLamports.toString(),
+        memo: `PALLY|vote:${vote.id}|q:${questionId}|u:${user.id}|amt:${wagerLamports}`,
+        message: wagerLamports > BigInt(0) 
+          ? 'Please send the wager amount to the escrow address and call /api/wager/verify with the transaction signature'
+          : 'Vote recorded successfully (no wager)',
+      });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Verify a wager transaction with on-chain validation
+  app.post('/api/wager/verify', async (req, res) => {
+    try {
+      const privyUserId = req.header('x-privy-user-id');
+      if (!privyUserId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const user = await storage.getUserByPrivyId(privyUserId);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      if (!user.solanaAddress) {
+        return res.status(400).json({ error: 'User has no linked wallet' });
+      }
+
+      const { voteId, txSignature } = req.body;
+
+      if (!voteId || !txSignature) {
+        return res.status(400).json({ error: 'Vote ID and transaction signature are required' });
+      }
+
+      // Get the vote
+      const allVotes = await storage.getUserVotes(user.id);
+      const vote = allVotes.find(v => v.id === voteId);
+      
+      if (!vote) {
+        return res.status(404).json({ error: 'Vote not found' });
+      }
+
+      if (vote.userId !== user.id) {
+        return res.status(403).json({ error: 'Not authorized to verify this vote' });
+      }
+
+      // Check if already verified
+      if (vote.wagerTxSig) {
+        return res.status(400).json({ error: 'Wager already verified' });
+      }
+
+      // Check for transaction signature replay attack - ensure this txSig hasn't been used before
+      const existingVoteWithTx = await storage.getVoteByTxSignature(txSignature);
+      if (existingVoteWithTx) {
+        return res.status(400).json({ 
+          error: 'Transaction signature has already been used for another wager',
+          existingVoteId: existingVoteWithTx.id,
+        });
+      }
+
+      // Get and validate escrow address
+      const escrowAddress = process.env.ESCROW_WALLET_ADDRESS;
+      if (!escrowAddress) {
+        return res.status(500).json({ error: 'Server configuration error: ESCROW_WALLET_ADDRESS not set' });
+      }
+      
+      // Validate escrow address is a valid Solana public key
+      try {
+        new PublicKey(escrowAddress);
+      } catch {
+        return res.status(500).json({ error: 'Server configuration error: Invalid ESCROW_WALLET_ADDRESS' });
+      }
+
+      // On-chain verification
+      try {
+        // 1. Fetch the transaction
+        const txInfo = await solanaConnection.getTransaction(txSignature, {
+          commitment: 'confirmed',
+          maxSupportedTransactionVersion: 0,
+        });
+
+        if (!txInfo) {
+          return res.status(400).json({ error: 'Transaction not found on-chain. Please wait for confirmation and try again.' });
+        }
+
+        // 2. Verify transaction was successful
+        if (txInfo.meta?.err) {
+          return res.status(400).json({ error: 'Transaction failed on-chain' });
+        }
+
+        // 3. Get account keys from the transaction
+        const message = txInfo.transaction.message;
+        const accountKeys = message.getAccountKeys();
+        
+        // 4. Verify sender is user's linked wallet
+        const senderKey = accountKeys.get(0);
+        if (!senderKey || senderKey.toBase58() !== user.solanaAddress) {
+          return res.status(400).json({ 
+            error: 'Transaction sender does not match linked wallet',
+            expected: user.solanaAddress,
+            received: senderKey?.toBase58(),
+          });
+        }
+
+        // 5. Find the SOL transfer to escrow in post balances
+        // Look for the escrow address in the account keys
+        let escrowIndex = -1;
+        for (let i = 0; i < accountKeys.length; i++) {
+          const key = accountKeys.get(i);
+          if (key && key.toBase58() === escrowAddress) {
+            escrowIndex = i;
+            break;
+          }
+        }
+
+        if (escrowIndex === -1) {
+          return res.status(400).json({ error: 'Escrow address not found in transaction' });
+        }
+
+        // 6. Calculate the transfer amount (pre -> post balance change for escrow)
+        const preBalances = txInfo.meta?.preBalances || [];
+        const postBalances = txInfo.meta?.postBalances || [];
+        const transferAmount = BigInt(postBalances[escrowIndex] - preBalances[escrowIndex]);
+
+        // 7. Verify amount matches wager (allow for slight variance due to rent)
+        const expectedAmount = vote.wagerAmount;
+        if (transferAmount < expectedAmount) {
+          return res.status(400).json({ 
+            error: 'Transfer amount is less than wager amount',
+            expected: expectedAmount.toString(),
+            received: transferAmount.toString(),
+          });
+        }
+
+        // Verification passed - record the transaction signature
+        const updatedVote = await storage.updateVote(voteId, {
+          wagerTxSig: txSignature,
+        });
+
+        res.json({ 
+          success: true, 
+          message: 'Wager verified on-chain successfully',
+          vote: serializeBigInt(updatedVote),
+          verification: {
+            txSignature,
+            sender: user.solanaAddress,
+            receiver: escrowAddress,
+            amount: transferAmount.toString(),
+          },
+        });
+      } catch (verifyError: any) {
+        console.error('On-chain verification error:', verifyError);
+        return res.status(400).json({ 
+          error: 'Failed to verify transaction on-chain',
+          details: verifyError.message,
+        });
+      }
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get user's stats (wins, earnings)
+  app.get('/api/user/stats', async (req, res) => {
+    try {
+      const privyUserId = req.header('x-privy-user-id');
+      if (!privyUserId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const user = await storage.getUserByPrivyId(privyUserId);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Get all user's votes
+      const userVotes = await storage.getUserVotes(user.id);
+      
+      // Calculate stats
+      let totalWagered = BigInt(0);
+      let totalEarned = BigInt(0);
+      let correctPredictions = 0;
+      let totalPredictions = 0;
+
+      for (const vote of userVotes) {
+        // Only count votes with results (question has been revealed)
+        if (vote.pointsEarned !== null && vote.pointsEarned !== undefined) {
+          totalPredictions++;
+          totalWagered += vote.wagerAmount;
+          
+          if (vote.payoutAmount && vote.payoutAmount > BigInt(0)) {
+            correctPredictions++;
+            totalEarned += vote.payoutAmount;
+          }
+        }
+      }
+
+      // Calculate profit
+      const profit = totalEarned - totalWagered;
+
+      res.json({
+        totalPredictions,
+        correctPredictions,
+        accuracy: totalPredictions > 0 ? Math.round((correctPredictions / totalPredictions) * 100) : 0,
+        totalWagered: totalWagered.toString(),
+        totalEarned: totalEarned.toString(),
+        profit: profit.toString(),
+        alphaPoints: user.alphaPoints,
+        currentStreak: user.currentStreak,
+        maxStreak: user.maxStreak,
+      });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -345,10 +657,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
 
-        return res.json(newResults);
+        return res.json(serializeBigInt(newResults));
       }
 
-      res.json(results);
+      res.json(serializeBigInt(results));
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -886,6 +1198,202 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.json({ success: true, questions: created });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ===== SOLANA WALLET LINKING ROUTES =====
+  
+  // Generate a nonce for wallet signature verification
+  app.get('/api/solana/nonce', async (req, res) => {
+    try {
+      const privyUserId = req.header('x-privy-user-id');
+      if (!privyUserId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const user = await storage.getUserByPrivyId(privyUserId);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Address is required to bind the nonce to a specific wallet
+      const address = req.query.address as string;
+      if (!address) {
+        return res.status(400).json({ error: 'Wallet address is required' });
+      }
+
+      // Generate a random nonce
+      const nonce = randomBytes(32).toString('hex');
+      const timestamp = new Date().toISOString();
+      
+      // Store nonce with timestamp, address, and user ID (keyed by user ID)
+      // This ensures the nonce is bound to this specific user and wallet
+      nonceStore.set(user.id, { 
+        nonce, 
+        address, 
+        timestamp: Date.now(),
+        userId: user.id,
+      });
+      
+      // Clean up expired nonces periodically
+      const now = Date.now();
+      for (const [key, value] of nonceStore.entries()) {
+        if (now - value.timestamp > NONCE_EXPIRY_MS) {
+          nonceStore.delete(key);
+        }
+      }
+
+      // Message format includes all bound parameters to prevent replay attacks
+      const message = `PALLY|link|user:${user.id}|addr:${address}|nonce:${nonce}|ts:${timestamp}`;
+
+      res.json({ 
+        nonce,
+        address,
+        timestamp,
+        message,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Link Solana wallet to user account
+  app.post('/api/solana/link', async (req, res) => {
+    try {
+      const privyUserId = req.header('x-privy-user-id');
+      if (!privyUserId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const user = await storage.getUserByPrivyId(privyUserId);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      const { address, signature, message } = req.body;
+      
+      if (!address || !signature || !message) {
+        return res.status(400).json({ error: 'Address, signature, and message are required' });
+      }
+
+      // Verify nonce exists and hasn't expired
+      const storedNonceData = nonceStore.get(user.id);
+      if (!storedNonceData) {
+        return res.status(400).json({ error: 'No nonce found. Please request a new one.' });
+      }
+
+      if (Date.now() - storedNonceData.timestamp > NONCE_EXPIRY_MS) {
+        nonceStore.delete(user.id);
+        return res.status(400).json({ error: 'Nonce expired. Please request a new one.' });
+      }
+
+      // Verify the message contains the correct bound parameters
+      // Message format: PALLY|link|user:{userId}|addr:{address}|nonce:{nonce}|ts:{timestamp}
+      const expectedPrefix = `PALLY|link|user:${user.id}|addr:${storedNonceData.address}|nonce:${storedNonceData.nonce}`;
+      if (!message.startsWith(expectedPrefix)) {
+        nonceStore.delete(user.id);
+        return res.status(400).json({ error: 'Invalid message format or parameters do not match' });
+      }
+
+      // Verify the address matches what was bound to the nonce
+      if (address !== storedNonceData.address) {
+        nonceStore.delete(user.id);
+        return res.status(400).json({ error: 'Wallet address does not match the one used for nonce generation' });
+      }
+
+      // Verify the signature
+      try {
+        const publicKey = new PublicKey(address);
+        const messageBytes = new TextEncoder().encode(message);
+        const signatureBytes = Buffer.from(signature, 'base64');
+        
+        const isValid = nacl.sign.detached.verify(
+          messageBytes,
+          signatureBytes,
+          publicKey.toBytes()
+        );
+
+        if (!isValid) {
+          return res.status(400).json({ error: 'Invalid signature' });
+        }
+      } catch (error) {
+        return res.status(400).json({ error: 'Invalid wallet address or signature format' });
+      }
+
+      // Immediately invalidate the nonce (one-time use)
+      nonceStore.delete(user.id);
+
+      // Check if this wallet is already linked to another account
+      const existingUserWithWallet = await storage.getUserBySolanaAddress(address);
+      if (existingUserWithWallet && existingUserWithWallet.id !== user.id) {
+        return res.status(409).json({ error: 'This wallet is already linked to another account' });
+      }
+
+      // Link the wallet to the user
+      const updatedUser = await storage.updateUser(user.id, {
+        solanaAddress: address,
+      });
+
+      res.json({ 
+        success: true, 
+        message: 'Wallet linked successfully',
+        user: updatedUser 
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Check if user has a linked wallet
+  app.get('/api/solana/status', async (req, res) => {
+    try {
+      const privyUserId = req.header('x-privy-user-id');
+      if (!privyUserId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const user = await storage.getUserByPrivyId(privyUserId);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      res.json({ 
+        hasWallet: !!user.solanaAddress,
+        walletAddress: user.solanaAddress || null
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Unlink Solana wallet (optional, for users who want to change wallets)
+  app.delete('/api/solana/link', async (req, res) => {
+    try {
+      const privyUserId = req.header('x-privy-user-id');
+      if (!privyUserId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const user = await storage.getUserByPrivyId(privyUserId);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      if (!user.solanaAddress) {
+        return res.status(400).json({ error: 'No wallet linked' });
+      }
+
+      const updatedUser = await storage.updateUser(user.id, {
+        solanaAddress: null as any,
+      });
+
+      res.json({ 
+        success: true, 
+        message: 'Wallet unlinked successfully',
+        user: updatedUser 
+      });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { usePrivy } from '@privy-io/react-auth';
 import { Link } from 'wouter';
-import { Trophy } from 'lucide-react';
+import { Trophy, Coins, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
 import HistoryCard from '@/components/HistoryCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -12,6 +12,18 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { getRankInfo, getRankColor } from '@/lib/ranks';
 import type { User, Vote, Question, QuestionResults } from '@shared/schema';
+
+interface UserStats {
+  totalPredictions: number;
+  correctPredictions: number;
+  accuracy: number;
+  totalWagered: string;
+  totalEarned: string;
+  profit: string;
+  alphaPoints: number;
+  currentStreak: number;
+  maxStreak: number;
+}
 
 interface VoteWithDetails {
   vote: Vote;
@@ -28,10 +40,21 @@ export default function Profile() {
     enabled: !!user,
   });
 
+  const { data: userStats, isLoading: isLoadingStats } = useQuery<UserStats>({
+    queryKey: ['/api/user/stats'],
+    enabled: !!user && !!currentUser,
+  });
+
   const { data: votes = [], isLoading: isLoadingVotes } = useQuery<Vote[]>({
     queryKey: ['/api/votes/mine'],
     enabled: !!user,
   });
+
+  const formatSol = (lamportsStr: string): string => {
+    const lamports = BigInt(lamportsStr || '0');
+    const sol = Number(lamports) / 1e9;
+    return sol.toFixed(4);
+  };
 
   const { data: votesWithDetails = [] } = useQuery<VoteWithDetails[]>({
     queryKey: ['/api/votes/mine/details'],
@@ -299,7 +322,7 @@ export default function Profile() {
               <div className="p-6 rounded-2xl bg-card border border-card-border" data-testid="stat-winrate">
                 <div className="text-xs text-muted-foreground mb-2">Win Rate</div>
                 <div className="text-3xl font-bold font-mono text-foreground" data-testid="text-winrate">
-                  0%
+                  {userStats?.accuracy || 0}%
                 </div>
               </div>
               <div className="p-6 rounded-2xl bg-card border border-card-border" data-testid="stat-streak">
@@ -313,6 +336,80 @@ export default function Profile() {
                 <div className="text-3xl font-bold font-mono text-foreground" data-testid="text-max-streak">
                   {currentUser.maxStreak}
                 </div>
+              </div>
+            </div>
+
+            {/* SOL Earnings Section */}
+            <div className="relative overflow-hidden rounded-3xl border border-card-border bg-gradient-to-br from-card via-card to-muted p-6" data-testid="sol-earnings-section">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-cyan-500/5" />
+              
+              <div className="relative space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-gradient-to-r from-purple-500/20 to-cyan-500/20">
+                    <Wallet className="h-5 w-5 text-primary" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground">SOL Earnings</h3>
+                </div>
+
+                {isLoadingStats ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <Skeleton className="h-24 w-full rounded-xl" />
+                    <Skeleton className="h-24 w-full rounded-xl" />
+                    <Skeleton className="h-24 w-full rounded-xl" />
+                  </div>
+                ) : userStats ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="p-4 rounded-xl bg-muted/30 border border-border" data-testid="stat-wagered">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                        <Coins className="h-4 w-4" />
+                        <span>Total Wagered</span>
+                      </div>
+                      <div className="text-2xl font-bold font-mono text-foreground" data-testid="text-total-wagered">
+                        {formatSol(userStats.totalWagered)} SOL
+                      </div>
+                    </div>
+                    <div className="p-4 rounded-xl bg-muted/30 border border-border" data-testid="stat-earned">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                        <TrendingUp className="h-4 w-4" />
+                        <span>Total Earned</span>
+                      </div>
+                      <div className="text-2xl font-bold font-mono text-foreground" data-testid="text-total-earned">
+                        {formatSol(userStats.totalEarned)} SOL
+                      </div>
+                    </div>
+                    <div className="p-4 rounded-xl bg-muted/30 border border-border" data-testid="stat-profit">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                        {BigInt(userStats.profit) >= BigInt(0) ? (
+                          <TrendingUp className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <TrendingDown className="h-4 w-4 text-red-500" />
+                        )}
+                        <span>Profit/Loss</span>
+                      </div>
+                      <div className={`text-2xl font-bold font-mono ${
+                        BigInt(userStats.profit) >= BigInt(0) ? 'text-green-500' : 'text-red-500'
+                      }`} data-testid="text-profit">
+                        {BigInt(userStats.profit) >= BigInt(0) ? '+' : ''}{formatSol(userStats.profit)} SOL
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-6 text-muted-foreground">
+                    No betting data yet
+                  </div>
+                )}
+
+                {/* Linked Wallet Info */}
+                {currentUser.solanaAddress && (
+                  <div className="pt-4 border-t border-border">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <span>Linked Wallet:</span>
+                      <code className="px-2 py-1 rounded bg-muted text-xs" data-testid="text-wallet-address">
+                        {currentUser.solanaAddress.slice(0, 4)}...{currentUser.solanaAddress.slice(-4)}
+                      </code>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

@@ -8,6 +8,38 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**November 26, 2025 (Solana Wallet Integration - Phase 2)**: Complete real-money betting with on-chain verification
+- **Secure Wallet Linking**: Cryptographic signature verification with replay attack prevention
+  - Message format: `PALLY|link|privy:{userId}|addr:{address}|nonce:{nonce}|ts:{iso}`
+  - Nonces scoped to user/address pair, expire after 5 minutes, single-use
+  - 409 conflict returned for duplicate wallet addresses
+  - tweetnacl + @solana/web3.js PublicKey for signature verification
+- **On-Chain Transaction Verification**: `/api/wager/verify` validates deposits
+  - Fetches transaction from Solana RPC (devnet by default)
+  - Verifies sender matches user's linked wallet
+  - Validates escrow address receives correct amount
+  - Checks transaction succeeded (no errors)
+  - Records transaction signature for audit trail
+- **Wager Flow**: Initiate → Sign → Verify pattern
+  - POST `/api/wager/initiate`: Creates vote, returns escrow address and memo
+  - User sends SOL to escrow with memo: `PALLY|vote:{id}|q:{qid}|u:{uid}|amt:{lamports}`
+  - POST `/api/wager/verify`: On-chain validation before confirming wager
+- **Settlement Idempotency**: Prevents double-awarding on repeated API calls
+  - Checks if any vote already has `pointsEarned` set before processing
+  - Results calculation only runs once per question reveal
+- **BigInt Serialization**: All API responses safely serialize BigInt fields
+  - Helper `serializeBigInt()` recursively converts BigInt to strings
+  - Applied to: /api/votes, /api/results, /api/user/stats, /api/wager/*
+- **LinkWallet Page**: Mandatory wallet connection after profile creation
+  - Navigation gating requires wallet before accessing main app
+  - Secure message signing with wallet address included in payload
+- **Profile Page Stats**: SOL earnings displayed
+  - Total wagered, total earned, profit (in SOL)
+  - Stats calculated from settled votes
+- **Admin Panel**: Simplified to 1 daily question
+  - Fast-track feature for testing
+  - isAdmin flag required
+
 **November 26, 2025 (Solana Wallet Integration - Phase 1)**: Added Phantom wallet connection for SOL betting
 - **Solana Infrastructure**: Custom SolanaWalletProvider using direct Phantom API integration
   - Direct integration with Phantom browser extension via `window.solana`

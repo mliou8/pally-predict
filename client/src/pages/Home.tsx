@@ -113,12 +113,30 @@ export default function Home() {
     mutationFn: async (voteData: VoteData) => {
       if (!user?.id) throw new Error('Not authenticated');
       console.log('Submitting vote:', voteData);
-      const response = await apiRequest('/api/votes', {
+      
+      // Use the new wager/initiate endpoint
+      const response = await apiRequest('/api/wager/initiate', {
         method: 'POST',
         body: JSON.stringify(voteData),
       }, user.id);
       const result = await response.json();
       console.log('Vote response:', result);
+      
+      // For MVP: If there's a wager amount, we skip actual on-chain verification
+      // In production, this would trigger wallet transaction + verify flow
+      if (result.vote && result.wagerAmount && BigInt(result.wagerAmount) > BigInt(0)) {
+        // MVP: Simulate transaction verification with a fake signature
+        const mockTxSig = `simulated_${Date.now()}_${result.vote.id}`;
+        const verifyResponse = await apiRequest('/api/wager/verify', {
+          method: 'POST',
+          body: JSON.stringify({
+            voteId: result.vote.id,
+            txSignature: mockTxSig,
+          }),
+        }, user.id);
+        await verifyResponse.json();
+      }
+      
       return result;
     },
     onSuccess: (data) => {
@@ -129,7 +147,9 @@ export default function Home() {
       queryClient.invalidateQueries({ queryKey: ['/api/questions/revealed'] });
       toast({
         title: 'Vote submitted!',
-        description: 'Your prediction has been locked in.',
+        description: data.wagerAmount && BigInt(data.wagerAmount) > BigInt(0) 
+          ? `Your prediction with ${(Number(data.wagerAmount) / 1e9).toFixed(4)} SOL wager has been locked in.`
+          : 'Your prediction has been locked in.',
       });
     },
     onError: (error: Error) => {
@@ -140,6 +160,12 @@ export default function Home() {
         toast({
           title: 'Profile Required',
           description: 'Please create your profile to vote',
+        });
+      } else if (error.message.includes('link a Solana wallet')) {
+        setLocation('/link-wallet');
+        toast({
+          title: 'Wallet Required',
+          description: 'Please link your Phantom wallet to place bets',
         });
       } else {
         toast({

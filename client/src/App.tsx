@@ -9,6 +9,7 @@ import { SolanaWalletProvider } from '@/components/SolanaWalletProvider';
 import NotFound from '@/pages/not-found';
 import Splash from '@/pages/Splash';
 import CreateProfile from '@/pages/CreateProfile';
+import LinkWallet from '@/pages/LinkWallet';
 import Home from '@/pages/Home';
 import Leaderboard from '@/pages/Leaderboard';
 import History from '@/pages/History';
@@ -58,7 +59,13 @@ function AppContent() {
       })
         .then(async (response) => {
           if (response.ok) {
-            setLocation('/');
+            const userData = await response.json();
+            // Check if user has a linked wallet
+            if (!userData.solanaAddress) {
+              setLocation('/link-wallet');
+            } else {
+              setLocation('/');
+            }
           } else if (response.status === 404) {
             setLocation('/create-profile');
           }
@@ -69,12 +76,39 @@ function AppContent() {
         });
     }
   }, [ready, authenticated, location, setLocation, user, checkingProfile]);
+  
+  // Redirect users without wallet to link-wallet page (except when on link-wallet)
+  useEffect(() => {
+    if (!ready || !authenticated || !user?.id) return;
+    
+    const protectedRoutes = ['/', '/leaderboard', '/history', '/profile'];
+    const needsWalletCheck = protectedRoutes.includes(location);
+    
+    if (needsWalletCheck) {
+      fetch('/api/user/me', {
+        headers: {
+          'x-privy-user-id': user.id,
+        },
+      })
+        .then(async (response) => {
+          if (response.ok) {
+            const userData = await response.json();
+            if (!userData.solanaAddress) {
+              setLocation('/link-wallet');
+            }
+          }
+        })
+        .catch((err) => {
+          console.error('Wallet check failed:', err);
+        });
+    }
+  }, [ready, authenticated, location, setLocation, user]);
 
   // Redirect unauthenticated users to splash
   useEffect(() => {
     if (!ready) return;
     
-    const validRoutes = ['/', '/splash', '/create-profile', '/leaderboard', '/history', '/profile', '/admin', '/all-results', '/terms', '/privacy'];
+    const validRoutes = ['/', '/splash', '/create-profile', '/link-wallet', '/leaderboard', '/history', '/profile', '/admin', '/all-results', '/terms', '/privacy'];
     const publicRoutes = ['/splash', '/terms', '/privacy'];
     const isValidRoute = validRoutes.includes(location);
     const isPublicRoute = publicRoutes.includes(location);
@@ -89,8 +123,8 @@ function AppContent() {
     }
   }, [ready, authenticated, location, setLocation]);
 
-  // Hide nav on splash, profile creation, admin, and legal pages
-  const hideNav = location === '/splash' || location === '/create-profile' || location === '/admin' || location === '/terms' || location === '/privacy';
+  // Hide nav on splash, profile creation, wallet linking, admin, and legal pages
+  const hideNav = location === '/splash' || location === '/create-profile' || location === '/link-wallet' || location === '/admin' || location === '/terms' || location === '/privacy';
 
   // Show loading while Privy initializes
   if (!ready && !initTimeout) {
@@ -144,6 +178,7 @@ function AppContent() {
         <Switch>
           <Route path="/splash" component={Splash} />
           <Route path="/create-profile" component={CreateProfile} />
+          <Route path="/link-wallet" component={LinkWallet} />
           <Route path="/" component={Home} />
           <Route path="/leaderboard" component={Leaderboard} />
           <Route path="/history" component={History} />

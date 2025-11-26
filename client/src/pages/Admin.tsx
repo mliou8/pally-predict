@@ -82,11 +82,7 @@ export default function Admin() {
     context: '',
   };
 
-  const [questions, setQuestions] = useState<SingleQuestionData[]>([
-    { ...emptyQuestion },
-    { ...emptyQuestion },
-    { ...emptyQuestion },
-  ]);
+  const [question, setQuestion] = useState<SingleQuestionData>({ ...emptyQuestion });
 
   // Check if user is admin
   const { data: userProfile, isLoading: profileLoading } = useQuery<User>({
@@ -100,13 +96,13 @@ export default function Admin() {
     enabled: !!user?.id && userProfile?.isAdmin === true,
   });
 
-  // Check if tomorrow's questions already exist
+  // Check if tomorrow's question already exists
   const tomorrowSchedule = getTomorrowNoonET();
-  const tomorrowQuestions = allQuestions.filter(q => {
+  const tomorrowQuestion = allQuestions.find(q => {
     const dropDate = new Date(q.dropsAt);
     return dropDate.getTime() === tomorrowSchedule.dropsAt.getTime();
   });
-  const hasTomorrowQuestions = tomorrowQuestions.length >= 3;
+  const hasTomorrowQuestion = !!tomorrowQuestion;
 
   // Fast-track mutation
   const fastTrackMutation = useMutation({
@@ -135,61 +131,51 @@ export default function Admin() {
     },
   });
 
-  // Create questions mutation
+  // Create question mutation
   const createMutation = useMutation({
-    mutationFn: async (questionsData: SingleQuestionData[]) => {
+    mutationFn: async (questionData: SingleQuestionData) => {
       if (!user?.id) throw new Error('Not authenticated');
       
       const { dropsAt, revealsAt } = getTomorrowNoonET();
       
-      const createdQuestions = [];
-      for (const q of questionsData) {
-        const payload = {
-          type: q.type,
-          prompt: q.prompt.trim(),
-          optionA: q.optionA.trim(),
-          optionB: q.optionB.trim(),
-          optionC: q.optionC.trim() || null,
-          optionD: q.optionD.trim() || null,
-          context: q.context.trim() || null,
-          dropsAt: dropsAt.toISOString(),
-          revealsAt: revealsAt.toISOString(),
-          isActive: true,
-          isRevealed: false,
-        };
+      const payload = {
+        type: questionData.type,
+        prompt: questionData.prompt.trim(),
+        optionA: questionData.optionA.trim(),
+        optionB: questionData.optionB.trim(),
+        optionC: questionData.optionC.trim() || null,
+        optionD: questionData.optionD.trim() || null,
+        context: questionData.context.trim() || null,
+        dropsAt: dropsAt.toISOString(),
+        revealsAt: revealsAt.toISOString(),
+        isActive: true,
+        isRevealed: false,
+      };
 
-        const response = await apiRequest('/api/admin/questions', {
-          method: 'POST',
-          body: JSON.stringify(payload),
-        }, user.id);
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to create question');
-        }
-        
-        const created = await response.json();
-        createdQuestions.push(created);
+      const response = await apiRequest('/api/admin/questions', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }, user.id);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create question');
       }
       
-      return createdQuestions;
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/questions'] });
       toast({
-        title: 'Questions created!',
-        description: `All 3 questions added for tomorrow at noon ET.`,
+        title: 'Question created!',
+        description: `Daily question added for tomorrow at noon ET.`,
       });
       // Reset form
-      setQuestions([
-        { ...emptyQuestion },
-        { ...emptyQuestion },
-        { ...emptyQuestion },
-      ]);
+      setQuestion({ ...emptyQuestion });
     },
     onError: (error: Error) => {
       toast({
-        title: 'Failed to create questions',
+        title: 'Failed to create question',
         description: error.message,
         variant: 'destructive',
       });
@@ -224,26 +210,21 @@ export default function Admin() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate all questions
-    for (let i = 0; i < questions.length; i++) {
-      const q = questions[i];
-      if (!q.prompt || !q.optionA || !q.optionB) {
-        toast({
-          title: 'Missing required fields',
-          description: `Question ${i + 1}: Prompt and at least options A and B are required.`,
-          variant: 'destructive',
-        });
-        return;
-      }
+    // Validate the question
+    if (!question.prompt || !question.optionA || !question.optionB) {
+      toast({
+        title: 'Missing required fields',
+        description: 'Prompt and at least options A and B are required.',
+        variant: 'destructive',
+      });
+      return;
     }
 
-    createMutation.mutate(questions);
+    createMutation.mutate(question);
   };
 
-  const updateQuestion = (index: number, field: keyof SingleQuestionData, value: string) => {
-    const updated = [...questions];
-    updated[index] = { ...updated[index], [field]: value };
-    setQuestions(updated);
+  const updateQuestionField = (field: keyof SingleQuestionData, value: string) => {
+    setQuestion(prev => ({ ...prev, [field]: value }));
   };
 
   if (profileLoading) {
@@ -277,7 +258,7 @@ export default function Admin() {
           <h1 className="text-4xl font-bold bg-gradient-to-r from-[#00D9FF] to-[#FF00E5] bg-clip-text text-transparent">
             Admin Dashboard
           </h1>
-          <p className="text-muted-foreground mt-2">Add tomorrow's questions (all 3 at once)</p>
+          <p className="text-muted-foreground mt-2">Add tomorrow's daily question (1 question per day with SOL wagering)</p>
         </div>
 
         {/* Tomorrow's Schedule Status */}
@@ -285,17 +266,25 @@ export default function Admin() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
-              Tomorrow's Schedule
+              Tomorrow's Daily Question
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {hasTomorrowQuestions ? (
+            {hasTomorrowQuestion ? (
               <div className="space-y-4">
                 <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
                   <CheckCircle2 className="h-5 w-5" />
                   <span className="font-semibold">
-                    Tomorrow's questions are ready! ({tomorrowQuestions.length}/3 scheduled)
+                    Tomorrow's question is ready!
                   </span>
+                </div>
+                <div className="p-4 bg-muted/50 rounded-lg border border-border">
+                  <p className="font-medium">{tomorrowQuestion.prompt}</p>
+                  <div className="mt-2 text-sm text-muted-foreground">
+                    Type: {tomorrowQuestion.type} | Options: {tomorrowQuestion.optionA}, {tomorrowQuestion.optionB}
+                    {tomorrowQuestion.optionC && `, ${tomorrowQuestion.optionC}`}
+                    {tomorrowQuestion.optionD && `, ${tomorrowQuestion.optionD}`}
+                  </div>
                 </div>
                 <Button 
                   onClick={() => fastTrackMutation.mutate()}
@@ -307,136 +296,137 @@ export default function Admin() {
                   {fastTrackMutation.isPending ? 'Fast-tracking...' : '⚡ Fast-Track to Today'}
                 </Button>
                 <p className="text-xs text-muted-foreground">
-                  This will move tomorrow's questions to today's schedule (drops immediately, reveals tomorrow at noon ET)
+                  This will move tomorrow's question to today (drops immediately, reveals tomorrow at noon ET)
                 </p>
               </div>
             ) : (
               <div className="space-y-2">
                 <p className="text-muted-foreground">
-                  No questions scheduled for tomorrow yet. Add 3 questions below.
+                  No question scheduled for tomorrow yet. Add the daily question below.
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Questions will drop at: <span className="font-mono font-semibold">{tomorrowSchedule.dropsAt.toLocaleString('en-US', { timeZone: 'America/New_York', dateStyle: 'full', timeStyle: 'short' })}</span>
+                  Question will drop at: <span className="font-mono font-semibold">{tomorrowSchedule.dropsAt.toLocaleString('en-US', { timeZone: 'America/New_York', dateStyle: 'full', timeStyle: 'short' })}</span>
                 </p>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Create Questions Form (only show if tomorrow not scheduled) */}
-        {!hasTomorrowQuestions && (
+        {/* Create Question Form (only show if tomorrow not scheduled) */}
+        {!hasTomorrowQuestion && (
           <form onSubmit={handleSubmit} className="space-y-6">
-            {questions.map((question, index) => (
-              <Card key={index}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Plus className="h-5 w-5" />
-                    Question {index + 1} of 3
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor={`type-${index}`}>Question Type</Label>
-                      <Select
-                        value={question.type}
-                        onValueChange={(value) => updateQuestion(index, 'type', value)}
-                      >
-                        <SelectTrigger id={`type-${index}`} data-testid={`select-question-type-${index}`}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="consensus">Consensus</SelectItem>
-                          <SelectItem value="prediction">Prediction</SelectItem>
-                          <SelectItem value="preference">Preference</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor={`context-${index}`}>Context (optional)</Label>
-                      <Input
-                        id={`context-${index}`}
-                        value={question.context}
-                        onChange={(e) => updateQuestion(index, 'context', e.target.value)}
-                        placeholder="e.g., Crypto Market"
-                        data-testid={`input-context-${index}`}
-                      />
-                    </div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Plus className="h-5 w-5" />
+                  Create Daily Question
+                </CardTitle>
+                <CardDescription>
+                  Users will wager SOL on their predictions. Winners split the prize pool proportionally.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="type">Question Type</Label>
+                    <Select
+                      value={question.type}
+                      onValueChange={(value) => updateQuestionField('type', value)}
+                    >
+                      <SelectTrigger id="type" data-testid="select-question-type">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="consensus">Consensus</SelectItem>
+                        <SelectItem value="prediction">Prediction</SelectItem>
+                        <SelectItem value="preference">Preference</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor={`prompt-${index}`}>Question Prompt *</Label>
-                    <Textarea
-                      id={`prompt-${index}`}
-                      value={question.prompt}
-                      onChange={(e) => updateQuestion(index, 'prompt', e.target.value)}
-                      placeholder="What will most traders predict about BTC this week?"
-                      rows={3}
+                    <Label htmlFor="context">Context (optional)</Label>
+                    <Input
+                      id="context"
+                      value={question.context}
+                      onChange={(e) => updateQuestionField('context', e.target.value)}
+                      placeholder="e.g., Crypto Market"
+                      data-testid="input-context"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="prompt">Question Prompt *</Label>
+                  <Textarea
+                    id="prompt"
+                    value={question.prompt}
+                    onChange={(e) => updateQuestionField('prompt', e.target.value)}
+                    placeholder="What will most traders predict about BTC this week?"
+                    rows={3}
+                    required
+                    data-testid="input-prompt"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="optionA">Option A *</Label>
+                    <Input
+                      id="optionA"
+                      value={question.optionA}
+                      onChange={(e) => updateQuestionField('optionA', e.target.value)}
+                      placeholder="Bullish pump incoming"
                       required
-                      data-testid={`input-prompt-${index}`}
+                      data-testid="input-option-a"
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor={`optionA-${index}`}>Option A *</Label>
-                      <Input
-                        id={`optionA-${index}`}
-                        value={question.optionA}
-                        onChange={(e) => updateQuestion(index, 'optionA', e.target.value)}
-                        placeholder="Bullish pump incoming"
-                        required
-                        data-testid={`input-option-a-${index}`}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor={`optionB-${index}`}>Option B *</Label>
-                      <Input
-                        id={`optionB-${index}`}
-                        value={question.optionB}
-                        onChange={(e) => updateQuestion(index, 'optionB', e.target.value)}
-                        placeholder="Bearish dump expected"
-                        required
-                        data-testid={`input-option-b-${index}`}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor={`optionC-${index}`}>Option C (optional)</Label>
-                      <Input
-                        id={`optionC-${index}`}
-                        value={question.optionC}
-                        onChange={(e) => updateQuestion(index, 'optionC', e.target.value)}
-                        placeholder="Sideways crab market"
-                        data-testid={`input-option-c-${index}`}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor={`optionD-${index}`}>Option D (optional)</Label>
-                      <Input
-                        id={`optionD-${index}`}
-                        value={question.optionD}
-                        onChange={(e) => updateQuestion(index, 'optionD', e.target.value)}
-                        placeholder="Volatility explosion"
-                        data-testid={`input-option-d-${index}`}
-                      />
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="optionB">Option B *</Label>
+                    <Input
+                      id="optionB"
+                      value={question.optionB}
+                      onChange={(e) => updateQuestionField('optionB', e.target.value)}
+                      placeholder="Bearish dump expected"
+                      required
+                      data-testid="input-option-b"
+                    />
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="optionC">Option C (optional)</Label>
+                    <Input
+                      id="optionC"
+                      value={question.optionC}
+                      onChange={(e) => updateQuestionField('optionC', e.target.value)}
+                      placeholder="Sideways crab market"
+                      data-testid="input-option-c"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="optionD">Option D (optional)</Label>
+                    <Input
+                      id="optionD"
+                      value={question.optionD}
+                      onChange={(e) => updateQuestionField('optionD', e.target.value)}
+                      placeholder="Volatility explosion"
+                      data-testid="input-option-d"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             <Button
               type="submit"
               disabled={createMutation.isPending}
               className="w-full"
               size="lg"
-              data-testid="button-create-questions"
+              data-testid="button-create-question"
             >
-              {createMutation.isPending ? 'Creating Questions...' : 'Add All 3 Questions for Tomorrow'}
+              {createMutation.isPending ? 'Creating Question...' : 'Add Daily Question for Tomorrow'}
             </Button>
           </form>
         )}

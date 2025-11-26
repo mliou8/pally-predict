@@ -20,6 +20,7 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByPrivyId(privyUserId: string): Promise<User | undefined>;
   getUserByHandle(handle: string): Promise<User | undefined>;
+  getUserBySolanaAddress(solanaAddress: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
   
@@ -36,6 +37,7 @@ export interface IStorage {
   
   // Vote operations
   getVote(userId: string, questionId: string): Promise<Vote | undefined>;
+  getVoteByTxSignature(txSignature: string): Promise<Vote | undefined>;
   getUserVotes(userId: string): Promise<Vote[]>;
   getQuestionVotes(questionId: string): Promise<Vote[]>;
   getQuestionVotesCount(questionId: string): Promise<number>;
@@ -69,6 +71,11 @@ export class DbStorage implements IStorage {
 
   async getUserByHandle(handle: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.handle, handle)).limit(1);
+    return user;
+  }
+
+  async getUserBySolanaAddress(solanaAddress: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.solanaAddress, solanaAddress)).limit(1);
     return user;
   }
 
@@ -236,6 +243,15 @@ export class DbStorage implements IStorage {
       .select()
       .from(votes)
       .where(and(eq(votes.userId, userId), eq(votes.questionId, questionId)))
+      .limit(1);
+    return vote;
+  }
+
+  async getVoteByTxSignature(txSignature: string): Promise<Vote | undefined> {
+    const [vote] = await db
+      .select()
+      .from(votes)
+      .where(eq(votes.wagerTxSig, txSignature))
       .limit(1);
     return vote;
   }

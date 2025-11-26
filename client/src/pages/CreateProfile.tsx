@@ -32,7 +32,7 @@ export default function CreateProfile() {
       }, user.id);
 
       if (response.ok) {
-        setLocation('/');
+        setLocation('/link-wallet');
       } else {
         const error = await response.json();
         setProfileError(error.error || 'Failed to create profile');
