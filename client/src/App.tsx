@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Switch, Route, useLocation } from 'wouter';
 import { PrivyProvider, usePrivy } from '@privy-io/react-auth';
-import { base, baseSepolia } from 'viem/chains';
 import { queryClient, setGlobalPrivyUserId } from './lib/queryClient';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/toaster';
@@ -188,11 +187,10 @@ function App() {
           accentColor: '#2BFBD2',
           logo: undefined,
         },
-        // Configure Base blockchain as default network
-        defaultChain: base,
-        supportedChains: [base, baseSepolia],
         embeddedWallets: {
-          createOnLogin: 'all-users',
+          ethereum: {
+            createOnLogin: 'users-without-wallets',
+          },
         },
       }}
     >
