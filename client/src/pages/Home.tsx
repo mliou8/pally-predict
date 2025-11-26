@@ -151,12 +151,12 @@ export default function Home() {
     },
   });
 
-  const handleVote = (questionId: string, choice: VoteChoice, isPublic: boolean, wagerEth?: string) => {
-    // Convert ETH to wei if wager is provided
+  const handleVote = (questionId: string, choice: VoteChoice, isPublic: boolean, wagerSol?: string) => {
+    // Convert SOL to lamports if wager is provided (1 SOL = 1e9 lamports)
     let wagerAmount: string | undefined;
-    if (wagerEth && parseFloat(wagerEth) > 0) {
-      const weiAmount = BigInt(Math.floor(parseFloat(wagerEth) * 1e18));
-      wagerAmount = weiAmount.toString();
+    if (wagerSol && parseFloat(wagerSol) > 0) {
+      const lamportsAmount = BigInt(Math.floor(parseFloat(wagerSol) * 1e9));
+      wagerAmount = lamportsAmount.toString();
     }
     
     voteMutation.mutate({ questionId, choice, isPublic, wagerAmount });

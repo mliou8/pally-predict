@@ -7,6 +7,7 @@ export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   privyUserId: varchar("privy_user_id").notNull().unique(),
   handle: varchar("handle").unique(),
+  solanaAddress: varchar("solana_address").unique(),
   alphaPoints: integer("alpha_points").notNull().default(0),
   currentStreak: integer("current_streak").notNull().default(0),
   maxStreak: integer("max_streak").notNull().default(0),
@@ -49,6 +50,8 @@ export const votes = pgTable("votes", {
   multiplier: integer("multiplier"),
   wagerAmount: bigint("wager_amount", { mode: 'bigint' }).notNull().default(BigInt(0)),
   payoutAmount: bigint("payout_amount", { mode: 'bigint' }).default(BigInt(0)),
+  wagerTxSig: varchar("wager_tx_sig"),
+  payoutTxSig: varchar("payout_tx_sig"),
   votedAt: timestamp("voted_at").notNull().defaultNow(),
 });
 

@@ -12,6 +12,11 @@
   </head>
   <body>
     <div id="root"></div>
+    <script type="module">
+      // Polyfill Buffer for Solana web3.js compatibility
+      import { Buffer } from 'buffer';
+      window.Buffer = Buffer;
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

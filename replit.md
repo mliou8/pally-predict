@@ -8,23 +8,47 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**November 19, 2025 (Crypto Betting Integration)**: Added Base ETH wagering system for predictions
-- **Betting Mechanism**: Users can now wager Base ETH on their predictions to demonstrate conviction
-  - Optional wager input in PromptCard with ETH amount field
-  - Wagers stored in wei (BigInt) for precision: 1 ETH = 10^18 wei
-  - Frontend converts ETH input to wei before sending to backend
+**November 26, 2025 (Solana Wallet Integration - Phase 1)**: Added Phantom wallet connection for SOL betting
+- **Solana Infrastructure**: Custom SolanaWalletProvider using direct Phantom API integration
+  - Direct integration with Phantom browser extension via `window.solana`
+  - No dependency on wallet adapter packages (simplified implementation)
+  - Devnet connection for development/testing
+  - Custom React context providing wallet state and actions
+- **Splash Page Updates**: Added "Connect Phantom Wallet" button
+  - Purple gradient styling matching Phantom branding
+  - Dynamic button text: "Connect Phantom Wallet" or "Install Phantom Wallet"
+  - Auto-redirect to profile creation on successful connection
+  - Wallet connection alongside existing Privy social logins
+- **Currency Migration**: Changed from ETH to SOL throughout the app
+  - PromptCard: Wager input now shows "SOL" instead of "ETH"
+  - ResultsReveal: All betting results display in SOL
+  - Unit conversion: 1 SOL = 1e9 lamports (previously 1 ETH = 1e18 wei)
+- **Database Schema**: Extended for Solana integration
+  - `solana_address` (text): User's linked Solana wallet address
+  - `wager_tx_sig` (text): Transaction signature for wager deposits
+  - `payout_tx_sig` (text): Transaction signature for payout distributions
+- **Technical Implementation**:
+  - Buffer polyfill added in index.html for Solana web3.js browser compatibility
+  - useSolanaWallet() hook provides: connected, connecting, publicKey, connection, connect, disconnect, signMessage
+  - Phase 1 simulates betting without actual on-chain transactions (centralized escrow approach planned)
+
+**November 19, 2025 (Crypto Betting Integration)**: Added SOL wagering system for predictions
+- **Betting Mechanism**: Users can now wager SOL on their predictions to demonstrate conviction
+  - Optional wager input in PromptCard with SOL amount field
+  - Wagers stored in lamports (BigInt) for precision: 1 SOL = 10^9 lamports
+  - Frontend converts SOL input to lamports before sending to backend
 - **Payout Distribution**: Winners split total pot proportionally based on their wager amounts
   - Winning choice determined by highest vote count
   - Payout calculation: `(totalPot * userWager) / totalWinningWagers`
-  - Pure BigInt arithmetic prevents precision loss for large wei values
+  - Pure BigInt arithmetic prevents precision loss for large lamports values
   - Losers receive no payout (wager goes to winners)
 - **Results Display**: ResultsReveal component shows comprehensive betting statistics
-  - User's wager amount displayed in ETH
-  - Payout amount shown for winners (in ETH)
+  - User's wager amount displayed in SOL
+  - Payout amount shown for winners (in SOL)
   - Total pot size visible to all users
   - Animated gradient cards for visual appeal
 - **Database Schema**: Extended votes and question_results tables
-  - `wager_amount` (bigint): User's wager in wei, default 0
+  - `wager_amount` (bigint): User's wager in lamports, default 0
   - `payout_amount` (bigint, nullable): Calculated payout for winners
   - `total_pot` (bigint): Sum of all wagers on a question
 - **Technical Implementation**:
@@ -95,6 +119,7 @@ Privy provides comprehensive authentication supporting Web3 wallets, social logi
 ## External Dependencies
 
 *   **Authentication**: `@privy-io/react-auth`
+*   **Blockchain**: `@solana/web3.js` (Solana), Phantom wallet via browser API
 *   **Database**: `@neondatabase/serverless` (PostgreSQL), Drizzle ORM
 *   **UI Framework**: Radix UI, Tailwind CSS, Framer Motion, Lucide React, React Icons
 *   **Development Tools**: Vite, TypeScript, ESBuild

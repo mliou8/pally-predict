@@ -50,10 +50,10 @@ export default function ResultsReveal({
     return date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
   };
 
-  const formatEth = (wei?: bigint): string => {
-    if (wei === undefined) return '0.0000';
-    const eth = Number(wei) / 1e18;
-    return eth.toFixed(4);
+  const formatSol = (lamports?: bigint): string => {
+    if (lamports === undefined) return '0.0000';
+    const sol = Number(lamports) / 1e9;
+    return sol.toFixed(4);
   };
 
   const rankColors = {
@@ -205,14 +205,14 @@ export default function ResultsReveal({
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Your wager:</span>
                 <span className="font-semibold text-foreground" data-testid="text-wager-amount">
-                  {formatEth(userWager)} ETH
+                  {formatSol(userWager)} SOL
                 </span>
               </div>
               {userPayout !== undefined && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Your payout:</span>
                   <span className={`font-bold ${userPayout > BigInt(0) ? 'text-green-500' : 'text-red-500'}`} data-testid="text-payout-amount">
-                    {userPayout > BigInt(0) ? '+' : ''}{formatEth(userPayout)} ETH
+                    {userPayout > BigInt(0) ? '+' : ''}{formatSol(userPayout)} SOL
                   </span>
                 </div>
               )}
@@ -220,7 +220,7 @@ export default function ResultsReveal({
                 <div className="flex justify-between pt-2 border-t border-border">
                   <span className="text-muted-foreground">Total pot:</span>
                   <span className="font-semibold text-foreground" data-testid="text-total-pot">
-                    {formatEth(totalPot)} ETH
+                    {formatSol(totalPot)} SOL
                   </span>
                 </div>
               )}
@@ -230,9 +230,9 @@ export default function ResultsReveal({
             <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-green-500/10 to-emerald-600/10 border border-green-500/30">
               <Trophy className="text-green-500" size={24} />
               <div>
-                <div className="font-semibold text-foreground">Bet Won! 💰</div>
+                <div className="font-semibold text-foreground">Bet Won!</div>
                 <div className="text-sm text-muted-foreground">
-                  You won {formatEth(userPayout)} ETH from the pot
+                  You won {formatSol(userPayout)} SOL from the pot
                 </div>
               </div>
             </div>

@@ -52,9 +52,9 @@ export default function PromptCard({
     onVote?.(choice, voteType === 'public', wagerAmount || undefined);
   };
 
-  const formatEth = (wei: bigint): string => {
-    const eth = Number(wei) / 1e18;
-    return eth.toFixed(4);
+  const formatSol = (lamports: bigint): string => {
+    const sol = Number(lamports) / 1e9;
+    return sol.toFixed(4);
   };
 
   const getOptionLabel = (choice: VoteChoice): string => {
@@ -117,11 +117,11 @@ export default function PromptCard({
                   data-testid="input-wager-amount"
                 />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-muted-foreground">
-                  ETH
+                  SOL
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                Show your conviction by betting Base ETH on your answer. Winners split the pot!
+                Show your conviction by wagering SOL on your answer. Winners split the pot!
               </p>
             </div>
           </div>
@@ -142,7 +142,7 @@ export default function PromptCard({
               <div className="mt-4 flex items-center justify-center gap-2 text-primary">
                 <Coins className="h-4 w-4" />
                 <span className="text-sm font-semibold" data-testid="text-user-wager">
-                  Your wager: {formatEth(userWager)} ETH
+                  Your wager: {formatSol(userWager)} SOL
                 </span>
               </div>
             ) : null}
