@@ -48,8 +48,8 @@ export const votes = pgTable("votes", {
   isPublic: boolean("is_public").notNull().default(true),
   pointsEarned: integer("points_earned"),
   multiplier: integer("multiplier"),
-  wagerAmount: bigint("wager_amount", { mode: 'bigint' }).notNull().default(BigInt(0)),
-  payoutAmount: bigint("payout_amount", { mode: 'bigint' }).default(BigInt(0)),
+  wagerAmount: bigint("wager_amount", { mode: 'bigint' }).notNull().default(sql`0`),
+  payoutAmount: bigint("payout_amount", { mode: 'bigint' }).default(sql`0`),
   wagerTxSig: varchar("wager_tx_sig"),
   payoutTxSig: varchar("payout_tx_sig"),
   votedAt: timestamp("voted_at").notNull().defaultNow(),
@@ -68,7 +68,7 @@ export const questionResults = pgTable("question_results", {
   votesC: integer("votes_c").default(0),
   votesD: integer("votes_d").default(0),
   rarityMultipliers: jsonb("rarity_multipliers").$type<{A: number, B: number, C?: number, D?: number}>(),
-  totalPot: bigint("total_pot", { mode: 'bigint' }).notNull().default(BigInt(0)),
+  totalPot: bigint("total_pot", { mode: 'bigint' }).notNull().default(sql`0`),
   revealedAt: timestamp("revealed_at"),
 });
 

@@ -11,7 +11,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Plus, CheckCircle2, Calendar } from 'lucide-react';
+import { Trash2, Plus, CheckCircle2, Calendar, MessageCircle } from 'lucide-react';
+import { Link } from 'wouter';
 import type { Question, QuestionType, User } from '@shared/schema';
 
 interface SingleQuestionData {
@@ -254,11 +255,19 @@ export default function Admin() {
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-6xl mx-auto space-y-8">
-        <div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-[#00D9FF] to-[#FF00E5] bg-clip-text text-transparent">
-            Admin Dashboard
-          </h1>
-          <p className="text-muted-foreground mt-2">Add tomorrow's daily question (1 question per day with SOL wagering)</p>
+        <div className="flex items-start justify-between flex-wrap gap-4">
+          <div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-[#00D9FF] to-[#FF00E5] bg-clip-text text-transparent">
+              Admin Dashboard
+            </h1>
+            <p className="text-muted-foreground mt-2">Add tomorrow's daily question (1 question per day with SOL wagering)</p>
+          </div>
+          <Link href="/telegram-admin">
+            <Button variant="outline" className="gap-2">
+              <MessageCircle className="h-4 w-4" />
+              Telegram Bot Admin
+            </Button>
+          </Link>
         </div>
 
         {/* Tomorrow's Schedule Status */}

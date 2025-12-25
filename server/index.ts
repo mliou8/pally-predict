@@ -1,5 +1,9 @@
+import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
+import { registerTelegramRoutes } from "./telegram-routes";
+import { initBot, getBot } from "./telegram-bot";
+import { startScheduler, stopScheduler } from "./telegram-scheduler";
 import { setupVite, serveStatic, log } from "./vite";
 
 // Add BigInt support to JSON.stringify
@@ -51,6 +55,42 @@ app.use((req, res, next) => {
 
 (async () => {
   const server = await registerRoutes(app);
+  
+  // Register Telegram admin routes
+  registerTelegramRoutes(app);
+  
+  // Initialize Telegram bot if token is provided
+  const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
+  if (telegramBotToken) {
+    try {
+      const bot = initBot(telegramBotToken);
+      
+      // Start bot in polling mode (for development)
+      // In production, you'd use webhooks instead
+      bot.launch().then(() => {
+        log('Telegram bot started successfully');
+      }).catch((err) => {
+        console.error('Failed to start Telegram bot:', err);
+      });
+      
+      // Start the scheduler for automatic question sending
+      startScheduler();
+      
+      // Graceful shutdown
+      process.once('SIGINT', () => {
+        stopScheduler();
+        bot.stop('SIGINT');
+      });
+      process.once('SIGTERM', () => {
+        stopScheduler();
+        bot.stop('SIGTERM');
+      });
+    } catch (err) {
+      console.error('Failed to initialize Telegram bot:', err);
+    }
+  } else {
+    log('TELEGRAM_BOT_TOKEN not set - Telegram bot disabled');
+  }
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -73,12 +113,8 @@ app.use((req, res, next) => {
   // Other ports are firewalled. Default to 5000 if not specified.
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || '5000', 10);
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
+  const port = parseInt(process.env.PORT || '3000', 10);
+  server.listen(port, "0.0.0.0", () => {
     log(`serving on port ${port}`);
   });
 })();

@@ -15,6 +15,7 @@ import Leaderboard from '@/pages/Leaderboard';
 import History from '@/pages/History';
 import Profile from '@/pages/Profile';
 import Admin from '@/pages/Admin';
+import TelegramAdmin from '@/pages/TelegramAdmin';
 import AllResults from '@/pages/AllResults';
 import TermsOfService from '@/pages/TermsOfService';
 import PrivacyPolicy from '@/pages/PrivacyPolicy';
@@ -108,7 +109,7 @@ function AppContent() {
   useEffect(() => {
     if (!ready) return;
     
-    const validRoutes = ['/', '/splash', '/create-profile', '/link-wallet', '/leaderboard', '/history', '/profile', '/admin', '/all-results', '/terms', '/privacy'];
+    const validRoutes = ['/', '/splash', '/create-profile', '/link-wallet', '/leaderboard', '/history', '/profile', '/admin', '/telegram-admin', '/all-results', '/terms', '/privacy'];
     const publicRoutes = ['/splash', '/terms', '/privacy'];
     const isValidRoute = validRoutes.includes(location);
     const isPublicRoute = publicRoutes.includes(location);
@@ -124,7 +125,7 @@ function AppContent() {
   }, [ready, authenticated, location, setLocation]);
 
   // Hide nav on splash, profile creation, wallet linking, admin, and legal pages
-  const hideNav = location === '/splash' || location === '/create-profile' || location === '/link-wallet' || location === '/admin' || location === '/terms' || location === '/privacy';
+  const hideNav = location === '/splash' || location === '/create-profile' || location === '/link-wallet' || location === '/admin' || location === '/telegram-admin' || location === '/terms' || location === '/privacy';
 
   // Show loading while Privy initializes
   if (!ready && !initTimeout) {
@@ -184,6 +185,7 @@ function AppContent() {
           <Route path="/history" component={History} />
           <Route path="/profile" component={Profile} />
           <Route path="/admin" component={Admin} />
+          <Route path="/telegram-admin" component={TelegramAdmin} />
           <Route path="/all-results" component={AllResults} />
           <Route path="/terms" component={TermsOfService} />
           <Route path="/privacy" component={PrivacyPolicy} />
