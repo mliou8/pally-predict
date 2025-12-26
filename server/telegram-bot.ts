@@ -1,6 +1,6 @@
 import { Telegraf, Markup, Context } from 'telegraf';
 import { telegramStorage } from './telegram-storage';
-import type { TelegramQuestion, TelegramUser } from '@shared/telegram-schema';
+import type { TelegramQuestion, TelegramUser } from '../shared/telegram-schema';
 
 // Create bot instance (initialized later with token)
 let bot: Telegraf | null = null;

@@ -2,7 +2,7 @@ import type { Express } from 'express';
 import { telegramStorage } from './telegram-storage';
 import { broadcastQuestion, broadcastResults } from './telegram-bot';
 import { forceProcessTasks } from './telegram-scheduler';
-import { insertTelegramQuestionSchema } from '@shared/telegram-schema';
+import { insertTelegramQuestionSchema } from '../shared/telegram-schema';
 
 export function registerTelegramRoutes(app: Express): void {
   // ===== ADMIN AUTHENTICATION =====

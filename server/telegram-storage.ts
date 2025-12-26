@@ -10,7 +10,7 @@ import {
   type InsertTelegramQuestion,
   type TelegramBet,
   type InsertTelegramBet,
-} from '@shared/telegram-schema';
+} from '../shared/telegram-schema';
 
 export interface TelegramQuestionWithStats extends TelegramQuestion {
   totalBets: number;
