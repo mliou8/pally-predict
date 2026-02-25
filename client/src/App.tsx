@@ -6,11 +6,13 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { SolanaWalletProvider } from '@/components/SolanaWalletProvider';
+import Colors from '@/constants/colors';
 import NotFound from '@/pages/not-found';
 import Splash from '@/pages/Splash';
 import CreateProfile from '@/pages/CreateProfile';
 import LinkWallet from '@/pages/LinkWallet';
-import Home from '@/pages/Home';
+import Play from '@/pages/Play';
+import Results from '@/pages/Results';
 import Leaderboard from '@/pages/Leaderboard';
 import History from '@/pages/History';
 import Profile from '@/pages/Profile';
@@ -19,9 +21,8 @@ import TelegramAdmin from '@/pages/TelegramAdmin';
 import AllResults from '@/pages/AllResults';
 import TermsOfService from '@/pages/TermsOfService';
 import PrivacyPolicy from '@/pages/PrivacyPolicy';
-import TopBar from '@/components/TopBar';
+import LinkTelegram from '@/pages/LinkTelegram';
 import TabBar from '@/components/TabBar';
-import Footer from '@/components/Footer';
 
 function AppContent() {
   const [location, setLocation] = useLocation();
@@ -40,7 +41,7 @@ function AppContent() {
       if (!ready) {
         setInitTimeout(true);
       }
-    }, 10000); // 10 second timeout
+    }, 10000);
 
     return () => clearTimeout(timer);
   }, [ready]);
@@ -48,11 +49,10 @@ function AppContent() {
   // Redirect authenticated users from splash
   useEffect(() => {
     if (!ready || !authenticated || !user?.id) return;
-    
+
     if (location === '/splash' && !checkingProfile) {
       setCheckingProfile(true);
-      
-      // Check if user actually has a profile in the database
+
       fetch('/api/user/me', {
         headers: {
           'x-privy-user-id': user.id,
@@ -61,7 +61,6 @@ function AppContent() {
         .then(async (response) => {
           if (response.ok) {
             const userData = await response.json();
-            // Check if user has a linked wallet
             if (!userData.solanaAddress) {
               setLocation('/link-wallet');
             } else {
@@ -77,63 +76,42 @@ function AppContent() {
         });
     }
   }, [ready, authenticated, location, setLocation, user, checkingProfile]);
-  
-  // Redirect users without wallet to link-wallet page (except when on link-wallet)
-  useEffect(() => {
-    if (!ready || !authenticated || !user?.id) return;
-    
-    const protectedRoutes = ['/', '/leaderboard', '/history', '/profile'];
-    const needsWalletCheck = protectedRoutes.includes(location);
-    
-    if (needsWalletCheck) {
-      fetch('/api/user/me', {
-        headers: {
-          'x-privy-user-id': user.id,
-        },
-      })
-        .then(async (response) => {
-          if (response.ok) {
-            const userData = await response.json();
-            if (!userData.solanaAddress) {
-              setLocation('/link-wallet');
-            }
-          }
-        })
-        .catch((err) => {
-          console.error('Wallet check failed:', err);
-        });
-    }
-  }, [ready, authenticated, location, setLocation, user]);
 
-  // Redirect unauthenticated users to splash
+  // Redirect unauthenticated users to splash (except for public routes)
   useEffect(() => {
     if (!ready) return;
-    
-    const validRoutes = ['/', '/splash', '/create-profile', '/link-wallet', '/leaderboard', '/history', '/profile', '/admin', '/telegram-admin', '/all-results', '/terms', '/privacy'];
-    const publicRoutes = ['/splash', '/terms', '/privacy'];
+
+    const validRoutes = ['/', '/splash', '/create-profile', '/link-wallet', '/link', '/leaderboard', '/history', '/profile', '/admin', '/telegram-admin', '/all-results', '/terms', '/privacy', '/results'];
+    // Main game routes are now public
+    const publicRoutes = ['/', '/results', '/splash', '/terms', '/privacy', '/leaderboard'];
     const isValidRoute = validRoutes.includes(location);
     const isPublicRoute = publicRoutes.includes(location);
-    
-    // Don't redirect if route doesn't exist - let 404 page show
+
     if (!isValidRoute) {
       return;
     }
-    
+
     if (!authenticated && !isPublicRoute) {
       setLocation('/splash');
     }
   }, [ready, authenticated, location, setLocation]);
 
-  // Hide nav on splash, profile creation, wallet linking, admin, and legal pages
-  const hideNav = location === '/splash' || location === '/create-profile' || location === '/link-wallet' || location === '/admin' || location === '/telegram-admin' || location === '/terms' || location === '/privacy';
+  // Routes that should have the bottom tab bar
+  const showTabBar = ['/', '/leaderboard', '/history', '/profile'].includes(location);
 
   // Show loading while Privy initializes
   if (!ready && !initTimeout) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <div
+        className="flex min-h-screen items-center justify-center"
+        style={{ backgroundColor: Colors.dark.background }}
+      >
         <div className="text-center">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Initializing...</p>
+          <div
+            className="w-8 h-8 border-4 rounded-full animate-spin mx-auto mb-4"
+            style={{ borderColor: Colors.dark.accent, borderTopColor: 'transparent' }}
+          />
+          <p style={{ color: Colors.dark.textMuted }}>Initializing...</p>
         </div>
       </div>
     );
@@ -142,16 +120,24 @@ function AppContent() {
   // Show error if Privy fails to initialize
   if (!ready && initTimeout) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div
+        className="flex min-h-screen items-center justify-center px-4"
+        style={{ backgroundColor: Colors.dark.background }}
+      >
         <div className="text-center space-y-4 max-w-md">
-          <div className="w-12 h-12 border-4 border-destructive rounded-full flex items-center justify-center mx-auto">
+          <div
+            className="w-12 h-12 border-4 rounded-full flex items-center justify-center mx-auto"
+            style={{ borderColor: Colors.dark.error }}
+          >
             <span className="text-2xl">⚠️</span>
           </div>
-          <h2 className="text-xl font-semibold text-foreground">Connection Issue</h2>
-          <p className="text-sm text-muted-foreground">
+          <h2 className="text-xl font-semibold" style={{ color: Colors.dark.text }}>
+            Connection Issue
+          </h2>
+          <p className="text-sm" style={{ color: Colors.dark.textMuted }}>
             Unable to initialize authentication. This could be due to:
           </p>
-          <ul className="text-sm text-muted-foreground text-left space-y-1">
+          <ul className="text-sm text-left space-y-1" style={{ color: Colors.dark.textMuted }}>
             <li>• Network connectivity issues</li>
             <li>• Browser extensions blocking authentication</li>
             <li>• Ad blockers or privacy tools</li>
@@ -159,7 +145,8 @@ function AppContent() {
           <div className="pt-2">
             <button
               onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-gradient-to-r from-primary to-brand-magenta text-white rounded-lg hover:opacity-90"
+              className="px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
+              style={{ backgroundColor: Colors.dark.accent, color: '#fff' }}
             >
               Reload Page
             </button>
@@ -170,31 +157,26 @@ function AppContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {!hideNav && (
-        <TopBar alphaPoints={1020} />
-      )}
-      
-      <div className="flex flex-col min-h-screen">
-        <Switch>
-          <Route path="/splash" component={Splash} />
-          <Route path="/create-profile" component={CreateProfile} />
-          <Route path="/link-wallet" component={LinkWallet} />
-          <Route path="/" component={Home} />
-          <Route path="/leaderboard" component={Leaderboard} />
-          <Route path="/history" component={History} />
-          <Route path="/profile" component={Profile} />
-          <Route path="/admin" component={Admin} />
-          <Route path="/telegram-admin" component={TelegramAdmin} />
-          <Route path="/all-results" component={AllResults} />
-          <Route path="/terms" component={TermsOfService} />
-          <Route path="/privacy" component={PrivacyPolicy} />
-          <Route component={NotFound} />
-        </Switch>
-        
-        {!hideNav && <TabBar />}
-        {!hideNav && <Footer />}
-      </div>
+    <div className="min-h-screen" style={{ backgroundColor: Colors.dark.background }}>
+      <Switch>
+        <Route path="/splash" component={Splash} />
+        <Route path="/create-profile" component={CreateProfile} />
+        <Route path="/link-wallet" component={LinkWallet} />
+        <Route path="/" component={Play} />
+        <Route path="/results" component={Results} />
+        <Route path="/leaderboard" component={Leaderboard} />
+        <Route path="/history" component={History} />
+        <Route path="/profile" component={Profile} />
+        <Route path="/admin" component={Admin} />
+        <Route path="/telegram-admin" component={TelegramAdmin} />
+        <Route path="/all-results" component={AllResults} />
+        <Route path="/link" component={LinkTelegram} />
+        <Route path="/terms" component={TermsOfService} />
+        <Route path="/privacy" component={PrivacyPolicy} />
+        <Route component={NotFound} />
+      </Switch>
+
+      {showTabBar && <TabBar />}
     </div>
   );
 }
@@ -204,10 +186,15 @@ function App() {
 
   if (!privyAppId) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <div
+        className="flex min-h-screen items-center justify-center p-4"
+        style={{ backgroundColor: Colors.dark.background }}
+      >
         <div className="text-center max-w-md">
-          <h1 className="text-2xl font-bold text-destructive mb-2">Configuration Error</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl font-bold mb-2" style={{ color: Colors.dark.error }}>
+            Configuration Error
+          </h1>
+          <p style={{ color: Colors.dark.textMuted }}>
             Missing VITE_PRIVY_APP_ID environment variable. Please configure your Privy App ID.
           </p>
         </div>
@@ -222,7 +209,7 @@ function App() {
         loginMethods: ['wallet', 'email', 'google', 'twitter', 'discord'],
         appearance: {
           theme: 'dark',
-          accentColor: '#2BFBD2',
+          accentColor: '#FF6B35',
           logo: undefined,
         },
         embeddedWallets: {

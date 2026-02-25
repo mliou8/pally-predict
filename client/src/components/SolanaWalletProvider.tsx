@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { Connection, PublicKey, clusterApiUrl } from '@solana/web3.js';
 
 interface PhantomProvider {
@@ -43,8 +43,9 @@ export function SolanaWalletProvider({ children }: SolanaWalletProviderProps) {
   const [connecting, setConnecting] = useState(false);
   const [publicKey, setPublicKey] = useState<PublicKey | null>(null);
   const [phantomInstalled, setPhantomInstalled] = useState(false);
-  
-  const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
+
+  // Memoize connection to prevent creating new instance on every render
+  const connection = useMemo(() => new Connection(clusterApiUrl('devnet'), 'confirmed'), []);
 
   const getPhantom = useCallback((): PhantomProvider | null => {
     if (typeof window !== 'undefined' && 'solana' in window) {
@@ -130,7 +131,7 @@ export function SolanaWalletProvider({ children }: SolanaWalletProviderProps) {
     }
   }, [getPhantom, connected]);
 
-  const value: SolanaWalletContextType = {
+  const value = useMemo<SolanaWalletContextType>(() => ({
     connected,
     connecting,
     publicKey,
@@ -139,7 +140,7 @@ export function SolanaWalletProvider({ children }: SolanaWalletProviderProps) {
     disconnect,
     signMessage,
     phantomInstalled,
-  };
+  }), [connected, connecting, publicKey, connection, connect, disconnect, signMessage, phantomInstalled]);
 
   return (
     <SolanaWalletContext.Provider value={value}>

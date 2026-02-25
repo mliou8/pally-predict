@@ -1,16 +1,11 @@
 import { useLogin } from '@privy-io/react-auth';
-import { useSolanaWallet } from '@/components/SolanaWalletProvider';
-import { Link, useLocation } from 'wouter';
-import { useEffect } from 'react';
+import { Link } from 'wouter';
 import BrandMark from '@/components/BrandMark';
 import { Button } from '@/components/ui/button';
 import { Mail, Wallet } from 'lucide-react';
 import { SiX, SiGoogle, SiDiscord } from 'react-icons/si';
 
 export default function Splash() {
-  const [, setLocation] = useLocation();
-  const { connected, publicKey, connect, connecting, phantomInstalled } = useSolanaWallet();
-
   const { login } = useLogin({
     onComplete: ({ user }) => {
       console.log('Login successful:', user.id);
@@ -19,13 +14,6 @@ export default function Splash() {
       console.error('Login error:', error);
     },
   });
-
-  useEffect(() => {
-    if (connected && publicKey) {
-      console.log('Phantom wallet connected:', publicKey.toString());
-      setLocation('/create-profile');
-    }
-  }, [connected, publicKey, setLocation]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -42,14 +30,13 @@ export default function Splash() {
 
         <div className="space-y-3">
           <Button
-            onClick={connect}
-            disabled={connecting}
+            onClick={() => login({ loginMethods: ['wallet'] })}
             className="w-full bg-gradient-to-r from-[#AB9FF2] to-[#7C3AED] hover:opacity-90 transition-opacity"
             size="lg"
             data-testid="button-connect-phantom"
           >
             <Wallet size={20} className="mr-2" />
-            {connecting ? 'Connecting...' : phantomInstalled ? 'Connect Phantom Wallet' : 'Install Phantom Wallet'}
+            Connect Wallet
           </Button>
 
           <div className="relative my-4">

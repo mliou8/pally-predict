@@ -180,6 +180,12 @@ export default function Profile() {
           votesD: percentages.D ? Math.floor((percentages.D / 100) * (50 + (seed % 100))) : null,
           totalVotes: 50 + (seed % 100),
           rarityMultipliers: { A: 1.0, B: 1.0, C: 1.0, D: 1.0 },
+          amountA: '0.00',
+          amountB: '0.00',
+          amountC: '0.00',
+          amountD: '0.00',
+          totalPoolAmount: '0.00',
+          totalPot: BigInt(0),
           revealedAt: new Date(),
         };
       }

@@ -1,10 +1,16 @@
 import type { Express } from 'express';
 import { createServer, type Server } from 'http';
 import { storage } from './storage';
-import { insertUserSchema, insertQuestionSchema, insertVoteSchema } from '@shared/schema';
+import { insertUserSchema, insertQuestionSchema, insertVoteSchema, type VoteChoice, type PlatformType } from '@shared/schema';
 import { randomBytes } from 'crypto';
 import { PublicKey, Connection } from '@solana/web3.js';
 import nacl from 'tweetnacl';
+import {
+  generateToken,
+  hashPassword,
+  verifyPassword,
+  mobileAuthMiddleware,
+} from './jwt-auth';
 
 // Solana connection for transaction verification
 const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com';
@@ -41,6 +47,11 @@ async function checkAndRevealQuestions() {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // ===== HEALTH CHECK =====
+  app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
   // ===== USER ROUTES =====
   
   // Get current user by Privy ID
@@ -1239,7 +1250,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Clean up expired nonces periodically
       const now = Date.now();
-      for (const [key, value] of nonceStore.entries()) {
+      for (const [key, value] of Array.from(nonceStore.entries())) {
         if (now - value.timestamp > NONCE_EXPIRY_MS) {
           nonceStore.delete(key);
         }
@@ -1389,10 +1400,426 @@ export async function registerRoutes(app: Express): Promise<Server> {
         solanaAddress: null as any,
       });
 
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         message: 'Wallet unlinked successfully',
-        user: updatedUser 
+        user: updatedUser
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ===== MOBILE API ROUTES =====
+
+  // Mobile signup
+  app.post('/api/mobile/auth/signup', async (req, res) => {
+    try {
+      const { email, password, handle } = req.body;
+
+      if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password are required' });
+      }
+
+      if (password.length < 6) {
+        return res.status(400).json({ error: 'Password must be at least 6 characters' });
+      }
+
+      // Check if email already exists
+      const allUsers = await storage.getAllUsers();
+      const existingEmail = allUsers.find(u => u.email === email);
+      if (existingEmail) {
+        return res.status(400).json({ error: 'Email already registered' });
+      }
+
+      // Check if handle already exists
+      if (handle) {
+        const existingHandle = await storage.getUserByHandle(handle);
+        if (existingHandle) {
+          return res.status(400).json({ error: 'Handle already taken' });
+        }
+      }
+
+      // Hash password and create user
+      const passwordHash = await hashPassword(password);
+      const [user] = await (await import('./db')).db.insert((await import('@shared/schema')).users).values([{
+        email,
+        passwordHash,
+        handle: handle || null,
+        primaryPlatform: 'mobile' as PlatformType,
+      }]).returning();
+
+      const token = generateToken(user.id);
+
+      res.status(201).json({
+        user: {
+          id: user.id,
+          email: user.email,
+          handle: user.handle,
+          balance: user.balance,
+        },
+        token,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Mobile login
+  app.post('/api/mobile/auth/login', async (req, res) => {
+    try {
+      const { email, password } = req.body;
+
+      if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password are required' });
+      }
+
+      // Find user by email
+      const allUsers = await storage.getAllUsers();
+      const user = allUsers.find(u => u.email === email);
+      if (!user || !user.passwordHash) {
+        return res.status(401).json({ error: 'Invalid email or password' });
+      }
+
+      // Verify password
+      const isValid = await verifyPassword(password, user.passwordHash);
+      if (!isValid) {
+        return res.status(401).json({ error: 'Invalid email or password' });
+      }
+
+      const token = generateToken(user.id);
+
+      res.json({
+        user: {
+          id: user.id,
+          email: user.email,
+          handle: user.handle,
+          balance: user.balance,
+        },
+        token,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get current mobile user
+  app.get('/api/mobile/auth/me', mobileAuthMiddleware, async (req, res) => {
+    try {
+      const user = req.mobileUser!;
+      res.json({
+        id: user.id,
+        email: user.email,
+        handle: user.handle,
+        balance: user.balance,
+        totalWagered: user.totalWagered,
+        totalWon: user.totalWon,
+        correctPredictions: user.correctPredictions,
+        totalPredictions: user.totalPredictions,
+        currentStreak: user.currentStreak,
+        maxStreak: user.maxStreak,
+        telegramLinked: !!user.telegramId,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get active questions (mobile)
+  app.get('/api/mobile/questions/active', async (req, res) => {
+    try {
+      await checkAndRevealQuestions();
+      const activeQuestions = await storage.getActiveQuestions();
+      res.json(activeQuestions);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get single question (mobile)
+  app.get('/api/mobile/questions/:id', async (req, res) => {
+    try {
+      const question = await storage.getQuestion(req.params.id);
+      if (!question) {
+        return res.status(404).json({ error: 'Question not found' });
+      }
+
+      // Get question stats for pool display
+      const stats = await storage.getQuestionStats(question.id);
+
+      res.json({
+        ...question,
+        stats: {
+          totalBets: stats.totalBets,
+          totalAmount: stats.totalAmount,
+          votesA: stats.votesA,
+          votesB: stats.votesB,
+          votesC: stats.votesC,
+          votesD: stats.votesD,
+        },
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Submit vote with bet (mobile)
+  app.post('/api/mobile/votes', mobileAuthMiddleware, async (req, res) => {
+    try {
+      const user = req.mobileUser!;
+      const { questionId, choice, betAmount } = req.body;
+
+      if (!questionId || !choice) {
+        return res.status(400).json({ error: 'Question ID and choice are required' });
+      }
+
+      const amount = parseFloat(betAmount) || 0;
+      if (amount < 0) {
+        return res.status(400).json({ error: 'Bet amount must be positive' });
+      }
+
+      // Check if question exists and is active
+      const question = await storage.getQuestion(questionId);
+      if (!question) {
+        return res.status(404).json({ error: 'Question not found' });
+      }
+
+      if (!question.isActive || question.isRevealed) {
+        return res.status(400).json({ error: 'Question is not open for voting' });
+      }
+
+      // Check if user has already voted
+      const existingVote = await storage.getVote(user.id, questionId);
+      if (existingVote) {
+        return res.status(400).json({ error: 'Already voted on this question' });
+      }
+
+      // Check balance if betting
+      const currentBalance = parseFloat(user.balance);
+      if (amount > currentBalance) {
+        return res.status(400).json({ error: 'Insufficient balance' });
+      }
+
+      // Create vote with bet
+      const vote = await storage.createVoteWithBet({
+        userId: user.id,
+        questionId,
+        choice: choice as VoteChoice,
+        betAmount: amount,
+        platform: 'mobile',
+      });
+
+      // Get updated user
+      const updatedUser = await storage.getUser(user.id);
+
+      res.status(201).json({
+        vote: serializeBigInt(vote),
+        newBalance: updatedUser?.balance || '0.00',
+      });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Get my votes (mobile)
+  app.get('/api/mobile/votes/mine', mobileAuthMiddleware, async (req, res) => {
+    try {
+      const user = req.mobileUser!;
+      const votes = await storage.getUserVotes(user.id);
+      res.json(serializeBigInt(votes));
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get question results (mobile)
+  app.get('/api/mobile/results/:id', async (req, res) => {
+    try {
+      await checkAndRevealQuestions();
+
+      const question = await storage.getQuestion(req.params.id);
+      if (!question) {
+        return res.status(404).json({ error: 'Question not found' });
+      }
+
+      if (!question.isRevealed) {
+        return res.status(403).json({ error: 'Results not yet revealed' });
+      }
+
+      const results = await storage.getQuestionResults(req.params.id);
+      const stats = await storage.getQuestionStats(req.params.id);
+
+      res.json({
+        question,
+        results: results ? serializeBigInt(results) : null,
+        stats: {
+          totalBets: stats.totalBets,
+          totalAmount: stats.totalAmount,
+          votesA: stats.votesA,
+          votesB: stats.votesB,
+          votesC: stats.votesC,
+          votesD: stats.votesD,
+          amountA: stats.amountA,
+          amountB: stats.amountB,
+          amountC: stats.amountC,
+          amountD: stats.amountD,
+        },
+        correctAnswer: question.correctAnswer,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get unified leaderboard (mobile)
+  app.get('/api/mobile/leaderboard', async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+      const leaders = await storage.getUnifiedLeaderboard(limit);
+
+      // Return public leaderboard data only
+      const publicLeaders = leaders.map((user, index) => ({
+        rank: index + 1,
+        handle: user.handle || user.telegramUsername || `User ${user.id.slice(0, 8)}`,
+        balance: user.balance,
+        accuracy: user.accuracy,
+        correctPredictions: user.correctPredictions,
+        totalPredictions: user.totalPredictions,
+        currentStreak: user.currentStreak,
+        platform: user.primaryPlatform,
+      }));
+
+      res.json(publicLeaders);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get my stats (mobile)
+  app.get('/api/mobile/user/stats', mobileAuthMiddleware, async (req, res) => {
+    try {
+      const user = req.mobileUser!;
+
+      const accuracy = user.totalPredictions > 0
+        ? Math.round((user.correctPredictions / user.totalPredictions) * 100)
+        : 0;
+
+      const profit = parseFloat(user.totalWon) - parseFloat(user.totalWagered);
+
+      res.json({
+        balance: user.balance,
+        totalWagered: user.totalWagered,
+        totalWon: user.totalWon,
+        profit: profit.toFixed(2),
+        correctPredictions: user.correctPredictions,
+        totalPredictions: user.totalPredictions,
+        accuracy,
+        currentStreak: user.currentStreak,
+        maxStreak: user.maxStreak,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ===== ACCOUNT LINKING ROUTES =====
+
+  // Claim link token (web/mobile)
+  app.post('/api/link/claim', async (req, res) => {
+    try {
+      // Support both Privy auth and mobile JWT auth
+      const privyUserId = req.header('x-privy-user-id');
+      const authHeader = req.headers.authorization;
+
+      let user;
+
+      if (privyUserId) {
+        user = await storage.getUserByPrivyId(privyUserId);
+      } else if (authHeader && authHeader.startsWith('Bearer ')) {
+        const { verifyToken } = await import('./jwt-auth');
+        const token = authHeader.substring(7);
+        const payload = verifyToken(token);
+        if (payload) {
+          user = await storage.getUser(payload.userId);
+        }
+      }
+
+      if (!user) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const { token } = req.body;
+      if (!token || token.length !== 6) {
+        return res.status(400).json({ error: 'Valid 6-character code required' });
+      }
+
+      // Get the link token
+      const linkToken = await storage.getLinkToken(token.toUpperCase());
+      if (!linkToken) {
+        return res.status(404).json({ error: 'Invalid code' });
+      }
+
+      // Check if expired
+      if (new Date() > linkToken.expiresAt) {
+        return res.status(400).json({ error: 'Code has expired' });
+      }
+
+      // Check if already claimed
+      if (linkToken.claimedAt) {
+        return res.status(400).json({ error: 'Code already used' });
+      }
+
+      // Check if this Telegram user is already linked
+      const existingTelegramUser = await storage.getUserByTelegramId(linkToken.telegramId);
+      if (existingTelegramUser && existingTelegramUser.id !== user.id) {
+        // Merge accounts - sum balances and stats
+        const mergedBalance = parseFloat(user.balance) + parseFloat(existingTelegramUser.balance);
+        const mergedWagered = parseFloat(user.totalWagered) + parseFloat(existingTelegramUser.totalWagered);
+        const mergedWon = parseFloat(user.totalWon) + parseFloat(existingTelegramUser.totalWon);
+        const mergedCorrect = user.correctPredictions + existingTelegramUser.correctPredictions;
+        const mergedTotal = user.totalPredictions + existingTelegramUser.totalPredictions;
+        const mergedStreak = Math.max(user.currentStreak, existingTelegramUser.currentStreak);
+        const mergedMaxStreak = Math.max(user.maxStreak, existingTelegramUser.maxStreak);
+
+        // Update the web/mobile user with merged data and telegram info
+        await storage.updateUser(user.id, {
+          telegramId: linkToken.telegramId,
+          telegramUsername: linkToken.telegramUsername,
+          balance: mergedBalance.toFixed(2),
+          totalWagered: mergedWagered.toFixed(2),
+          totalWon: mergedWon.toFixed(2),
+          correctPredictions: mergedCorrect,
+          totalPredictions: mergedTotal,
+          currentStreak: mergedStreak,
+          maxStreak: mergedMaxStreak,
+          linkedAt: new Date(),
+        });
+
+        // TODO: Migrate votes from old telegram user to new user
+        // For now, we'll just mark the old account as linked
+
+      } else {
+        // No existing telegram user or same user - just link
+        await storage.updateUser(user.id, {
+          telegramId: linkToken.telegramId,
+          telegramUsername: linkToken.telegramUsername,
+          linkedAt: new Date(),
+        });
+      }
+
+      // Mark token as claimed
+      await storage.claimLinkToken(token.toUpperCase(), user.id);
+
+      const updatedUser = await storage.getUser(user.id);
+
+      res.json({
+        success: true,
+        message: 'Account linked successfully',
+        user: {
+          id: updatedUser?.id,
+          telegramUsername: updatedUser?.telegramUsername,
+          balance: updatedUser?.balance,
+        },
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });

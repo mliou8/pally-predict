@@ -1,18 +1,14 @@
-import { eq, desc, and, lte, gte, sql, isNull } from 'drizzle-orm';
-import { db } from './db';
-import {
-  telegramUsers,
-  telegramQuestions,
-  telegramBets,
-  type TelegramUser,
-  type InsertTelegramUser,
-  type TelegramQuestion,
-  type InsertTelegramQuestion,
-  type TelegramBet,
-  type InsertTelegramBet,
-} from '../shared/telegram-schema';
+/**
+ * Telegram Storage Wrapper
+ *
+ * This module wraps the unified storage layer to provide Telegram-specific
+ * functionality while using the unified users, questions, and votes tables.
+ */
 
-export interface TelegramQuestionWithStats extends TelegramQuestion {
+import { storage, type QuestionStats } from './storage';
+import type { User, Question, Vote, VoteChoice } from '@shared/schema';
+
+export interface TelegramQuestionWithStats extends Question {
   totalBets: number;
   totalAmount: string;
   votesA: number;
@@ -27,332 +23,185 @@ export interface TelegramQuestionWithStats extends TelegramQuestion {
 
 export class TelegramStorage {
   // ===== USER OPERATIONS =====
-  
-  async getUser(id: string): Promise<TelegramUser | undefined> {
-    const [user] = await db.select().from(telegramUsers).where(eq(telegramUsers.id, id)).limit(1);
-    return user;
+
+  async getUser(id: string): Promise<User | undefined> {
+    return storage.getUser(id);
   }
 
-  async getUserByTelegramId(telegramId: string): Promise<TelegramUser | undefined> {
-    const [user] = await db.select().from(telegramUsers).where(eq(telegramUsers.telegramId, telegramId)).limit(1);
-    return user;
+  async getUserByTelegramId(telegramId: string): Promise<User | undefined> {
+    return storage.getUserByTelegramId(telegramId);
   }
 
-  async createUser(insertUser: InsertTelegramUser): Promise<TelegramUser> {
-    const [user] = await db.insert(telegramUsers).values([insertUser]).returning();
-    return user;
-  }
-
-  async updateUser(id: string, updates: Partial<TelegramUser>): Promise<TelegramUser | undefined> {
-    const [user] = await db
-      .update(telegramUsers)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(telegramUsers.id, id))
-      .returning();
-    return user;
-  }
-
-  async updateUserBalance(id: string, amount: number): Promise<TelegramUser | undefined> {
-    const user = await this.getUser(id);
-    if (!user) return undefined;
-    
-    const newBalance = parseFloat(user.balance) + amount;
-    return this.updateUser(id, { balance: newBalance.toFixed(2) });
-  }
-
-  async getAllUsers(): Promise<TelegramUser[]> {
-    return await db.select().from(telegramUsers).orderBy(desc(telegramUsers.createdAt));
-  }
-
-  async getLeaderboard(limit: number = 20): Promise<TelegramUser[]> {
-    return await db
-      .select()
-      .from(telegramUsers)
-      .orderBy(desc(telegramUsers.balance))
-      .limit(limit);
-  }
-
-  // ===== QUESTION OPERATIONS =====
-  
-  async getQuestion(id: string): Promise<TelegramQuestion | undefined> {
-    const [question] = await db.select().from(telegramQuestions).where(eq(telegramQuestions.id, id)).limit(1);
-    return question;
-  }
-
-  async getActiveQuestion(): Promise<TelegramQuestion | undefined> {
-    const now = new Date();
-    const [question] = await db
-      .select()
-      .from(telegramQuestions)
-      .where(
-        and(
-          eq(telegramQuestions.isActive, true),
-          eq(telegramQuestions.isRevealed, false),
-          lte(telegramQuestions.scheduledFor, now),
-          gte(telegramQuestions.expiresAt, now)
-        )
-      )
-      .orderBy(desc(telegramQuestions.scheduledFor))
-      .limit(1);
-    return question;
-  }
-
-  async getQuestionsDueToSend(): Promise<TelegramQuestion[]> {
-    const now = new Date();
-    return await db
-      .select()
-      .from(telegramQuestions)
-      .where(
-        and(
-          eq(telegramQuestions.isActive, false),
-          eq(telegramQuestions.isRevealed, false),
-          lte(telegramQuestions.scheduledFor, now)
-        )
-      );
-  }
-
-  async getQuestionsToReveal(): Promise<TelegramQuestion[]> {
-    const now = new Date();
-    return await db
-      .select()
-      .from(telegramQuestions)
-      .where(
-        and(
-          eq(telegramQuestions.isActive, true),
-          eq(telegramQuestions.isRevealed, false),
-          lte(telegramQuestions.expiresAt, now)
-        )
-      );
-  }
-
-  async getUnsentResults(): Promise<TelegramQuestion[]> {
-    return await db
-      .select()
-      .from(telegramQuestions)
-      .where(
-        and(
-          eq(telegramQuestions.isRevealed, true),
-          isNull(telegramQuestions.resultsSentAt)
-        )
-      );
-  }
-
-  async getAllQuestions(): Promise<TelegramQuestion[]> {
-    return await db
-      .select()
-      .from(telegramQuestions)
-      .orderBy(desc(telegramQuestions.scheduledFor));
-  }
-
-  async getUpcomingQuestions(): Promise<TelegramQuestion[]> {
-    const now = new Date();
-    return await db
-      .select()
-      .from(telegramQuestions)
-      .where(gte(telegramQuestions.scheduledFor, now))
-      .orderBy(telegramQuestions.scheduledFor);
-  }
-
-  async getPastQuestions(limit: number = 10): Promise<TelegramQuestion[]> {
-    return await db
-      .select()
-      .from(telegramQuestions)
-      .where(eq(telegramQuestions.isRevealed, true))
-      .orderBy(desc(telegramQuestions.expiresAt))
-      .limit(limit);
-  }
-
-  async createQuestion(insertQuestion: InsertTelegramQuestion): Promise<TelegramQuestion> {
-    const [question] = await db.insert(telegramQuestions).values([insertQuestion]).returning();
-    return question;
-  }
-
-  async updateQuestion(id: string, updates: Partial<TelegramQuestion>): Promise<TelegramQuestion | undefined> {
-    const [question] = await db
-      .update(telegramQuestions)
-      .set(updates)
-      .where(eq(telegramQuestions.id, id))
-      .returning();
-    return question;
-  }
-
-  async deleteQuestion(id: string): Promise<void> {
-    // First delete any bets for this question
-    await db.delete(telegramBets).where(eq(telegramBets.questionId, id));
-    // Then delete the question
-    await db.delete(telegramQuestions).where(eq(telegramQuestions.id, id));
-  }
-
-  async activateQuestion(id: string): Promise<TelegramQuestion | undefined> {
-    return this.updateQuestion(id, { isActive: true });
-  }
-
-  async revealQuestion(id: string, correctAnswer: 'A' | 'B' | 'C' | 'D'): Promise<TelegramQuestion | undefined> {
-    return this.updateQuestion(id, { 
-      isActive: false, 
-      isRevealed: true, 
-      correctAnswer 
+  async createUser(data: {
+    telegramId: string;
+    username?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+  }): Promise<User> {
+    return storage.createUserFromTelegram({
+      telegramId: data.telegramId,
+      telegramUsername: data.username,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      primaryPlatform: 'telegram',
     });
   }
 
-  async markResultsSent(id: string): Promise<TelegramQuestion | undefined> {
-    return this.updateQuestion(id, { resultsSentAt: new Date() });
+  async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
+    return storage.updateUser(id, updates);
   }
 
-  // ===== BET OPERATIONS =====
-  
-  async getBet(userId: string, questionId: string): Promise<TelegramBet | undefined> {
-    const [bet] = await db
-      .select()
-      .from(telegramBets)
-      .where(and(eq(telegramBets.userId, userId), eq(telegramBets.questionId, questionId)))
-      .limit(1);
-    return bet;
+  async updateUserBalance(id: string, amount: number): Promise<User | undefined> {
+    return storage.updateUserBalance(id, amount);
   }
 
-  async getUserBets(userId: string): Promise<TelegramBet[]> {
-    return await db
-      .select()
-      .from(telegramBets)
-      .where(eq(telegramBets.userId, userId))
-      .orderBy(desc(telegramBets.createdAt));
+  async getAllUsers(): Promise<User[]> {
+    // Get all users who have a telegram ID (registered via Telegram)
+    const allUsers = await storage.getAllUsers();
+    return allUsers.filter(u => u.telegramId !== null);
   }
 
-  async getQuestionBets(questionId: string): Promise<TelegramBet[]> {
-    return await db
-      .select()
-      .from(telegramBets)
-      .where(eq(telegramBets.questionId, questionId));
+  async getLeaderboard(limit: number = 20): Promise<User[]> {
+    // Get unified leaderboard (all platforms)
+    const leaders = await storage.getUnifiedLeaderboard(limit);
+    return leaders;
   }
 
-  async createBet(insertBet: InsertTelegramBet): Promise<TelegramBet> {
-    const [bet] = await db.insert(telegramBets).values([insertBet]).returning();
-    return bet;
+  // ===== QUESTION OPERATIONS =====
+
+  async getQuestion(id: string): Promise<Question | undefined> {
+    return storage.getQuestion(id);
   }
 
-  async updateBet(id: string, updates: Partial<TelegramBet>): Promise<TelegramBet | undefined> {
-    const [bet] = await db
-      .update(telegramBets)
-      .set(updates)
-      .where(eq(telegramBets.id, id))
-      .returning();
-    return bet;
+  async getActiveQuestion(): Promise<Question | undefined> {
+    const activeQuestions = await storage.getActiveQuestions();
+    // Return the most recent active question
+    return activeQuestions.length > 0 ? activeQuestions[0] : undefined;
   }
 
-  async getQuestionStats(questionId: string): Promise<{
-    totalBets: number;
-    totalAmount: number;
-    votesA: number;
-    votesB: number;
-    votesC: number;
-    votesD: number;
-    amountA: number;
-    amountB: number;
-    amountC: number;
-    amountD: number;
-  }> {
-    const bets = await this.getQuestionBets(questionId);
-    
-    const stats = {
-      totalBets: bets.length,
-      totalAmount: 0,
-      votesA: 0,
-      votesB: 0,
-      votesC: 0,
-      votesD: 0,
-      amountA: 0,
-      amountB: 0,
-      amountC: 0,
-      amountD: 0,
-    };
+  async getQuestionsDueToSend(): Promise<Question[]> {
+    return storage.getQuestionsDueToBroadcast();
+  }
 
-    for (const bet of bets) {
-      const amount = parseFloat(bet.betAmount);
-      stats.totalAmount += amount;
-      
-      switch (bet.choice) {
-        case 'A':
-          stats.votesA++;
-          stats.amountA += amount;
-          break;
-        case 'B':
-          stats.votesB++;
-          stats.amountB += amount;
-          break;
-        case 'C':
-          stats.votesC++;
-          stats.amountC += amount;
-          break;
-        case 'D':
-          stats.votesD++;
-          stats.amountD += amount;
-          break;
-      }
-    }
+  async getQuestionsToReveal(): Promise<Question[]> {
+    return storage.getQuestionsToReveal();
+  }
 
-    return stats;
+  async getUnsentResults(): Promise<Question[]> {
+    return storage.getUnsentResults();
+  }
+
+  async getAllQuestions(): Promise<Question[]> {
+    return storage.getAllQuestions();
+  }
+
+  async getUpcomingQuestions(): Promise<Question[]> {
+    const all = await storage.getAllQuestions();
+    const now = new Date();
+    return all.filter(q => q.dropsAt > now).sort((a, b) => a.dropsAt.getTime() - b.dropsAt.getTime());
+  }
+
+  async getPastQuestions(limit: number = 10): Promise<Question[]> {
+    return storage.getRevealedQuestions(limit);
+  }
+
+  async createQuestion(data: {
+    prompt: string;
+    optionA: string;
+    optionB: string;
+    optionC?: string | null;
+    optionD?: string | null;
+    context?: string | null;
+    scheduledFor: Date;
+    expiresAt: Date;
+  }): Promise<Question> {
+    return storage.createQuestion({
+      type: 'prediction',
+      prompt: data.prompt,
+      optionA: data.optionA,
+      optionB: data.optionB,
+      optionC: data.optionC,
+      optionD: data.optionD,
+      context: data.context,
+      dropsAt: data.scheduledFor,
+      revealsAt: data.expiresAt,
+      isActive: false,
+      isRevealed: false,
+    });
+  }
+
+  async updateQuestion(id: string, updates: Partial<Question>): Promise<Question | undefined> {
+    return storage.updateQuestion(id, updates);
+  }
+
+  async deleteQuestion(id: string): Promise<void> {
+    return storage.deleteQuestion(id);
+  }
+
+  async activateQuestion(id: string): Promise<Question | undefined> {
+    return storage.updateQuestion(id, {
+      isActive: true,
+      telegramBroadcastedAt: new Date(),
+    });
+  }
+
+  async revealQuestion(id: string, correctAnswer: VoteChoice): Promise<Question | undefined> {
+    return storage.updateQuestion(id, {
+      isActive: false,
+      isRevealed: true,
+      correctAnswer,
+    });
+  }
+
+  async markResultsSent(id: string): Promise<Question | undefined> {
+    return storage.updateQuestion(id, {
+      telegramResultsSentAt: new Date(),
+    });
+  }
+
+  // ===== BET/VOTE OPERATIONS =====
+
+  async getBet(userId: string, questionId: string): Promise<Vote | undefined> {
+    return storage.getVote(userId, questionId);
+  }
+
+  async getUserBets(userId: string): Promise<Vote[]> {
+    return storage.getUserVotes(userId);
+  }
+
+  async getQuestionBets(questionId: string): Promise<Vote[]> {
+    return storage.getQuestionVotes(questionId);
+  }
+
+  async createBet(data: {
+    userId: string;
+    questionId: string;
+    choice: VoteChoice;
+    betAmount: string;
+  }): Promise<Vote> {
+    const betAmount = parseFloat(data.betAmount);
+    return storage.createVoteWithBet({
+      userId: data.userId,
+      questionId: data.questionId,
+      choice: data.choice,
+      betAmount,
+      platform: 'telegram',
+    });
+  }
+
+  async updateBet(id: string, updates: Partial<Vote>): Promise<Vote | undefined> {
+    return storage.updateVote(id, updates);
+  }
+
+  async getQuestionStats(questionId: string): Promise<QuestionStats> {
+    return storage.getQuestionStats(questionId);
   }
 
   // ===== RESULTS PROCESSING =====
-  
-  async processQuestionResults(questionId: string, correctAnswer: 'A' | 'B' | 'C' | 'D'): Promise<void> {
-    // Get all bets for this question
-    const bets = await this.getQuestionBets(questionId);
-    
-    // Calculate total pot and winning pot
-    let totalPot = 0;
-    let winningPot = 0;
-    
-    for (const bet of bets) {
-      const amount = parseFloat(bet.betAmount);
-      totalPot += amount;
-      if (bet.choice === correctAnswer) {
-        winningPot += amount;
-      }
-    }
 
-    // Process each bet
-    for (const bet of bets) {
-      const isCorrect = bet.choice === correctAnswer;
-      const betAmount = parseFloat(bet.betAmount);
-      let payout = 0;
-
-      if (isCorrect && winningPot > 0) {
-        // Winner gets proportional share of total pot
-        payout = (betAmount / winningPot) * totalPot;
-      }
-
-      // Update bet record
-      await this.updateBet(bet.id, {
-        isCorrect,
-        payout: payout.toFixed(2),
-      });
-
-      // Update user balance and stats
-      const user = await this.getUser(bet.userId);
-      if (user) {
-        const updates: Partial<TelegramUser> = {
-          totalPredictions: user.totalPredictions + 1,
-        };
-
-        if (isCorrect) {
-          updates.correctPredictions = user.correctPredictions + 1;
-          updates.currentStreak = user.currentStreak + 1;
-          updates.maxStreak = Math.max(user.maxStreak, user.currentStreak + 1);
-          updates.totalWon = (parseFloat(user.totalWon) + payout).toFixed(2);
-          updates.balance = (parseFloat(user.balance) + payout).toFixed(2);
-        } else {
-          updates.currentStreak = 0;
-        }
-
-        await this.updateUser(user.id, updates);
-      }
-    }
-
-    // Mark question as revealed
-    await this.revealQuestion(questionId, correctAnswer);
+  async processQuestionResults(questionId: string, correctAnswer: VoteChoice): Promise<void> {
+    return storage.processQuestionResults(questionId, correctAnswer);
   }
 }
 
 export const telegramStorage = new TelegramStorage();
-

@@ -1,5 +1,6 @@
 import { telegramStorage } from './telegram-storage';
 import { broadcastQuestion, broadcastResults } from './telegram-bot';
+import type { VoteChoice } from '@shared/schema';
 
 // Check interval in milliseconds
 const CHECK_INTERVAL = 60 * 1000; // 1 minute
@@ -25,18 +26,18 @@ async function processTasks(): Promise<void> {
 
     // 2. Check for questions that need results processed and sent
     const questionsToReveal = await telegramStorage.getQuestionsToReveal();
-    
+
     for (const question of questionsToReveal) {
       // Skip if no correct answer set (admin needs to set it first)
       if (!question.correctAnswer) {
         console.log(`[Scheduler] Question ${question.id} expired but no correct answer set - skipping`);
         continue;
       }
-      
+
       console.log(`[Scheduler] Processing results for question: ${question.id}`);
-      
+
       // Process results and update user balances
-      await telegramStorage.processQuestionResults(question.id, question.correctAnswer);
+      await telegramStorage.processQuestionResults(question.id, question.correctAnswer as VoteChoice);
     }
 
     // 3. Send results for questions that have been processed but not sent
@@ -107,7 +108,7 @@ export async function forceProcessTasks(): Promise<{
     const questionsToReveal = await telegramStorage.getQuestionsToReveal();
     for (const question of questionsToReveal) {
       if (question.correctAnswer) {
-        await telegramStorage.processQuestionResults(question.id, question.correctAnswer);
+        await telegramStorage.processQuestionResults(question.id, question.correctAnswer as VoteChoice);
         results.questionsRevealed++;
       }
     }

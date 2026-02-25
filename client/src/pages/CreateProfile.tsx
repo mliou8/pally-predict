@@ -21,7 +21,22 @@ export default function CreateProfile() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!handle.trim() || !user?.id) return;
+    if (!handle.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Please enter a handle',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (!user?.id) {
+      toast({
+        title: 'Not Authenticated',
+        description: 'Please log in first',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setIsSubmitting(true);
     setProfileError('');

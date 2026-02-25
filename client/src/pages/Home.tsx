@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { usePrivy } from '@privy-io/react-auth';
+import { usePrivy, useLogin } from '@privy-io/react-auth';
 import { Link, useLocation } from 'wouter';
 import { Trophy } from 'lucide-react';
 import PromptCard from '@/components/PromptCard';
@@ -27,14 +27,33 @@ interface ResultWithQuestion {
 }
 
 export default function Home() {
-  const { user } = usePrivy();
+  const { user, authenticated, ready } = usePrivy();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+
+  // State to track pending vote when user needs to log in first
+  const [pendingVote, setPendingVote] = useState<VoteData | null>(null);
+
+  // Login hook for unauthenticated users trying to vote
+  const { login } = useLogin({
+    onComplete: () => {
+      // After login, the vote will be processed via useEffect below
+    },
+    onError: (error) => {
+      console.error('Login error:', error);
+      setPendingVote(null);
+      toast({
+        title: 'Login failed',
+        description: 'Please try again',
+        variant: 'destructive',
+      });
+    },
+  });
 
   // Check if user has a profile in the database
   // Wait a bit before enabling the query to ensure Privy is fully ready
   const [enableQuery, setEnableQuery] = useState(false);
-  
+
   useEffect(() => {
     if (user) {
       // Add a small delay to ensure Privy user ID is properly set
@@ -44,7 +63,7 @@ export default function Home() {
       setEnableQuery(false);
     }
   }, [user]);
-  
+
   const { data: currentUser, isLoading: isLoadingUser, isError, error } = useQuery<User>({
     queryKey: ['/api/user/me'],
     enabled: enableQuery,
@@ -63,51 +82,42 @@ export default function Home() {
     }
   }, [user, isLoadingUser, isError, error, setLocation]);
 
+  // Active questions are public - anyone can view them
   const { data: activeQuestions = [], isLoading: isLoadingActive } = useQuery<Question[]>({
     queryKey: ['/api/questions/active'],
-    enabled: !!user && !!currentUser,
+    enabled: ready, // Enable as soon as Privy is ready, no auth required
   });
 
+  // Revealed questions are also public
   const { data: revealedQuestions = [], isLoading: isLoadingRevealed } = useQuery<Question[]>({
     queryKey: ['/api/questions/revealed'],
-    enabled: !!user && !!currentUser,
+    enabled: ready,
   });
 
+  // User votes require authentication
   const { data: userVotes = [] } = useQuery<Vote[]>({
     queryKey: ['/api/votes/mine'],
     enabled: !!user && !!currentUser,
   });
 
-  const seedMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest('/api/seed/questions', { method: 'POST' });
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/questions/active'] });
-    },
-  });
-
-  useEffect(() => {
-    if (user && activeQuestions.length === 0 && revealedQuestions.length === 0 && !isLoadingActive && !isLoadingRevealed && !seedMutation.isPending) {
-      seedMutation.mutate();
-    }
-  }, [user, activeQuestions.length, revealedQuestions.length, isLoadingActive, isLoadingRevealed]);
+  // Auto-seeding disabled - questions are added via admin or scripts
 
   // Auto-refresh questions when reveal times pass
   useEffect(() => {
-    if (!user) return;
+    if (!ready) return;
 
     const interval = setInterval(() => {
       // Refresh queries to detect newly revealed questions
       queryClient.invalidateQueries({ queryKey: ['/api/questions/active'] });
       queryClient.invalidateQueries({ queryKey: ['/api/questions/revealed'] });
       queryClient.invalidateQueries({ queryKey: ['/api/results/revealed'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/votes/mine'] });
+      if (user) {
+        queryClient.invalidateQueries({ queryKey: ['/api/votes/mine'] });
+      }
     }, 30000); // Check every 30 seconds
 
     return () => clearInterval(interval);
-  }, [user]);
+  }, [ready, user]);
 
   const voteMutation = useMutation({
     mutationFn: async (voteData: VoteData) => {
@@ -177,16 +187,34 @@ export default function Home() {
     },
   });
 
-  const handleVote = (questionId: string, choice: VoteChoice, isPublic: boolean, wagerSol?: string) => {
+  const handleVote = useCallback((questionId: string, choice: VoteChoice, isPublic: boolean, wagerSol?: string) => {
     // Convert SOL to lamports if wager is provided (1 SOL = 1e9 lamports)
     let wagerAmount: string | undefined;
     if (wagerSol && parseFloat(wagerSol) > 0) {
       const lamportsAmount = BigInt(Math.floor(parseFloat(wagerSol) * 1e9));
       wagerAmount = lamportsAmount.toString();
     }
-    
-    voteMutation.mutate({ questionId, choice, isPublic, wagerAmount });
-  };
+
+    const voteData = { questionId, choice, isPublic, wagerAmount };
+
+    // If user is not authenticated, trigger login and save pending vote
+    if (!authenticated || !user) {
+      setPendingVote(voteData);
+      login();
+      return;
+    }
+
+    voteMutation.mutate(voteData);
+  }, [authenticated, user, login, voteMutation]);
+
+  // Process pending vote after successful login and profile check
+  useEffect(() => {
+    if (pendingVote && authenticated && user && currentUser) {
+      // User is now authenticated and has a profile, submit the pending vote
+      voteMutation.mutate(pendingVote);
+      setPendingVote(null);
+    }
+  }, [pendingVote, authenticated, user, currentUser, voteMutation]);
 
   const { data: resultsData = [] } = useQuery<ResultWithQuestion[]>({
     queryKey: ['/api/results/revealed', revealedQuestions.map(q => q.id).join(','), userVotes.length],
@@ -196,13 +224,13 @@ export default function Home() {
           try {
             const resultsResponse = await fetch(`/api/results/${question.id}`);
             let results = await resultsResponse.json();
-            
+
             // Generate mock results if none exist
             if (!results || resultsResponse.status === 404) {
               const seed = question.id.charCodeAt(0) + question.id.charCodeAt(1);
               const userVote = userVotes.find(v => v.questionId === question.id);
               const isUserCorrect = userVote ? (seed % 3 !== 0) : false; // 66% win rate for users
-              
+
               // Determine winning option
               let winningChoice: 'A' | 'B' | 'C' | 'D' = 'A';
               if (userVote && isUserCorrect) {
@@ -216,23 +244,23 @@ export default function Home() {
               } else {
                 winningChoice = seed % 2 === 0 ? 'A' : 'B';
               }
-              
+
               // Generate percentages
               const percentages: Record<string, number> = { A: 20, B: 20, C: 20, D: 20 };
               percentages[winningChoice] = 40 + (seed % 20);
-              
+
               const remaining = 100 - percentages[winningChoice];
               const otherOptions = ['A', 'B', 'C', 'D'].filter(opt => opt !== winningChoice);
               otherOptions.forEach((opt) => {
                 if ((opt === 'C' && !question.optionC) || (opt === 'D' && !question.optionD)) {
                   percentages[opt] = 0;
                 } else {
-                  percentages[opt] = Math.floor(remaining / otherOptions.filter(o => 
+                  percentages[opt] = Math.floor(remaining / otherOptions.filter(o =>
                     !((o === 'C' && !question.optionC) || (o === 'D' && !question.optionD))
                   ).length);
                 }
               });
-              
+
               const totalVotes = 50 + (seed % 100);
               results = {
                 id: question.id + '-results',
@@ -250,9 +278,9 @@ export default function Home() {
                 revealedAt: new Date(),
               };
             }
-            
+
             const userVote = userVotes.find(v => v.questionId === question.id) || null;
-            
+
             return { question, results, userVote };
           } catch (error) {
             return null;
@@ -261,20 +289,12 @@ export default function Home() {
       );
       return results.filter((r): r is ResultWithQuestion => r !== null);
     },
-    enabled: !!user && revealedQuestions.length > 0 && userVotes.length >= 0,
+    // Enable for authenticated users with revealed questions, or for unauthenticated users viewing results
+    enabled: ready && revealedQuestions.length > 0,
   });
 
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Please log in to continue</p>
-      </div>
-    );
-  }
-
-  // Show loading while waiting for user or while query is loading/retrying
-  // Don't show error during retries - only after all retries exhausted
-  if (!currentUser && (isLoadingUser || !isError)) {
+  // Show loading while Privy initializes
+  if (!ready) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-muted-foreground">Loading...</p>
@@ -282,8 +302,18 @@ export default function Home() {
     );
   }
 
-  // Only show error after retries are exhausted and it's not a 404 (which redirects to create-profile)
-  if (isError && error && !(error instanceof ApiError && error.status === 404)) {
+  // For authenticated users, show loading while checking profile
+  // But only if they're authenticated and we're still loading their profile
+  if (authenticated && user && !currentUser && (isLoadingUser || !isError)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
+  // Only show error for authenticated users after retries are exhausted and it's not a 404
+  if (authenticated && isError && error && !(error instanceof ApiError && error.status === 404)) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="text-center">
@@ -327,7 +357,7 @@ export default function Home() {
               <div className="text-center py-12">
                 <p className="text-muted-foreground mb-2">No active questions</p>
                 <p className="text-sm text-muted-foreground">
-                  {seedMutation.isPending ? 'Loading questions...' : 'Check back soon for new predictions!'}
+                  Check back soon for new predictions!
                 </p>
               </div>
             ) : (

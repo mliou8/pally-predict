@@ -1,18 +1,25 @@
-import { eq, desc, and, gte, lte, sql } from 'drizzle-orm';
+import { eq, desc, and, gte, lte, sql, isNull, lt } from 'drizzle-orm';
 import { db } from './db';
+import { broadcastPoolUpdate } from './websocket';
 import {
   users,
   questions,
   votes,
   questionResults,
+  accountLinkTokens,
   type User,
   type InsertUser,
+  type InsertTelegramUser,
   type Question,
   type InsertQuestion,
   type Vote,
   type InsertVote,
   type QuestionResults,
   type InsertQuestionResults,
+  type AccountLinkToken,
+  type InsertAccountLinkToken,
+  type VoteChoice,
+  type PlatformType,
 } from '@shared/schema';
 
 export interface IStorage {
@@ -21,9 +28,15 @@ export interface IStorage {
   getUserByPrivyId(privyUserId: string): Promise<User | undefined>;
   getUserByHandle(handle: string): Promise<User | undefined>;
   getUserBySolanaAddress(solanaAddress: string): Promise<User | undefined>;
+  getUserByTelegramId(telegramId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  createUserFromTelegram(data: InsertTelegramUser): Promise<User>;
   updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
-  
+  updateUserBalance(userId: string, delta: number): Promise<User | undefined>;
+  getUserBalance(userId: string): Promise<number>;
+  getAllUsers(): Promise<User[]>;
+  getUsersByPlatform(platform: PlatformType): Promise<User[]>;
+
   // Question operations
   getQuestion(id: string): Promise<Question | undefined>;
   getActiveQuestions(): Promise<Question[]>;
@@ -34,7 +47,10 @@ export interface IStorage {
   deleteQuestion(id: string): Promise<void>;
   revealExpiredQuestions(now: Date): Promise<void>;
   fastTrackQuestions(newDropsAt: Date, newRevealsAt: Date): Promise<number>;
-  
+  getQuestionsDueToBroadcast(): Promise<Question[]>;
+  getQuestionsToReveal(): Promise<Question[]>;
+  getUnsentResults(): Promise<Question[]>;
+
   // Vote operations
   getVote(userId: string, questionId: string): Promise<Vote | undefined>;
   getVoteByTxSignature(txSignature: string): Promise<Vote | undefined>;
@@ -42,19 +58,42 @@ export interface IStorage {
   getQuestionVotes(questionId: string): Promise<Vote[]>;
   getQuestionVotesCount(questionId: string): Promise<number>;
   createVote(vote: InsertVote): Promise<Vote>;
+  createVoteWithBet(data: { userId: string; questionId: string; choice: VoteChoice; betAmount: number; platform: PlatformType }): Promise<Vote>;
   updateVote(voteId: string, updates: Partial<Vote>): Promise<Vote | undefined>;
-  
+
   // Question results operations
   getQuestionResults(questionId: string): Promise<QuestionResults | undefined>;
   createQuestionResults(results: InsertQuestionResults): Promise<QuestionResults>;
   updateQuestionResults(questionId: string, updates: Partial<QuestionResults>): Promise<QuestionResults | undefined>;
-  
+  processQuestionResults(questionId: string, correctAnswer: VoteChoice): Promise<void>;
+  getQuestionStats(questionId: string): Promise<QuestionStats>;
+
+  // Account linking operations
+  createLinkToken(data: InsertAccountLinkToken): Promise<AccountLinkToken>;
+  getLinkToken(token: string): Promise<AccountLinkToken | undefined>;
+  claimLinkToken(token: string, userId: string): Promise<AccountLinkToken | undefined>;
+  cleanupExpiredTokens(): Promise<void>;
+
   // Leaderboard operations
   getLeaderboard(limit?: number): Promise<LeaderboardEntry[]>;
+  getUnifiedLeaderboard(limit?: number): Promise<LeaderboardEntry[]>;
 }
 
 export interface LeaderboardEntry extends User {
   accuracy: number;
+}
+
+export interface QuestionStats {
+  totalBets: number;
+  totalAmount: number;
+  votesA: number;
+  votesB: number;
+  votesC: number;
+  votesD: number;
+  amountA: number;
+  amountB: number;
+  amountC: number;
+  amountD: number;
 }
 
 export class DbStorage implements IStorage {
@@ -79,8 +118,21 @@ export class DbStorage implements IStorage {
     return user;
   }
 
+  async getUserByTelegramId(telegramId: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.telegramId, telegramId)).limit(1);
+    return user;
+  }
+
   async createUser(insertUser: InsertUser): Promise<User> {
     const [user] = await db.insert(users).values([insertUser]).returning();
+    return user;
+  }
+
+  async createUserFromTelegram(data: InsertTelegramUser): Promise<User> {
+    const [user] = await db.insert(users).values([{
+      ...data,
+      primaryPlatform: 'telegram' as PlatformType,
+    }]).returning();
     return user;
   }
 
@@ -91,6 +143,27 @@ export class DbStorage implements IStorage {
       .where(eq(users.id, id))
       .returning();
     return user;
+  }
+
+  async updateUserBalance(userId: string, delta: number): Promise<User | undefined> {
+    const user = await this.getUser(userId);
+    if (!user) return undefined;
+
+    const newBalance = parseFloat(user.balance) + delta;
+    return this.updateUser(userId, { balance: newBalance.toFixed(2) });
+  }
+
+  async getUserBalance(userId: string): Promise<number> {
+    const user = await this.getUser(userId);
+    return user ? parseFloat(user.balance) : 0;
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users).orderBy(desc(users.createdAt));
+  }
+
+  async getUsersByPlatform(platform: PlatformType): Promise<User[]> {
+    return await db.select().from(users).where(eq(users.primaryPlatform, platform)).orderBy(desc(users.createdAt));
   }
 
   // Question operations
@@ -122,30 +195,24 @@ export class DbStorage implements IStorage {
     // Calculate which noon to use (today or yesterday in ET)
     let cycleStartDate: Date;
     
+    // Determine EST vs EDT offset
+    const etOffset = now.toLocaleString('en-US', {
+      timeZone: 'America/New_York',
+      timeZoneName: 'short'
+    }).includes('EDT') ? -4 : -5;
+
+    // Calculate noon ET in UTC using Date.UTC
+    // For EST (offset -5), noon ET (12:00) = 17:00 UTC
+    // For EDT (offset -4), noon ET (12:00) = 16:00 UTC
+    const noonUTCHour = 12 + Math.abs(etOffset);
+
     if (etHour < 12) {
       // Before noon ET - use yesterday's noon
-      // Create date for today noon ET, then subtract 24 hours
-      const todayNoonET = new Date(`${year}-${month}-${day}T12:00:00-05:00`); // Use EST offset as base
-      
-      // Adjust for EDT vs EST
-      const etOffset = now.toLocaleString('en-US', { 
-        timeZone: 'America/New_York', 
-        timeZoneName: 'short' 
-      }).includes('EDT') ? -4 : -5;
-      
-      const adjustedNoonET = new Date(`${year}-${month}-${day}T12:00:00`);
-      adjustedNoonET.setHours(12 - etOffset); // Convert to UTC
-      
-      cycleStartDate = new Date(adjustedNoonET.getTime() - 24 * 60 * 60 * 1000);
+      const todayNoonUTC = Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), noonUTCHour, 0, 0);
+      cycleStartDate = new Date(todayNoonUTC - 24 * 60 * 60 * 1000);
     } else {
       // After noon ET - use today's noon
-      const etOffset = now.toLocaleString('en-US', { 
-        timeZone: 'America/New_York', 
-        timeZoneName: 'short' 
-      }).includes('EDT') ? -4 : -5;
-      
-      cycleStartDate = new Date(`${year}-${month}-${day}T12:00:00`);
-      cycleStartDate.setHours(12 - etOffset); // Convert to UTC
+      cycleStartDate = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), noonUTCHour, 0, 0));
     }
     
     // Get only the 3 most recent active questions from current 24h period
@@ -181,7 +248,7 @@ export class DbStorage implements IStorage {
   }
 
   async createQuestion(insertQuestion: InsertQuestion): Promise<Question> {
-    const [question] = await db.insert(questions).values([insertQuestion]).returning();
+    const [question] = await db.insert(questions).values([insertQuestion as any]).returning();
     return question;
   }
 
@@ -214,17 +281,17 @@ export class DbStorage implements IStorage {
   async fastTrackQuestions(newDropsAt: Date, newRevealsAt: Date): Promise<number> {
     // Calculate tomorrow's drop time (what we're searching for)
     const tomorrowDropsAt = new Date(newDropsAt.getTime() + 24 * 60 * 60 * 1000);
-    
+
     // Find tomorrow's questions (24 hours ahead of newDropsAt)
     const tomorrowQuestions = await db
       .select()
       .from(questions)
       .where(eq(questions.dropsAt, tomorrowDropsAt));
-    
+
     if (tomorrowQuestions.length === 0) {
       return 0;
     }
-    
+
     // Update their times to today/tomorrow
     await db
       .update(questions)
@@ -233,8 +300,50 @@ export class DbStorage implements IStorage {
         revealsAt: newRevealsAt
       })
       .where(eq(questions.dropsAt, tomorrowDropsAt));
-    
+
     return tomorrowQuestions.length;
+  }
+
+  // Telegram-specific question queries
+  async getQuestionsDueToBroadcast(): Promise<Question[]> {
+    const now = new Date();
+    return await db
+      .select()
+      .from(questions)
+      .where(
+        and(
+          eq(questions.isActive, true),
+          eq(questions.isRevealed, false),
+          lte(questions.dropsAt, now),
+          isNull(questions.telegramBroadcastedAt)
+        )
+      );
+  }
+
+  async getQuestionsToReveal(): Promise<Question[]> {
+    const now = new Date();
+    return await db
+      .select()
+      .from(questions)
+      .where(
+        and(
+          eq(questions.isActive, true),
+          eq(questions.isRevealed, false),
+          lte(questions.revealsAt, now)
+        )
+      );
+  }
+
+  async getUnsentResults(): Promise<Question[]> {
+    return await db
+      .select()
+      .from(questions)
+      .where(
+        and(
+          eq(questions.isRevealed, true),
+          isNull(questions.telegramResultsSentAt)
+        )
+      );
   }
 
   // Vote operations
@@ -280,7 +389,55 @@ export class DbStorage implements IStorage {
   }
 
   async createVote(insertVote: InsertVote): Promise<Vote> {
-    const [vote] = await db.insert(votes).values([insertVote]).returning();
+    const [vote] = await db.insert(votes).values([insertVote as any]).returning();
+
+    // Broadcast pool update via WebSocket
+    broadcastPoolUpdate(vote.questionId).catch(err =>
+      console.error('Error broadcasting pool update:', err)
+    );
+
+    return vote;
+  }
+
+  async createVoteWithBet(data: {
+    userId: string;
+    questionId: string;
+    choice: VoteChoice;
+    betAmount: number;
+    platform: PlatformType;
+  }): Promise<Vote> {
+    // Deduct balance from user
+    const user = await this.getUser(data.userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const currentBalance = parseFloat(user.balance);
+    if (data.betAmount > currentBalance) {
+      throw new Error('Insufficient balance');
+    }
+
+    // Update user balance and totalWagered
+    await this.updateUser(data.userId, {
+      balance: (currentBalance - data.betAmount).toFixed(2),
+      totalWagered: (parseFloat(user.totalWagered) + data.betAmount).toFixed(2),
+    });
+
+    // Create the vote
+    const [vote] = await db.insert(votes).values([{
+      userId: data.userId,
+      questionId: data.questionId,
+      choice: data.choice,
+      betAmount: data.betAmount.toFixed(2),
+      platform: data.platform,
+      isPublic: true,
+    }]).returning();
+
+    // Broadcast pool update via WebSocket
+    broadcastPoolUpdate(data.questionId).catch(err =>
+      console.error('Error broadcasting pool update:', err)
+    );
+
     return vote;
   }
 
@@ -291,6 +448,50 @@ export class DbStorage implements IStorage {
       .where(eq(votes.id, voteId))
       .returning();
     return vote;
+  }
+
+  // Question stats for betting pool display
+  async getQuestionStats(questionId: string): Promise<QuestionStats> {
+    const allVotes = await this.getQuestionVotes(questionId);
+
+    const stats: QuestionStats = {
+      totalBets: allVotes.length,
+      totalAmount: 0,
+      votesA: 0,
+      votesB: 0,
+      votesC: 0,
+      votesD: 0,
+      amountA: 0,
+      amountB: 0,
+      amountC: 0,
+      amountD: 0,
+    };
+
+    for (const vote of allVotes) {
+      const amount = parseFloat(vote.betAmount);
+      stats.totalAmount += amount;
+
+      switch (vote.choice) {
+        case 'A':
+          stats.votesA++;
+          stats.amountA += amount;
+          break;
+        case 'B':
+          stats.votesB++;
+          stats.amountB += amount;
+          break;
+        case 'C':
+          stats.votesC++;
+          stats.amountC += amount;
+          break;
+        case 'D':
+          stats.votesD++;
+          stats.amountD += amount;
+          break;
+      }
+    }
+
+    return stats;
   }
 
   // Question results operations
@@ -304,7 +505,7 @@ export class DbStorage implements IStorage {
   }
 
   async createQuestionResults(insertResults: InsertQuestionResults): Promise<QuestionResults> {
-    const [results] = await db.insert(questionResults).values([insertResults]).returning();
+    const [results] = await db.insert(questionResults).values([insertResults as any]).returning();
     return results;
   }
 
@@ -320,7 +521,134 @@ export class DbStorage implements IStorage {
     return results;
   }
 
-  // Leaderboard operations
+  // Process question results and distribute payouts
+  async processQuestionResults(questionId: string, correctAnswer: VoteChoice): Promise<void> {
+    // Get all bets for this question
+    const allVotes = await this.getQuestionVotes(questionId);
+
+    // Calculate total pot and winning pot
+    let totalPot = 0;
+    let winningPot = 0;
+
+    for (const vote of allVotes) {
+      const amount = parseFloat(vote.betAmount);
+      totalPot += amount;
+      if (vote.choice === correctAnswer) {
+        winningPot += amount;
+      }
+    }
+
+    // Process each vote
+    for (const vote of allVotes) {
+      const isCorrect = vote.choice === correctAnswer;
+      const betAmount = parseFloat(vote.betAmount);
+      let payout = 0;
+
+      if (isCorrect && winningPot > 0) {
+        // Winner gets proportional share of total pot
+        payout = (betAmount / winningPot) * totalPot;
+      }
+
+      // Update vote record
+      await this.updateVote(vote.id, {
+        isCorrect,
+        payout: payout.toFixed(2),
+      });
+
+      // Update user balance and stats
+      const user = await this.getUser(vote.userId);
+      if (user) {
+        const updates: Partial<User> = {
+          totalPredictions: user.totalPredictions + 1,
+        };
+
+        if (isCorrect) {
+          updates.correctPredictions = user.correctPredictions + 1;
+          updates.currentStreak = user.currentStreak + 1;
+          updates.maxStreak = Math.max(user.maxStreak, user.currentStreak + 1);
+          updates.totalWon = (parseFloat(user.totalWon) + payout).toFixed(2);
+          updates.balance = (parseFloat(user.balance) + payout).toFixed(2);
+        } else {
+          updates.currentStreak = 0;
+        }
+
+        await this.updateUser(user.id, updates);
+      }
+    }
+
+    // Mark question as revealed with correct answer
+    await this.updateQuestion(questionId, {
+      isRevealed: true,
+      isActive: false,
+      correctAnswer,
+    });
+  }
+
+  // Account linking operations
+  async createLinkToken(data: InsertAccountLinkToken): Promise<AccountLinkToken> {
+    const [token] = await db.insert(accountLinkTokens).values([data]).returning();
+    return token;
+  }
+
+  async getLinkToken(token: string): Promise<AccountLinkToken | undefined> {
+    const [linkToken] = await db
+      .select()
+      .from(accountLinkTokens)
+      .where(eq(accountLinkTokens.token, token))
+      .limit(1);
+    return linkToken;
+  }
+
+  async claimLinkToken(token: string, userId: string): Promise<AccountLinkToken | undefined> {
+    const [linkToken] = await db
+      .update(accountLinkTokens)
+      .set({
+        claimedByUserId: userId,
+        claimedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(accountLinkTokens.token, token),
+          isNull(accountLinkTokens.claimedAt)
+        )
+      )
+      .returning();
+    return linkToken;
+  }
+
+  async cleanupExpiredTokens(): Promise<void> {
+    const now = new Date();
+    await db
+      .delete(accountLinkTokens)
+      .where(
+        and(
+          lt(accountLinkTokens.expiresAt, now),
+          isNull(accountLinkTokens.claimedAt)
+        )
+      );
+  }
+
+  // Leaderboard operations - unified across all platforms
+  async getUnifiedLeaderboard(limit: number = 50): Promise<LeaderboardEntry[]> {
+    // Get users ordered by balance (virtual currency)
+    const allUsers = await db
+      .select()
+      .from(users)
+      .orderBy(desc(users.balance), desc(users.currentStreak))
+      .limit(limit);
+
+    // Calculate accuracy for each user
+    const usersWithAccuracy = allUsers.map(user => {
+      const accuracy = user.totalPredictions > 0
+        ? Math.round((user.correctPredictions / user.totalPredictions) * 100)
+        : 0;
+      return { ...user, accuracy };
+    });
+
+    return usersWithAccuracy;
+  }
+
+  // Legacy leaderboard (alphaPoints-based)
   async getLeaderboard(limit: number = 50): Promise<LeaderboardEntry[]> {
     const allUsers = await db
       .select()

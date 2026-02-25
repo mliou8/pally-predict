@@ -4,6 +4,7 @@ import { registerRoutes } from "./routes";
 import { registerTelegramRoutes } from "./telegram-routes";
 import { initBot, getBot } from "./telegram-bot";
 import { startScheduler, stopScheduler } from "./telegram-scheduler";
+import { initWebSocket } from "./websocket";
 import { setupVite, serveStatic, log } from "./vite";
 
 // Add BigInt support to JSON.stringify
@@ -55,7 +56,11 @@ app.use((req, res, next) => {
 
 (async () => {
   const server = await registerRoutes(app);
-  
+
+  // Initialize WebSocket server for real-time updates
+  initWebSocket(server);
+  log('WebSocket server initialized on /ws');
+
   // Register Telegram admin routes
   registerTelegramRoutes(app);
   
