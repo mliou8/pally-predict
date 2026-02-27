@@ -77,6 +77,14 @@ export interface IStorage {
   // Leaderboard operations
   getLeaderboard(limit?: number): Promise<LeaderboardEntry[]>;
   getUnifiedLeaderboard(limit?: number): Promise<LeaderboardEntry[]>;
+
+  // Reward distribution (atomic transaction)
+  distributeRewards(params: {
+    questionVotes: Vote[];
+    winningChoice: VoteChoice;
+    rarityMultipliers: Record<VoteChoice, number>;
+    totalPot: bigint;
+  }): Promise<void>;
 }
 
 export interface LeaderboardEntry extends User {
@@ -519,6 +527,64 @@ export class DbStorage implements IStorage {
       .where(eq(questionResults.questionId, questionId))
       .returning();
     return results;
+  }
+
+  // Distribute rewards atomically using a database transaction
+  async distributeRewards(params: {
+    questionVotes: Vote[];
+    winningChoice: VoteChoice;
+    rarityMultipliers: Record<VoteChoice, number>;
+    totalPot: bigint;
+  }): Promise<void> {
+    const { questionVotes, winningChoice, rarityMultipliers, totalPot } = params;
+
+    // Calculate total winning wagers
+    const winningVotes = questionVotes.filter(v => v.choice === winningChoice && v.wagerAmount > BigInt(0));
+    const totalWinningWagers = winningVotes.reduce((sum, v) => sum + v.wagerAmount, BigInt(0));
+
+    // Use a database transaction to ensure atomicity
+    await db.transaction(async (tx) => {
+      for (const vote of questionVotes) {
+        const rarityMultiplier = rarityMultipliers[vote.choice];
+        const publicMultiplier = vote.isPublic ? 2 : 1;
+        const basePoints = 100;
+        const totalMultiplier = rarityMultiplier * publicMultiplier;
+        const points = basePoints * totalMultiplier;
+
+        // Calculate payout for winners who wagered
+        let payout = BigInt(0);
+        if (vote.choice === winningChoice && vote.wagerAmount > BigInt(0) && totalWinningWagers > BigInt(0)) {
+          payout = (totalPot * vote.wagerAmount) / totalWinningWagers;
+        }
+
+        // Update user's alpha points
+        const [currentUser] = await tx
+          .select()
+          .from(users)
+          .where(eq(users.id, vote.userId))
+          .limit(1);
+
+        if (currentUser) {
+          await tx
+            .update(users)
+            .set({
+              alphaPoints: currentUser.alphaPoints + points,
+              updatedAt: new Date()
+            })
+            .where(eq(users.id, vote.userId));
+        }
+
+        // Update vote record with points earned, multiplier, and payout
+        await tx
+          .update(votes)
+          .set({
+            pointsEarned: points,
+            multiplier: totalMultiplier,
+            payoutAmount: payout,
+          })
+          .where(eq(votes.id, vote.id));
+      }
+    });
   }
 
   // Process question results and distribute payouts

@@ -644,45 +644,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           totalPot,
         });
 
-        // Calculate bet distribution for winners
-        const winningVotes = votes.filter(v => v.choice === winningChoice && v.wagerAmount > BigInt(0));
-        const totalWinningWagers = winningVotes.reduce((sum, v) => sum + v.wagerAmount, BigInt(0));
-
         // Award points and distribute bet payouts (idempotency: only if not already processed)
         // Check if rewards have already been processed by checking if any vote has pointsEarned set
         const alreadyProcessed = votes.some(v => v.pointsEarned !== null && v.pointsEarned !== undefined);
-        
+
         if (!alreadyProcessed) {
-          for (const vote of votes) {
-            const rarityMultiplier = rarityMultipliers[vote.choice];
-            const publicMultiplier = vote.isPublic ? 2 : 1;
-            const basePoints = 100;
-            const totalMultiplier = rarityMultiplier * publicMultiplier;
-            const points = basePoints * totalMultiplier;
-
-            // Calculate payout for winners who wagered
-            let payout = BigInt(0);
-            if (vote.choice === winningChoice && vote.wagerAmount > BigInt(0) && totalWinningWagers > BigInt(0)) {
-              // Winner gets proportional share of the total pot using BigInt arithmetic
-              // payout = (totalPot * wagerAmount) / totalWinningWagers
-              payout = (totalPot * vote.wagerAmount) / totalWinningWagers;
-            }
-
-            // Update user's alpha points
-            const currentUser = await storage.getUser(vote.userId);
-            if (currentUser) {
-              await storage.updateUser(vote.userId, {
-                alphaPoints: currentUser.alphaPoints + points,
-              });
-            }
-
-            // Update vote record with points earned, multiplier, and payout
-            await storage.updateVote(vote.id, {
-              pointsEarned: points,
-              multiplier: totalMultiplier,
-              payoutAmount: payout,
-            });
-          }
+          // Use atomic transaction to distribute rewards
+          await storage.distributeRewards({
+            questionVotes: votes,
+            winningChoice,
+            rarityMultipliers: rarityMultipliers as Record<'A' | 'B' | 'C' | 'D', number>,
+            totalPot,
+          });
         }
 
         return res.json(serializeBigInt(newResults));
