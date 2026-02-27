@@ -11,6 +11,7 @@ import NotFound from '@/pages/not-found';
 import Splash from '@/pages/Splash';
 import CreateProfile from '@/pages/CreateProfile';
 import LinkWallet from '@/pages/LinkWallet';
+import Landing from '@/pages/Landing';
 import Play from '@/pages/Play';
 import Results from '@/pages/Results';
 import Leaderboard from '@/pages/Leaderboard';
@@ -64,7 +65,7 @@ function AppContent() {
             if (!userData.solanaAddress) {
               setLocation('/link-wallet');
             } else {
-              setLocation('/');
+              setLocation('/play');
             }
           } else if (response.status === 404) {
             setLocation('/create-profile');
@@ -81,9 +82,9 @@ function AppContent() {
   useEffect(() => {
     if (!ready) return;
 
-    const validRoutes = ['/', '/splash', '/create-profile', '/link-wallet', '/link', '/leaderboard', '/history', '/profile', '/admin', '/telegram-admin', '/all-results', '/terms', '/privacy', '/results'];
+    const validRoutes = ['/', '/play', '/splash', '/create-profile', '/link-wallet', '/link', '/leaderboard', '/history', '/profile', '/admin', '/telegram-admin', '/all-results', '/terms', '/privacy', '/results'];
     // Main game routes are now public
-    const publicRoutes = ['/', '/results', '/splash', '/terms', '/privacy', '/leaderboard'];
+    const publicRoutes = ['/', '/play', '/results', '/splash', '/terms', '/privacy', '/leaderboard'];
     const isValidRoute = validRoutes.includes(location);
     const isPublicRoute = publicRoutes.includes(location);
 
@@ -97,7 +98,7 @@ function AppContent() {
   }, [ready, authenticated, location, setLocation]);
 
   // Routes that should have the bottom tab bar
-  const showTabBar = ['/', '/leaderboard', '/history', '/profile'].includes(location);
+  const showTabBar = ['/play', '/leaderboard', '/history', '/profile'].includes(location);
 
   // Show loading while Privy initializes
   if (!ready && !initTimeout) {
@@ -162,7 +163,8 @@ function AppContent() {
         <Route path="/splash" component={Splash} />
         <Route path="/create-profile" component={CreateProfile} />
         <Route path="/link-wallet" component={LinkWallet} />
-        <Route path="/" component={Play} />
+        <Route path="/" component={Landing} />
+        <Route path="/play" component={Play} />
         <Route path="/results" component={Results} />
         <Route path="/leaderboard" component={Leaderboard} />
         <Route path="/history" component={History} />

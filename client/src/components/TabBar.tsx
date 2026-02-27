@@ -6,7 +6,7 @@ export default function TabBar() {
   const [location] = useLocation();
 
   const tabs = [
-    { icon: Crosshair, label: 'Play', path: '/', testId: 'tab-play' },
+    { icon: Crosshair, label: 'Play', path: '/play', testId: 'tab-play' },
     { icon: Trophy, label: 'Ranks', path: '/leaderboard', testId: 'tab-leaderboard' },
     { icon: History, label: 'History', path: '/history', testId: 'tab-history' },
     { icon: User, label: 'Profile', path: '/profile', testId: 'tab-profile' },
