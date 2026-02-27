@@ -20,6 +20,20 @@ console.log('[startup] DATABASE_URL set:', !!process.env.DATABASE_URL);
 
 const app = express();
 
+// Health check endpoint - register FIRST before any other middleware/routes
+// This ensures healthcheck works even if other parts of the app fail to initialize
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    env: {
+      NODE_ENV: process.env.NODE_ENV,
+      PORT: process.env.PORT,
+      DATABASE_URL_SET: !!process.env.DATABASE_URL,
+    }
+  });
+});
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: false, // Disable for development - enable in production with proper config
