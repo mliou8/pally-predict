@@ -1,8 +1,13 @@
+import 'dotenv/config';
 import { db } from '../server/db';
-import { questions } from '../shared/schema';
+import { questions, votes, questionResults } from '../shared/schema';
 
 async function main() {
-  // Delete all existing questions
+  // Delete in order: votes -> questionResults -> questions (due to foreign keys)
+  await db.delete(votes);
+  console.log('Deleted all votes');
+  await db.delete(questionResults);
+  console.log('Deleted all question results');
   await db.delete(questions);
   console.log('Deleted all questions');
 

@@ -81,7 +81,7 @@ export default function CreateProfile() {
             Create Your Profile
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Choose your handle and start earning Alpha
+            Choose your handle and start making predictions
           </p>
         </div>
 
@@ -117,7 +117,7 @@ export default function CreateProfile() {
               <Input
                 id="handle"
                 type="text"
-                placeholder="cryptooracle"
+                placeholder="predictor123"
                 value={handle}
                 onChange={(e) => setHandle(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
                 className="pl-8"
@@ -137,7 +137,7 @@ export default function CreateProfile() {
             disabled={!isValid || isSubmitting}
             data-testid="button-create-profile"
           >
-            {isSubmitting ? 'Creating...' : 'Start Trading'}
+            {isSubmitting ? 'Creating...' : 'Start Predicting'}
           </Button>
         </form>
 

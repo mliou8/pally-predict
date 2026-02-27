@@ -371,7 +371,7 @@ export default function Admin() {
                     id="prompt"
                     value={question.prompt}
                     onChange={(e) => updateQuestionField('prompt', e.target.value)}
-                    placeholder="What will most traders predict about BTC this week?"
+                    placeholder="What will happen with BTC this week?"
                     rows={3}
                     required
                     data-testid="input-prompt"

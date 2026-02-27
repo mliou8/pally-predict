@@ -281,7 +281,7 @@ export default function Profile() {
                     <h2 className="text-2xl font-bold text-foreground mb-1" data-testid="text-handle">
                       {currentUser.handle || '@User'}
                     </h2>
-                    <p className="text-sm text-muted-foreground">Alpha Trader</p>
+                    <p className="text-sm text-muted-foreground">Predictor</p>
                   </div>
                 </div>
 
