@@ -10,6 +10,11 @@ import { startScheduler, stopScheduler } from "./telegram-scheduler";
 import { initWebSocket } from "./websocket";
 import { setupVite, serveStatic, log } from "./vite";
 
+console.log('[startup] Server initializing...');
+console.log('[startup] NODE_ENV:', process.env.NODE_ENV);
+console.log('[startup] PORT:', process.env.PORT);
+console.log('[startup] DATABASE_URL set:', !!process.env.DATABASE_URL);
+
 // Add BigInt support to JSON.stringify
 (BigInt.prototype as any).toJSON = function() { return this.toString(); };
 
