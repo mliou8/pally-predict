@@ -137,16 +137,11 @@ export default function Play() {
   const voteMutation = useMutation({
     mutationFn: async (voteData: VoteData) => {
       if (!user?.id) throw new Error('Not authenticated');
-      const response = await apiRequest('/api/wager/initiate', {
+      const response = await apiRequest('/api/votes', {
         method: 'POST',
         body: JSON.stringify(voteData),
       }, user.id);
       const result = await response.json();
-
-      // Wager verification happens through the wallet transaction flow
-      // The user must complete the real Solana transaction via LinkWallet page
-      // Server will verify the actual on-chain transaction before confirming the wager
-
       return result;
     },
     onSuccess: (data) => {
