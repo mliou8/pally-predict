@@ -178,17 +178,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const adminKey = req.header('x-admin-key');
       const expectedKey = process.env.TELEGRAM_ADMIN_KEY;
 
-      if (!expectedKey && process.env.NODE_ENV === 'production') {
+      if (!expectedKey) {
+        console.warn('WARNING: TELEGRAM_ADMIN_KEY not configured. Set it in your environment.');
         return res.status(500).json({ error: 'Admin authentication not configured' });
       }
 
-      if (!adminKey || (expectedKey && adminKey !== expectedKey)) {
-        // In development without admin key set, allow with dev key
-        if (process.env.NODE_ENV !== 'production' && !expectedKey && adminKey === 'dev-admin-key') {
-          // Allow in development
-        } else {
-          return res.status(401).json({ error: 'Admin authentication required' });
-        }
+      if (!adminKey || adminKey !== expectedKey) {
+        return res.status(401).json({ error: 'Admin authentication required' });
       }
 
       const questionData = insertQuestionSchema.parse(req.body);
@@ -1421,8 +1417,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Email and password are required' });
       }
 
-      if (password.length < 6) {
-        return res.status(400).json({ error: 'Password must be at least 6 characters' });
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ error: 'Invalid email format' });
+      }
+
+      // Validate password strength: min 8 chars, 1 uppercase, 1 lowercase, 1 number
+      if (password.length < 8) {
+        return res.status(400).json({ error: 'Password must be at least 8 characters' });
+      }
+      if (!/[A-Z]/.test(password)) {
+        return res.status(400).json({ error: 'Password must contain at least one uppercase letter' });
+      }
+      if (!/[a-z]/.test(password)) {
+        return res.status(400).json({ error: 'Password must contain at least one lowercase letter' });
+      }
+      if (!/[0-9]/.test(password)) {
+        return res.status(400).json({ error: 'Password must contain at least one number' });
       }
 
       // Check if email already exists

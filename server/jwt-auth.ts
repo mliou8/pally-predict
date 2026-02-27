@@ -50,7 +50,7 @@ export function generateToken(userId: string): string {
 // Verify JWT token and return payload
 export function verifyToken(token: string): TokenPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as TokenPayload;
+    return jwt.verify(token, EFFECTIVE_JWT_SECRET) as TokenPayload;
   } catch {
     return null;
   }

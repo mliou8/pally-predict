@@ -98,26 +98,19 @@ export function registerTelegramRoutes(app: Express): void {
   // ===== ADMIN AUTHENTICATION =====
   // Admin key authentication - required in production
   const ADMIN_KEY = process.env.TELEGRAM_ADMIN_KEY;
-  if (!ADMIN_KEY && process.env.NODE_ENV === 'production') {
-    console.error('CRITICAL: TELEGRAM_ADMIN_KEY not set in production!');
+  if (!ADMIN_KEY) {
+    console.warn('WARNING: TELEGRAM_ADMIN_KEY not set. Admin routes will be disabled.');
   }
 
   const requireAdminAuth = (req: any, res: any, next: any) => {
-    const adminKey = req.header('x-admin-key') || req.query.adminKey;
+    // Only accept admin key from headers, not query params (security best practice)
+    const adminKey = req.header('x-admin-key');
 
     if (!ADMIN_KEY) {
-      if (process.env.NODE_ENV === 'production') {
-        return res.status(500).json({ error: 'Admin authentication not configured' });
-      }
-      // In development, warn but allow with a dev-only key
-      console.warn('WARNING: TELEGRAM_ADMIN_KEY not set. Using insecure default for development.');
-      if (adminKey !== 'dev-admin-key') {
-        return res.status(401).json({ error: 'Unauthorized' });
-      }
-      return next();
+      return res.status(500).json({ error: 'Admin authentication not configured' });
     }
 
-    if (adminKey !== ADMIN_KEY) {
+    if (!adminKey || adminKey !== ADMIN_KEY) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
     next();

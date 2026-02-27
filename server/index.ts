@@ -1,5 +1,8 @@
 import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
+import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import { registerRoutes } from "./routes";
 import { registerTelegramRoutes } from "./telegram-routes";
 import { initBot, getBot } from "./telegram-bot";
@@ -11,6 +14,43 @@ import { setupVite, serveStatic, log } from "./vite";
 (BigInt.prototype as any).toJSON = function() { return this.toString(); };
 
 const app = express();
+
+// Security middleware
+app.use(helmet({
+  contentSecurityPolicy: false, // Disable for development - enable in production with proper config
+  crossOriginEmbedderPolicy: false,
+}));
+
+// CORS configuration
+const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
+  'http://localhost:3000',
+  'http://localhost:5000',
+  'http://localhost:5173',
+];
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+}));
+
+// Rate limiting for auth endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // 20 requests per window
+  message: { error: 'Too many attempts, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Apply rate limiting to auth routes
+app.use('/api/mobile/auth', authLimiter);
+app.use('/api/user/profile', authLimiter);
 
 declare module 'http' {
   interface IncomingMessage {
