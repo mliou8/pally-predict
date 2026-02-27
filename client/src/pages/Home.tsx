@@ -132,21 +132,10 @@ export default function Home() {
       const result = await response.json();
       console.log('Vote response:', result);
       
-      // For MVP: If there's a wager amount, we skip actual on-chain verification
-      // In production, this would trigger wallet transaction + verify flow
-      if (result.vote && result.wagerAmount && BigInt(result.wagerAmount) > BigInt(0)) {
-        // MVP: Simulate transaction verification with a fake signature
-        const mockTxSig = `simulated_${Date.now()}_${result.vote.id}`;
-        const verifyResponse = await apiRequest('/api/wager/verify', {
-          method: 'POST',
-          body: JSON.stringify({
-            voteId: result.vote.id,
-            txSignature: mockTxSig,
-          }),
-        }, user.id);
-        await verifyResponse.json();
-      }
-      
+      // Wager verification happens through the wallet transaction flow
+      // The user must complete the real Solana transaction via LinkWallet page
+      // Server will verify the actual on-chain transaction before confirming the wager
+
       return result;
     },
     onSuccess: (data) => {

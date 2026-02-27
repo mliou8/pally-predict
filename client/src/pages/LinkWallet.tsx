@@ -66,14 +66,19 @@ export default function LinkWallet() {
         await connect();
       }
 
+      // Wait for publicKey to be available with retry logic
+      let attempts = 0;
+      const maxAttempts = 10;
+      while (!publicKey && attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        attempts++;
+      }
+
       if (!publicKey) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        throw new Error('Wallet connected but public key not available. Please try again.');
       }
-      
-      const walletAddress = publicKey?.toBase58();
-      if (!walletAddress) {
-        throw new Error('Failed to get wallet address');
-      }
+
+      const walletAddress = publicKey.toBase58();
 
       setLinkStatus('signing');
       // Request nonce with wallet address bound (security: prevents replay attacks)

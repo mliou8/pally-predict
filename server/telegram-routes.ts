@@ -96,12 +96,28 @@ const createTelegramQuestionSchema = z.object({
 
 export function registerTelegramRoutes(app: Express): void {
   // ===== ADMIN AUTHENTICATION =====
-  // Simple admin key authentication for now
+  // Admin key authentication - required in production
+  const ADMIN_KEY = process.env.TELEGRAM_ADMIN_KEY;
+  if (!ADMIN_KEY && process.env.NODE_ENV === 'production') {
+    console.error('CRITICAL: TELEGRAM_ADMIN_KEY not set in production!');
+  }
+
   const requireAdminAuth = (req: any, res: any, next: any) => {
     const adminKey = req.header('x-admin-key') || req.query.adminKey;
-    const expectedKey = process.env.TELEGRAM_ADMIN_KEY || 'pally-admin-2024';
-    
-    if (adminKey !== expectedKey) {
+
+    if (!ADMIN_KEY) {
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(500).json({ error: 'Admin authentication not configured' });
+      }
+      // In development, warn but allow with a dev-only key
+      console.warn('WARNING: TELEGRAM_ADMIN_KEY not set. Using insecure default for development.');
+      if (adminKey !== 'dev-admin-key') {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      return next();
+    }
+
+    if (adminKey !== ADMIN_KEY) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
     next();

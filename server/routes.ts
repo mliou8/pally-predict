@@ -171,9 +171,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create question (admin only - no auth check for now)
+  // Create question (admin only)
   app.post('/api/questions', async (req, res) => {
     try {
+      // Require admin key for question creation
+      const adminKey = req.header('x-admin-key');
+      const expectedKey = process.env.TELEGRAM_ADMIN_KEY;
+
+      if (!expectedKey && process.env.NODE_ENV === 'production') {
+        return res.status(500).json({ error: 'Admin authentication not configured' });
+      }
+
+      if (!adminKey || (expectedKey && adminKey !== expectedKey)) {
+        // In development without admin key set, allow with dev key
+        if (process.env.NODE_ENV !== 'production' && !expectedKey && adminKey === 'dev-admin-key') {
+          // Allow in development
+        } else {
+          return res.status(401).json({ error: 'Admin authentication required' });
+        }
+      }
+
       const questionData = insertQuestionSchema.parse(req.body);
       const question = await storage.createQuestion(questionData);
       res.status(201).json(question);

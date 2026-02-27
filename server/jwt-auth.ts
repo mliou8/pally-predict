@@ -10,8 +10,15 @@ import type { Request, Response, NextFunction } from 'express';
 import { storage } from './storage';
 import type { User } from '@shared/schema';
 
-// JWT secret from environment or default for development
-const JWT_SECRET = process.env.JWT_SECRET || 'pally-predict-dev-secret-change-in-production';
+// JWT secret from environment - required in production
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET environment variable is required in production');
+  }
+  console.warn('WARNING: JWT_SECRET not set. Using insecure default for development only.');
+}
+const EFFECTIVE_JWT_SECRET = JWT_SECRET || 'dev-only-insecure-secret';
 const JWT_EXPIRY = '7d';
 
 // Extend Express Request to include user
@@ -35,7 +42,7 @@ interface TokenPayload {
 export function generateToken(userId: string): string {
   return jwt.sign(
     { userId, platform: 'mobile' },
-    JWT_SECRET,
+    EFFECTIVE_JWT_SECRET,
     { expiresIn: JWT_EXPIRY }
   );
 }
