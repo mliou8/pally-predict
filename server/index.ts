@@ -113,72 +113,88 @@ app.use((req, res, next) => {
   next();
 });
 
+// Start the HTTP server FIRST to ensure healthcheck can respond
+import { createServer } from 'http';
+const server = createServer(app);
+const port = parseInt(process.env.PORT || '3000', 10);
+
+server.listen(port, "0.0.0.0", () => {
+  console.log(`[startup] Server listening on port ${port}`);
+  log(`serving on port ${port}`);
+});
+
+// Initialize everything else in the background
 (async () => {
-  const server = await registerRoutes(app);
+  try {
+    console.log('[startup] Registering routes...');
+    await registerRoutes(app, server);
+    console.log('[startup] Routes registered');
 
-  // Initialize WebSocket server for real-time updates
-  initWebSocket(server);
-  log('WebSocket server initialized on /ws');
+    // Initialize WebSocket server for real-time updates
+    initWebSocket(server);
+    log('WebSocket server initialized on /ws');
 
-  // Register Telegram admin routes
-  registerTelegramRoutes(app);
-  
-  // Initialize Telegram bot if token is provided
-  const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
-  if (telegramBotToken) {
-    try {
-      const bot = initBot(telegramBotToken);
-      
-      // Start bot in polling mode (for development)
-      // In production, you'd use webhooks instead
-      bot.launch().then(() => {
-        log('Telegram bot started successfully');
-      }).catch((err) => {
-        console.error('Failed to start Telegram bot:', err);
-      });
-      
-      // Start the scheduler for automatic question sending
-      startScheduler();
-      
-      // Graceful shutdown
-      process.once('SIGINT', () => {
-        stopScheduler();
-        bot.stop('SIGINT');
-      });
-      process.once('SIGTERM', () => {
-        stopScheduler();
-        bot.stop('SIGTERM');
-      });
-    } catch (err) {
-      console.error('Failed to initialize Telegram bot:', err);
+    // Register Telegram admin routes
+    registerTelegramRoutes(app);
+
+    // Initialize Telegram bot if token is provided
+    const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
+    if (telegramBotToken) {
+      try {
+        const bot = initBot(telegramBotToken);
+
+        // Start bot in polling mode (for development)
+        // In production, you'd use webhooks instead
+        bot.launch().then(() => {
+          log('Telegram bot started successfully');
+        }).catch((err) => {
+          console.error('Failed to start Telegram bot:', err);
+        });
+
+        // Start the scheduler for automatic question sending
+        startScheduler();
+
+        // Graceful shutdown
+        process.once('SIGINT', () => {
+          stopScheduler();
+          bot.stop('SIGINT');
+        });
+        process.once('SIGTERM', () => {
+          stopScheduler();
+          bot.stop('SIGTERM');
+        });
+      } catch (err) {
+        console.error('Failed to initialize Telegram bot:', err);
+      }
+    } else {
+      log('TELEGRAM_BOT_TOKEN not set - Telegram bot disabled');
     }
-  } else {
-    log('TELEGRAM_BOT_TOKEN not set - Telegram bot disabled');
+
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
+
+      res.status(status).json({ message });
+      console.error('Unhandled error:', err);
+    });
+
+    // importantly only setup vite in development and after
+    // setting up all the other routes so the catch-all route
+    // doesn't interfere with the other routes
+    if (app.get("env") === "development") {
+      await setupVite(app, server);
+    } else {
+      try {
+        serveStatic(app);
+      } catch (err) {
+        console.error('[startup] Failed to serve static files:', err);
+        // Still continue - API will work even if static files fail
+      }
+    }
+
+    console.log('[startup] Initialization complete');
+  } catch (err) {
+    console.error('[startup] Critical initialization error:', err);
+    // Don't exit - let the healthcheck still work
   }
-
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
-  });
-
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
-  }
-
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || '3000', 10);
-  server.listen(port, "0.0.0.0", () => {
-    log(`serving on port ${port}`);
-  });
 })();

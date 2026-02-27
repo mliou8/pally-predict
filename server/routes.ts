@@ -1,5 +1,5 @@
 import type { Express } from 'express';
-import { createServer, type Server } from 'http';
+import type { Server } from 'http';
 import { storage } from './storage';
 import { insertUserSchema, insertQuestionSchema, insertVoteSchema, type VoteChoice, type PlatformType } from '@shared/schema';
 import { randomBytes } from 'crypto';
@@ -46,11 +46,8 @@ async function checkAndRevealQuestions() {
   await storage.revealExpiredQuestions(now);
 }
 
-export async function registerRoutes(app: Express): Promise<Server> {
-  // ===== HEALTH CHECK =====
-  app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
-  });
+export async function registerRoutes(app: Express, server?: Server): Promise<void> {
+  // Health check is now registered in index.ts before this is called
 
   // ===== USER ROUTES =====
   
@@ -1846,6 +1843,4 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const httpServer = createServer(app);
-  return httpServer;
 }
