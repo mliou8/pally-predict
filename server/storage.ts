@@ -82,6 +82,7 @@ export interface IStorage {
   distributeRewards(params: {
     questionVotes: Vote[];
     winningChoice: VoteChoice;
+    secondPlaceChoice: VoteChoice | null;
     rarityMultipliers: Record<VoteChoice, number>;
     totalPot: bigint;
   }): Promise<void>;
@@ -530,32 +531,44 @@ export class DbStorage implements IStorage {
   }
 
   // Distribute rewards atomically using a database transaction
+  // Points-based system: winners get pot share, 2nd place gets 25% consolation
   async distributeRewards(params: {
     questionVotes: Vote[];
     winningChoice: VoteChoice;
+    secondPlaceChoice: VoteChoice | null;
     rarityMultipliers: Record<VoteChoice, number>;
     totalPot: bigint;
   }): Promise<void> {
-    const { questionVotes, winningChoice, rarityMultipliers, totalPot } = params;
+    const { questionVotes, winningChoice, secondPlaceChoice, rarityMultipliers, totalPot } = params;
 
-    // Calculate total winning wagers
-    const winningVotes = questionVotes.filter(v => v.choice === winningChoice && v.wagerAmount > BigInt(0));
-    const totalWinningWagers = winningVotes.reduce((sum, v) => sum + v.wagerAmount, BigInt(0));
+    // Calculate total bets for point-based wagering
+    const totalPointsBet = questionVotes.reduce((sum, v) => sum + parseFloat(v.betAmount), 0);
+    const winningVotes = questionVotes.filter(v => v.choice === winningChoice && parseFloat(v.betAmount) > 0);
+    const totalWinningBets = winningVotes.reduce((sum, v) => sum + parseFloat(v.betAmount), 0);
 
     // Use a database transaction to ensure atomicity
     await db.transaction(async (tx) => {
       for (const vote of questionVotes) {
-        const rarityMultiplier = rarityMultipliers[vote.choice];
+        const rarityMultiplier = rarityMultipliers[vote.choice] || 1;
         const publicMultiplier = vote.isPublic ? 2 : 1;
         const basePoints = 100;
         const totalMultiplier = rarityMultiplier * publicMultiplier;
         const points = basePoints * totalMultiplier;
 
-        // Calculate payout for winners who wagered
-        let payout = BigInt(0);
-        if (vote.choice === winningChoice && vote.wagerAmount > BigInt(0) && totalWinningWagers > BigInt(0)) {
-          payout = (totalPot * vote.wagerAmount) / totalWinningWagers;
+        const betAmount = parseFloat(vote.betAmount);
+        const isWinner = vote.choice === winningChoice;
+        const isSecondPlace = secondPlaceChoice && vote.choice === secondPlaceChoice;
+
+        // Calculate payout based on points betting
+        let payout = 0;
+        if (isWinner && betAmount > 0 && totalWinningBets > 0) {
+          // Winners get proportional share of the total pot
+          payout = (totalPointsBet * betAmount) / totalWinningBets;
+        } else if (isSecondPlace && betAmount > 0) {
+          // 2nd place gets 25% of their bet back as consolation
+          payout = betAmount * 0.25;
         }
+        // Everyone else loses their bet (payout = 0)
 
         // Update user's alpha points
         const [currentUser] = await tx
@@ -574,13 +587,14 @@ export class DbStorage implements IStorage {
             .where(eq(users.id, vote.userId));
         }
 
-        // Update vote record with points earned, multiplier, and payout
+        // Update vote record with results
         await tx
           .update(votes)
           .set({
             pointsEarned: points,
             multiplier: totalMultiplier,
-            payoutAmount: payout,
+            payout: payout.toFixed(2),
+            isCorrect: isWinner,
           })
           .where(eq(votes.id, vote.id));
       }

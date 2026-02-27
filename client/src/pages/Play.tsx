@@ -143,17 +143,9 @@ export default function Play() {
       }, user.id);
       const result = await response.json();
 
-      if (result.vote && result.wagerAmount && BigInt(result.wagerAmount) > BigInt(0)) {
-        const mockTxSig = `simulated_${Date.now()}_${result.vote.id}`;
-        const verifyResponse = await apiRequest('/api/wager/verify', {
-          method: 'POST',
-          body: JSON.stringify({
-            voteId: result.vote.id,
-            txSignature: mockTxSig,
-          }),
-        }, user.id);
-        await verifyResponse.json();
-      }
+      // Wager verification happens through the wallet transaction flow
+      // The user must complete the real Solana transaction via LinkWallet page
+      // Server will verify the actual on-chain transaction before confirming the wager
 
       return result;
     },

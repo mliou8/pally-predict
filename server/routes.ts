@@ -625,9 +625,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Calculate total pot from all wagers
         const totalPot = votes.reduce((sum, v) => sum + v.wagerAmount, BigInt(0));
 
-        // Determine winning choice (highest percentage)
-        const winningChoice = Object.entries(voteCounts)
-          .reduce((a, b) => voteCounts[a[0] as keyof typeof voteCounts] > voteCounts[b[0] as keyof typeof voteCounts] ? a : b)[0] as 'A' | 'B' | 'C' | 'D';
+        // Determine winning choice (highest vote count)
+        // Sort by vote count descending, then alphabetically for deterministic tie-breaking
+        const sortedChoices = Object.entries(voteCounts)
+          .sort((a, b) => {
+            const countDiff = b[1] - a[1]; // Higher count first
+            if (countDiff !== 0) return countDiff;
+            return a[0].localeCompare(b[0]); // Alphabetical for ties (A wins over B)
+          });
+
+        const winningChoice = sortedChoices[0][0] as 'A' | 'B' | 'C' | 'D';
+        const secondPlaceChoice = sortedChoices.length > 1 ? sortedChoices[1][0] as 'A' | 'B' | 'C' | 'D' : null;
 
         const newResults = await storage.createQuestionResults({
           questionId: req.params.questionId,
@@ -650,9 +658,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         if (!alreadyProcessed) {
           // Use atomic transaction to distribute rewards
+          // 2nd place gets 25% of their wager back as consolation
           await storage.distributeRewards({
             questionVotes: votes,
             winningChoice,
+            secondPlaceChoice,
             rarityMultipliers: rarityMultipliers as Record<'A' | 'B' | 'C' | 'D', number>,
             totalPot,
           });
@@ -1537,16 +1547,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get question stats for pool display
       const stats = await storage.getQuestionStats(question.id);
 
+      // Anti-collusion: Only show vote breakdown after question is revealed
+      // Before reveal, only show total counts to prevent gaming the rarity multiplier
+      const safeStats = question.isRevealed ? {
+        totalBets: stats.totalBets,
+        totalAmount: stats.totalAmount,
+        votesA: stats.votesA,
+        votesB: stats.votesB,
+        votesC: stats.votesC,
+        votesD: stats.votesD,
+      } : {
+        totalBets: stats.totalBets,
+        totalAmount: stats.totalAmount,
+        // Hide per-choice breakdown until revealed
+      };
+
       res.json({
         ...question,
-        stats: {
-          totalBets: stats.totalBets,
-          totalAmount: stats.totalAmount,
-          votesA: stats.votesA,
-          votesB: stats.votesB,
-          votesC: stats.votesC,
-          votesD: stats.votesD,
-        },
+        stats: safeStats,
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });

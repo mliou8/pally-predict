@@ -106,11 +106,27 @@ export function initWebSocket(server: Server): WebSocketServer {
 
 async function sendCurrentStats(ws: WebSocket, questionId: string): Promise<void> {
   try {
+    const question = await storage.getQuestion(questionId);
     const stats = await storage.getQuestionStats(questionId);
+
+    // Anti-collusion: Hide vote breakdown until question is revealed
+    const safeStats = question?.isRevealed ? stats : {
+      totalBets: stats.totalBets,
+      totalAmount: stats.totalAmount,
+      votesA: 0,
+      votesB: 0,
+      votesC: 0,
+      votesD: 0,
+      amountA: 0,
+      amountB: 0,
+      amountC: 0,
+      amountD: 0,
+    };
+
     const message: PoolUpdate = {
       type: 'pool_update',
       questionId,
-      stats,
+      stats: safeStats,
     };
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(message));
@@ -126,11 +142,27 @@ export async function broadcastPoolUpdate(questionId: string): Promise<void> {
   if (!subs || subs.size === 0) return;
 
   try {
+    const question = await storage.getQuestion(questionId);
     const stats = await storage.getQuestionStats(questionId);
+
+    // Anti-collusion: Hide vote breakdown until question is revealed
+    const safeStats = question?.isRevealed ? stats : {
+      totalBets: stats.totalBets,
+      totalAmount: stats.totalAmount,
+      votesA: 0,
+      votesB: 0,
+      votesC: 0,
+      votesD: 0,
+      amountA: 0,
+      amountB: 0,
+      amountC: 0,
+      amountD: 0,
+    };
+
     const message: PoolUpdate = {
       type: 'pool_update',
       questionId,
-      stats,
+      stats: safeStats,
     };
     const messageStr = JSON.stringify(message);
 
