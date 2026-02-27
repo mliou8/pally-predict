@@ -1,4 +1,4 @@
-# Pally Traders — Design Guidelines
+# Pally Predict — Design Guidelines
 
 ## Design Philosophy
 

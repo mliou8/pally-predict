@@ -22,7 +22,7 @@ export default function Footer() {
             </Link>
           </div>
           <div className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} Pally Traders. All rights reserved.
+            © {new Date().getFullYear()} Pally Predict. All rights reserved.
           </div>
         </div>
       </div>

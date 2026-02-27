@@ -19,7 +19,7 @@ export default function PrivacyPolicy() {
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4 text-foreground">1. Introduction</h2>
             <p className="text-foreground mb-4">
-              Pally Traders ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our prediction game platform.
+              Pally Predict ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our prediction game platform.
             </p>
           </section>
 
@@ -128,7 +128,7 @@ export default function PrivacyPolicy() {
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4 text-foreground">9. Children's Privacy</h2>
             <p className="text-foreground mb-4">
-              Pally Traders is not intended for users under the age of 13 (or the applicable age of digital consent in your jurisdiction). We do not knowingly collect personal information from children. If we become aware that we have collected information from a child without appropriate consent, we will take steps to delete such information.
+              Pally Predict is not intended for users under the age of 13 (or the applicable age of digital consent in your jurisdiction). We do not knowingly collect personal information from children. If we become aware that we have collected information from a child without appropriate consent, we will take steps to delete such information.
             </p>
           </section>
 

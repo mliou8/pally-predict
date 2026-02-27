@@ -19,14 +19,14 @@ export default function TermsOfService() {
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4 text-foreground">1. Acceptance of Terms</h2>
             <p className="text-foreground mb-4">
-              Welcome to Pally Traders ("Pally Arena", "we", "our", or "us"). By accessing or using our prediction game platform, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our service.
+              Welcome to Pally Predict ("Pally Arena", "we", "our", or "us"). By accessing or using our prediction game platform, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our service.
             </p>
           </section>
 
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4 text-foreground">2. Description of Service</h2>
             <p className="text-foreground mb-4">
-              Pally Traders is a competitive prediction game where users make daily predictions about various topics to earn Alpha points and compete on leaderboards. The service includes:
+              Pally Predict is a competitive prediction game where users make daily predictions about various topics to earn Alpha points and compete on leaderboards. The service includes:
             </p>
             <ul className="list-disc pl-6 mb-4 text-foreground space-y-2">
               <li>Daily multiple-choice prediction questions</li>
@@ -40,7 +40,7 @@ export default function TermsOfService() {
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4 text-foreground">3. User Accounts and Authentication</h2>
             <p className="text-foreground mb-4">
-              To use Pally Traders, you must create an account using one of our supported authentication methods (wallet, email, or social login via Privy). You agree to:
+              To use Pally Predict, you must create an account using one of our supported authentication methods (wallet, email, or social login via Privy). You agree to:
             </p>
             <ul className="list-disc pl-6 mb-4 text-foreground space-y-2">
               <li>Provide accurate and complete information during registration</li>
@@ -83,14 +83,14 @@ export default function TermsOfService() {
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4 text-foreground">6. Content and Intellectual Property</h2>
             <p className="text-foreground mb-4">
-              All content on Pally Traders, including text, graphics, logos, icons, images, and software, is owned by or licensed to us and is protected by copyright and trademark laws. You may not reproduce, distribute, or create derivative works without our express written permission.
+              All content on Pally Predict, including text, graphics, logos, icons, images, and software, is owned by or licensed to us and is protected by copyright and trademark laws. You may not reproduce, distribute, or create derivative works without our express written permission.
             </p>
           </section>
 
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4 text-foreground">7. No Monetary Value</h2>
             <p className="text-foreground mb-4">
-              Alpha points have no monetary value and cannot be exchanged for cash or any form of compensation. They are solely for entertainment and competitive purposes within the Pally Traders platform.
+              Alpha points have no monetary value and cannot be exchanged for cash or any form of compensation. They are solely for entertainment and competitive purposes within the Pally Predict platform.
             </p>
           </section>
 
@@ -125,7 +125,7 @@ export default function TermsOfService() {
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4 text-foreground">12. Governing Law</h2>
             <p className="text-foreground mb-4">
-              These Terms of Service shall be governed by and construed in accordance with the laws of the jurisdiction in which Pally Traders operates, without regard to its conflict of law provisions.
+              These Terms of Service shall be governed by and construed in accordance with the laws of the jurisdiction in which Pally Predict operates, without regard to its conflict of law provisions.
             </p>
           </section>
 

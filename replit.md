@@ -1,7 +1,7 @@
-# Pally Traders
+# Pally Predict
 
 ## Overview
-Pally Traders is a competitive prediction game inspired by "fantasy sports for degens," where users predict crypto market sentiment, crowd consensus, and preferences daily. The goal is to earn Alpha points and climb leaderboards by making accurate predictions on multiple-choice questions. The game emphasizes cultural forecasting over direct market outcomes, utilizing a dark neon aesthetic with turquoise and magenta gradients, blending trading terminal functionality with mobile gaming UI. Users can choose Public voting (x2 multiplier) or Private voting (x1 multiplier), with rare correct predictions yielding higher base points.
+Pally Predict is a competitive prediction game inspired by "fantasy sports for degens," where users predict crypto market sentiment, crowd consensus, and preferences daily. The goal is to earn Alpha points and climb leaderboards by making accurate predictions on multiple-choice questions. The game emphasizes cultural forecasting over direct market outcomes, utilizing a dark neon aesthetic with turquoise and magenta gradients, blending trading terminal functionality with mobile gaming UI. Users can choose Public voting (x2 multiplier) or Private voting (x1 multiplier), with rare correct predictions yielding higher base points.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.

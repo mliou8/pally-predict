@@ -12,8 +12,8 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["favicon.svg"],
       manifest: {
-        name: "PALLY TRADERS - Predict. Earn Alpha. Rise the Ranks.",
-        short_name: "Pally Traders",
+        name: "PALLY PREDICT - Predict. Earn Alpha. Rise the Ranks.",
+        short_name: "Pally Predict",
         description: "Fantasy sports for degens. Make daily predictions, earn Alpha points, and climb the leaderboards.",
         theme_color: "#000000",
         background_color: "#000000",

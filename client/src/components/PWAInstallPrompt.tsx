@@ -179,7 +179,7 @@ export default function PWAInstallPrompt() {
             className="text-sm font-bold mb-1"
             style={{ color: Colors.dark.text }}
           >
-            Install Pally Traders
+            Install Pally Predict
           </h4>
           <p
             className="text-xs"
