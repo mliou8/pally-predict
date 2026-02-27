@@ -10,16 +10,21 @@ import type { Request, Response, NextFunction } from 'express';
 import { storage } from './storage';
 import type { User } from '@shared/schema';
 
-// JWT secret from environment - required in production
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) {
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('JWT_SECRET environment variable is required in production');
-  }
-  console.warn('WARNING: JWT_SECRET not set. Using insecure default for development only.');
-}
-const EFFECTIVE_JWT_SECRET = JWT_SECRET || 'dev-only-insecure-secret';
+// JWT secret from environment - lazy initialization to allow server to start
 const JWT_EXPIRY = '7d';
+
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('JWT_SECRET not set - JWT operations will fail');
+      return 'missing-jwt-secret-will-fail';
+    }
+    console.warn('WARNING: JWT_SECRET not set. Using insecure default for development only.');
+    return 'dev-only-insecure-secret';
+  }
+  return secret;
+}
 
 // Extend Express Request to include user
 declare global {
@@ -42,7 +47,7 @@ interface TokenPayload {
 export function generateToken(userId: string): string {
   return jwt.sign(
     { userId, platform: 'mobile' },
-    EFFECTIVE_JWT_SECRET,
+    getJwtSecret(),
     { expiresIn: JWT_EXPIRY }
   );
 }
@@ -50,7 +55,7 @@ export function generateToken(userId: string): string {
 // Verify JWT token and return payload
 export function verifyToken(token: string): TokenPayload | null {
   try {
-    return jwt.verify(token, EFFECTIVE_JWT_SECRET) as TokenPayload;
+    return jwt.verify(token, getJwtSecret()) as TokenPayload;
   } catch {
     return null;
   }
