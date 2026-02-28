@@ -25,6 +25,7 @@ const app = express();
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
+    version: 'v2', // Version marker to verify deployment
     timestamp: new Date().toISOString(),
     env: {
       NODE_ENV: process.env.NODE_ENV,
