@@ -52,6 +52,26 @@ app.get('/api/debug/db', async (req, res) => {
   }
 });
 
+// Run migrations endpoint (one-time use)
+app.post('/api/admin/migrate', async (req, res) => {
+  try {
+    const { execSync } = await import('child_process');
+    const output = execSync('npm run db:push', {
+      encoding: 'utf-8',
+      env: process.env as NodeJS.ProcessEnv
+    });
+    res.json({ status: 'success', output });
+  } catch (error: any) {
+    console.error('Migration error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: error.message,
+      stderr: error.stderr,
+      stdout: error.stdout
+    });
+  }
+});
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: false, // Disable for development - enable in production with proper config
