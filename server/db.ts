@@ -1,15 +1,14 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
+import pg from 'pg';
+import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "@shared/schema";
 
-neonConfig.webSocketConstructor = ws;
+const { Pool } = pg;
 
 // Lazy initialization - only throw when DB is actually used
-let _pool: Pool | null = null;
+let _pool: pg.Pool | null = null;
 let _db: ReturnType<typeof drizzle> | null = null;
 
-function getPool(): Pool {
+function getPool(): pg.Pool {
   if (!_pool) {
     if (!process.env.DATABASE_URL) {
       throw new Error(
@@ -21,7 +20,7 @@ function getPool(): Pool {
   return _pool;
 }
 
-export const pool = new Proxy({} as Pool, {
+export const pool = new Proxy({} as pg.Pool, {
   get(_, prop) {
     return (getPool() as any)[prop];
   }
@@ -30,7 +29,7 @@ export const pool = new Proxy({} as Pool, {
 export const db = new Proxy({} as ReturnType<typeof drizzle>, {
   get(_, prop) {
     if (!_db) {
-      _db = drizzle({ client: getPool(), schema });
+      _db = drizzle(getPool(), { schema });
     }
     return (_db as any)[prop];
   }
