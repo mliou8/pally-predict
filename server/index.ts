@@ -34,6 +34,23 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Debug endpoint to test database connection
+app.get('/api/debug/db', async (req, res) => {
+  try {
+    const { db } = await import('./db');
+    const result = await db.execute('SELECT 1 as test');
+    res.json({ status: 'connected', result });
+  } catch (error: any) {
+    console.error('DB debug error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+  }
+});
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: false, // Disable for development - enable in production with proper config
