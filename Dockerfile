@@ -11,6 +11,10 @@ RUN npm install --legacy-peer-deps
 # Copy rest of application
 COPY . .
 
+# Build args for Vite (needed at build time)
+ARG VITE_PRIVY_APP_ID
+ENV VITE_PRIVY_APP_ID=$VITE_PRIVY_APP_ID
+
 # Build the application
 RUN npm run build
 
