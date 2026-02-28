@@ -136,12 +136,24 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
     try {
       // Check and reveal questions that have passed their reveal time
       await checkAndRevealQuestions();
-      
+
       const questions = await storage.getActiveQuestions();
       res.json(questions);
     } catch (error: any) {
-      console.error('API Error:', error);
-      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
+      console.error('API Error (questions/active):', error);
+      const errorInfo = {
+        message: error.message,
+        name: error.name,
+        code: error.code,
+        detail: error.detail,
+        hint: error.hint,
+        toString: String(error),
+      };
+      console.error('Error details:', JSON.stringify(errorInfo, null, 2));
+      res.status(500).json({
+        error: error.message || error.code || String(error) || 'Unknown error',
+        details: errorInfo
+      });
     }
   });
 
