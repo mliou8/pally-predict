@@ -72,6 +72,37 @@ app.post('/api/admin/migrate', async (req, res) => {
   }
 });
 
+// Add single active question (for immediate display)
+app.post('/api/admin/seed-active', async (req, res) => {
+  try {
+    const { db } = await import('./db');
+    const { questions } = await import('@shared/schema');
+
+    // The AI white-collar jobs question that was active in local
+    const seedData = {
+      type: 'prediction' as const,
+      prompt: 'By the end of 2026, what will be the biggest impact of AI on white-collar jobs?',
+      optionA: 'Universal 4-day work week',
+      optionB: 'Massive 30%+ layoffs',
+      optionC: 'Human-only work becomes luxury',
+      optionD: 'Government bans autonomous AI',
+      dropsAt: new Date('2026-02-27T17:00:00.000Z'), // Already dropped
+      revealsAt: new Date('2026-03-01T17:00:00.000Z'), // Reveals in future
+      isActive: true,
+      isRevealed: false,
+    };
+
+    const inserted = await db.insert(questions).values(seedData).returning();
+    res.json({ status: 'success', question: inserted[0] });
+  } catch (error: any) {
+    console.error('Seed active error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: error.message || String(error),
+    });
+  }
+});
+
 // Seed questions endpoint (one-time use)
 app.post('/api/admin/seed-questions', async (req, res) => {
   try {
