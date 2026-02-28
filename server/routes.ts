@@ -66,7 +66,8 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
 
       res.json(user);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
     }
   });
 
@@ -100,7 +101,8 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
 
       res.status(201).json(user);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
     }
   });
 
@@ -122,7 +124,8 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
 
       res.json(updatedUser);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
     }
   });
 
@@ -137,7 +140,8 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
       const questions = await storage.getActiveQuestions();
       res.json(questions);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
     }
   });
 
@@ -151,7 +155,8 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
       const questions = await storage.getRevealedQuestions(limit);
       res.json(questions);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
     }
   });
 
@@ -164,7 +169,8 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
       }
       res.json(question);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
     }
   });
 
@@ -264,7 +270,8 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
       const votes = await storage.getUserVotes(user.id);
       res.json(serializeBigInt(votes));
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
     }
   });
 
@@ -284,7 +291,8 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
       const vote = await storage.getVote(user.id, req.params.questionId);
       res.json(vote ? serializeBigInt(vote) : null);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
     }
   });
 
@@ -514,7 +522,8 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
         });
       }
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
     }
   });
 
@@ -568,7 +577,8 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
         maxStreak: user.maxStreak,
       });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
     }
   });
 
@@ -666,7 +676,8 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
 
       res.json(serializeBigInt(results));
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
     }
   });
 
@@ -678,7 +689,8 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
       const leaders = await storage.getLeaderboard(limit);
       res.json(leaders);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
     }
   });
 
@@ -704,7 +716,8 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
       const questions = await storage.getAllQuestions();
       res.json(questions);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
     }
   });
 
@@ -766,7 +779,8 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
 
       res.json({ success: true });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
     }
   });
 
@@ -814,7 +828,8 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
         updatedCount 
       });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
     }
   });
 
@@ -1125,7 +1140,8 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
         note: 'If results show 0 votes, run: DELETE FROM question_results WHERE total_votes = 0;',
       });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
     }
   });
   
@@ -1203,7 +1219,8 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
 
       res.json({ success: true, questions: created });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
     }
   });
 
@@ -1259,7 +1276,8 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
         message,
       });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
     }
   });
 
@@ -1346,7 +1364,8 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
         user: updatedUser 
       });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
     }
   });
 
@@ -1368,7 +1387,8 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
         walletAddress: user.solanaAddress || null
       });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
     }
   });
 
@@ -1399,7 +1419,8 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
         user: updatedUser
       });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
     }
   });
 
@@ -1470,7 +1491,8 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
         token,
       });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
     }
   });
 
@@ -1508,7 +1530,8 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
         token,
       });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
     }
   });
 
@@ -1530,7 +1553,8 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
         telegramLinked: !!user.telegramId,
       });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
     }
   });
 
@@ -1541,7 +1565,8 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
       const activeQuestions = await storage.getActiveQuestions();
       res.json(activeQuestions);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
     }
   });
 
@@ -1576,7 +1601,8 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
         stats: safeStats,
       });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
     }
   });
 
@@ -1645,7 +1671,8 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
       const votes = await storage.getUserVotes(user.id);
       res.json(serializeBigInt(votes));
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
     }
   });
 
@@ -1684,7 +1711,8 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
         correctAnswer: question.correctAnswer,
       });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
     }
   });
 
@@ -1708,7 +1736,8 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
 
       res.json(publicLeaders);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
     }
   });
 
@@ -1735,7 +1764,8 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
         maxStreak: user.maxStreak,
       });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
     }
   });
 
@@ -1839,7 +1869,8 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
         },
       });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
     }
   });
 
