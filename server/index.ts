@@ -72,6 +72,70 @@ app.post('/api/admin/migrate', async (req, res) => {
   }
 });
 
+// Seed questions endpoint (one-time use)
+app.post('/api/admin/seed-questions', async (req, res) => {
+  try {
+    const { db } = await import('./db');
+    const { questions } = await import('@shared/schema');
+
+    const seedData = [
+      {
+        type: 'prediction' as const,
+        prompt: 'By 2027, how will most people watch their favorite movies and TV shows?',
+        optionA: 'Giant Super-App bundles',
+        optionB: 'Mandatory commercials for everyone',
+        optionC: 'AI-generated personalized shows',
+        optionD: 'Resurgence of illegal piracy',
+        dropsAt: new Date('2026-03-01T14:00:00.000Z'),
+        revealsAt: new Date('2026-03-02T02:00:00.000Z'),
+        isActive: true,
+      },
+      {
+        type: 'consensus' as const,
+        prompt: 'What will be the coolest way to use social media in 2026?',
+        optionA: 'Private, invite-only group chats',
+        optionB: 'Raw, unedited ugly content',
+        optionC: 'Following realistic AI influencers',
+        optionD: 'Quitting all digital platforms',
+        dropsAt: new Date('2026-03-02T14:00:00.000Z'),
+        revealsAt: new Date('2026-03-03T02:00:00.000Z'),
+        isActive: true,
+      },
+      {
+        type: 'prediction' as const,
+        prompt: 'What will be the most controversial must-have health trend of 2026?',
+        optionA: 'Cheap, universal weight-loss jabs',
+        optionB: 'Lab-grown meat only diets',
+        optionC: 'Brain-boosting focus implants',
+        optionD: 'Mandatory phone-free sleep locks',
+        dropsAt: new Date('2026-03-03T14:00:00.000Z'),
+        revealsAt: new Date('2026-03-04T02:00:00.000Z'),
+        isActive: true,
+      },
+      {
+        type: 'prediction' as const,
+        prompt: 'How will the majority of Gen Alpha find their first serious partners?',
+        optionA: 'AI agents talk first',
+        optionB: 'Meeting at offline clubs',
+        optionC: 'Virtual Reality Metaverse dates',
+        optionD: 'Matching by DNA compatibility',
+        dropsAt: new Date('2026-03-04T14:00:00.000Z'),
+        revealsAt: new Date('2026-03-05T02:00:00.000Z'),
+        isActive: true,
+      },
+    ];
+
+    const inserted = await db.insert(questions).values(seedData).returning();
+    res.json({ status: 'success', count: inserted.length, questions: inserted });
+  } catch (error: any) {
+    console.error('Seed error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: error.message || String(error),
+    });
+  }
+});
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: false, // Disable for development - enable in production with proper config
