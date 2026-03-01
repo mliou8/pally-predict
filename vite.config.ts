@@ -5,6 +5,10 @@ import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
+  define: {
+    // Ensure VITE_PRIVY_APP_ID is available at build time
+    'import.meta.env.VITE_PRIVY_APP_ID': JSON.stringify(process.env.VITE_PRIVY_APP_ID || ''),
+  },
   plugins: [
     react(),
     runtimeErrorOverlay(),
