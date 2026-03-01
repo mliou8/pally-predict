@@ -183,48 +183,9 @@ export class DbStorage implements IStorage {
 
   async getActiveQuestions(): Promise<Question[]> {
     const now = new Date();
-    
-    // Get current ET time to determine if we're before/after noon
-    const etTimeStr = now.toLocaleString('en-US', { 
-      timeZone: 'America/New_York',
-      hour12: false,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
-    
-    // Parse the ET time string (format: "MM/DD/YYYY, HH:mm:ss")
-    const [datePart, timePart] = etTimeStr.split(', ');
-    const [month, day, year] = datePart.split('/');
-    const etHour = parseInt(timePart.split(':')[0]);
-    
-    // Calculate which noon to use (today or yesterday in ET)
-    let cycleStartDate: Date;
-    
-    // Determine EST vs EDT offset
-    const etOffset = now.toLocaleString('en-US', {
-      timeZone: 'America/New_York',
-      timeZoneName: 'short'
-    }).includes('EDT') ? -4 : -5;
 
-    // Calculate noon ET in UTC using Date.UTC
-    // For EST (offset -5), noon ET (12:00) = 17:00 UTC
-    // For EDT (offset -4), noon ET (12:00) = 16:00 UTC
-    const noonUTCHour = 12 + Math.abs(etOffset);
-
-    if (etHour < 12) {
-      // Before noon ET - use yesterday's noon
-      const todayNoonUTC = Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), noonUTCHour, 0, 0);
-      cycleStartDate = new Date(todayNoonUTC - 24 * 60 * 60 * 1000);
-    } else {
-      // After noon ET - use today's noon
-      cycleStartDate = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), noonUTCHour, 0, 0));
-    }
-    
-    // Get only the 3 most recent active questions from current 24h period
+    // Simple approach: get all active, non-revealed questions where dropsAt has passed
+    // and revealsAt hasn't passed yet
     return await db
       .select()
       .from(questions)
@@ -233,7 +194,7 @@ export class DbStorage implements IStorage {
           eq(questions.isActive, true),
           eq(questions.isRevealed, false),
           lte(questions.dropsAt, now),
-          gte(questions.dropsAt, cycleStartDate)
+          gte(questions.revealsAt, now)
         )
       )
       .orderBy(desc(questions.dropsAt))
