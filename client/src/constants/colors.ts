@@ -1,48 +1,64 @@
 const Colors = {
   dark: {
-    background: '#0A0D15',
-    backgroundAlt: '#0E1120',
-    surface: '#131827',
-    surfaceLight: '#1B2036',
-    surfaceHighlight: '#232845',
-    surfaceBright: '#2C3258',
-    border: '#1F2544',
-    borderLight: '#2A3160',
-    borderBright: '#38407A',
-    text: '#ECEEF4',
-    textSecondary: '#7B83A6',
-    textMuted: '#434968',
-    accent: '#FF6B35',
-    accentSoft: '#E85D2C',
-    accentDim: 'rgba(255, 107, 53, 0.10)',
-    accentGlow: 'rgba(255, 107, 53, 0.22)',
-    accentBright: 'rgba(255, 107, 53, 0.35)',
-    success: '#22C55E',
-    successDim: 'rgba(34, 197, 94, 0.12)',
-    warning: '#FBBF24',
-    warningDim: 'rgba(251, 191, 36, 0.12)',
-    error: '#EF4444',
-    errorDim: 'rgba(239, 68, 68, 0.10)',
-    blue: '#3B82F6',
-    blueDim: 'rgba(59, 130, 246, 0.12)',
-    pink: '#EC4899',
-    pinkDim: 'rgba(236, 72, 153, 0.12)',
-    teal: '#14B8A6',
-    tealDim: 'rgba(20, 184, 166, 0.12)',
-    violet: '#8B5CF6',
-    violetDim: 'rgba(139, 92, 246, 0.12)',
-    tabBar: '#090C14',
-    tabBarBorder: '#151A2E',
-    glass: 'rgba(19, 24, 39, 0.88)',
-    glassBorder: 'rgba(255, 255, 255, 0.05)',
+    // Core backgrounds - true black for contrast
+    background: '#000000',
+    backgroundAlt: '#0A0A0A',
+    surface: '#111111',
+    surfaceLight: '#1A1A1A',
+    surfaceHighlight: '#222222',
+    surfaceBright: '#2A2A2A',
+
+    // Borders - subtle
+    border: '#1A1A1A',
+    borderLight: '#252525',
+    borderBright: '#333333',
+
+    // Text - high contrast
+    text: '#FFFFFF',
+    textSecondary: '#999999',
+    textMuted: '#555555',
+
+    // Primary accent - lime green (distinctive)
+    accent: '#BFFF00',
+    accentSoft: '#A3E000',
+    accentDim: 'rgba(191, 255, 0, 0.08)',
+    accentGlow: 'rgba(191, 255, 0, 0.15)',
+    accentBright: 'rgba(191, 255, 0, 0.25)',
+
+    // Semantic colors
+    success: '#00FF88',
+    successDim: 'rgba(0, 255, 136, 0.10)',
+    warning: '#FFE600',
+    warningDim: 'rgba(255, 230, 0, 0.10)',
+    error: '#FF3366',
+    errorDim: 'rgba(255, 51, 102, 0.10)',
+
+    // Secondary accents
+    blue: '#00D4FF',
+    blueDim: 'rgba(0, 212, 255, 0.10)',
+    pink: '#FF00AA',
+    pinkDim: 'rgba(255, 0, 170, 0.10)',
+    teal: '#00FFCC',
+    tealDim: 'rgba(0, 255, 204, 0.10)',
+    violet: '#AA66FF',
+    violetDim: 'rgba(170, 102, 255, 0.10)',
+
+    // Tab bar
+    tabBar: '#000000',
+    tabBarBorder: '#1A1A1A',
+
+    // Glass effect
+    glass: 'rgba(0, 0, 0, 0.85)',
+    glassBorder: 'rgba(255, 255, 255, 0.06)',
   },
 };
 
+// Answer option colors - bold, full saturation
 export const OPTION_COLORS = [
-  { bg: 'rgba(255, 107, 53, 0.08)', border: '#FF6B35', text: '#FF8F66', glow: 'rgba(255, 107, 53, 0.18)', fill: 'rgba(255, 107, 53, 0.20)' },
-  { bg: 'rgba(59, 130, 246, 0.08)', border: '#3B82F6', text: '#6DA5FA', glow: 'rgba(59, 130, 246, 0.18)', fill: 'rgba(59, 130, 246, 0.20)' },
-  { bg: 'rgba(236, 72, 153, 0.08)', border: '#EC4899', text: '#F28DBF', glow: 'rgba(236, 72, 153, 0.18)', fill: 'rgba(236, 72, 153, 0.20)' },
-  { bg: 'rgba(20, 184, 166, 0.08)', border: '#14B8A6', text: '#5CD4C8', glow: 'rgba(20, 184, 166, 0.18)', fill: 'rgba(20, 184, 166, 0.20)' },
+  { bg: '#BFFF00', bgDim: 'rgba(191, 255, 0, 0.12)', border: '#BFFF00', text: '#000000', textAlt: '#BFFF00' },
+  { bg: '#00D4FF', bgDim: 'rgba(0, 212, 255, 0.12)', border: '#00D4FF', text: '#000000', textAlt: '#00D4FF' },
+  { bg: '#FF00AA', bgDim: 'rgba(255, 0, 170, 0.12)', border: '#FF00AA', text: '#000000', textAlt: '#FF00AA' },
+  { bg: '#FFE600', bgDim: 'rgba(255, 230, 0, 0.12)', border: '#FFE600', text: '#000000', textAlt: '#FFE600' },
 ];
 
 export default Colors;

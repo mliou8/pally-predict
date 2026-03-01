@@ -24,12 +24,24 @@ import TermsOfService from '@/pages/TermsOfService';
 import PrivacyPolicy from '@/pages/PrivacyPolicy';
 import LinkTelegram from '@/pages/LinkTelegram';
 import TabBar from '@/components/TabBar';
+import IntroAnimation from '@/components/IntroAnimation';
+
+const INTRO_SHOWN_KEY = 'pally_intro_shown';
 
 function AppContent() {
   const [location, setLocation] = useLocation();
   const { ready, authenticated, user } = usePrivy();
   const [initTimeout, setInitTimeout] = useState(false);
   const [checkingProfile, setCheckingProfile] = useState(false);
+  const [showIntro, setShowIntro] = useState(() => {
+    // Only show intro if not shown before in this session
+    return !sessionStorage.getItem(INTRO_SHOWN_KEY);
+  });
+
+  const handleIntroComplete = () => {
+    sessionStorage.setItem(INTRO_SHOWN_KEY, 'true');
+    setShowIntro(false);
+  };
 
   // Set global Privy user ID for API requests
   useEffect(() => {
@@ -159,6 +171,9 @@ function AppContent() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: Colors.dark.background }}>
+      {/* Intro animation on first load */}
+      {showIntro && <IntroAnimation onComplete={handleIntroComplete} />}
+
       <Switch>
         <Route path="/splash" component={Splash} />
         <Route path="/create-profile" component={CreateProfile} />

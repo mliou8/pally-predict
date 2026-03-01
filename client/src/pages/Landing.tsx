@@ -2,17 +2,7 @@ import { useEffect, useState } from 'react';
 import { usePrivy, useLogin } from '@privy-io/react-auth';
 import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
-import {
-  Crosshair,
-  Clock,
-  Trophy,
-  Download,
-  Smartphone,
-  MessageCircle,
-  ChevronRight,
-  Flame,
-  Star,
-} from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import Colors from '@/constants/colors';
 import { cn } from '@/lib/utils';
 import type { User } from '@shared/schema';
@@ -20,37 +10,13 @@ import type { User } from '@shared/schema';
 export default function Landing() {
   const { authenticated, ready, user } = usePrivy();
   const [, setLocation] = useLocation();
-  const [heroVisible, setHeroVisible] = useState(false);
-  const [sectionsVisible, setSectionsVisible] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
-  const [showIOSInstructions, setShowIOSInstructions] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [contentVisible, setContentVisible] = useState(false);
 
-  // Animation triggers
   useEffect(() => {
-    const t1 = setTimeout(() => setHeroVisible(true), 100);
-    const t2 = setTimeout(() => setSectionsVisible(true), 300);
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
+    const timer = setTimeout(() => setContentVisible(true), 100);
+    return () => clearTimeout(timer);
   }, []);
 
-  // PWA install detection
-  useEffect(() => {
-    const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-    setIsIOS(isIOSDevice);
-
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-  }, []);
-
-  // Login hook
   const { login } = useLogin({
     onComplete: () => {
       setLocation('/play');
@@ -60,13 +26,11 @@ export default function Landing() {
     },
   });
 
-  // Fetch user data if authenticated
   const { data: currentUser } = useQuery<User>({
     queryKey: ['/api/user/me'],
     enabled: !!user,
   });
 
-  // Handle Start Playing click
   const handleStartPlaying = () => {
     if (authenticated) {
       setLocation('/play');
@@ -75,25 +39,6 @@ export default function Landing() {
     }
   };
 
-  // Handle PWA install
-  const handleInstall = async () => {
-    if (isIOS) {
-      setShowIOSInstructions(true);
-      return;
-    }
-
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        setDeferredPrompt(null);
-      }
-    }
-  };
-
-  const isStandalone = typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches;
-
-  // Loading state
   if (!ready) {
     return (
       <div
@@ -101,7 +46,7 @@ export default function Landing() {
         style={{ backgroundColor: Colors.dark.background }}
       >
         <div
-          className="w-8 h-8 border-4 rounded-full animate-spin"
+          className="w-8 h-8 border-2 rounded-full animate-spin"
           style={{ borderColor: Colors.dark.accent, borderTopColor: 'transparent' }}
         />
       </div>
@@ -110,401 +55,173 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: Colors.dark.background }}>
-      <div className="max-w-lg mx-auto px-5 py-8 pb-12">
-        {/* Hero Section */}
+      <div className="max-w-lg mx-auto px-6 py-16 flex flex-col min-h-screen">
+        {/* Hero */}
         <div
           className={cn(
-            'text-center mb-12 transition-all duration-500',
-            heroVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+            'flex-1 flex flex-col justify-center transition-all duration-700',
+            contentVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           )}
         >
           {/* Logo */}
-          <div className="flex justify-center mb-6">
-            <div
-              className="w-20 h-20 rounded-2xl flex items-center justify-center shadow-lg"
-              style={{
-                backgroundColor: Colors.dark.accent,
-                boxShadow: `0 8px 32px ${Colors.dark.accent}40`,
-              }}
-            >
-              <span className="text-4xl font-black text-white">P</span>
-            </div>
+          <div
+            className="w-16 h-16 rounded-xl flex items-center justify-center mb-8"
+            style={{ backgroundColor: Colors.dark.accent }}
+          >
+            <span className="text-3xl font-black" style={{ color: '#000' }}>P</span>
           </div>
 
-          {/* Title & Tagline */}
+          {/* Title */}
           <h1
-            className="text-3xl font-black tracking-[3px] mb-2"
+            className="text-4xl font-bold leading-tight mb-4"
             style={{ color: Colors.dark.text }}
           >
-            PALLY PREDICT
+            Predict the future.
+            <br />
+            <span style={{ color: Colors.dark.accent }}>Win points.</span>
           </h1>
+
+          {/* Subtitle */}
           <p
-            className="text-base font-medium mb-8"
+            className="text-lg mb-12"
             style={{ color: Colors.dark.textSecondary }}
           >
-            Daily predictions. Wager points. Win big.
+            Daily prediction questions. Lock in your answer. See how you stack up.
           </p>
 
-          {/* CTA Button */}
+          {/* CTA */}
           <button
             onClick={handleStartPlaying}
-            className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-bold text-white transition-all hover:scale-[1.02] active:scale-[0.98]"
-            style={{
-              backgroundColor: Colors.dark.accent,
-              boxShadow: `0 8px 24px ${Colors.dark.accent}50`,
-            }}
+            className={cn(
+              'flex items-center justify-center gap-3 py-4 px-8 rounded-xl transition-all',
+              'active:scale-[0.98]'
+            )}
+            style={{ backgroundColor: Colors.dark.accent }}
           >
-            <Crosshair size={20} strokeWidth={2.5} />
-            <span className="text-lg">{authenticated ? 'Start Playing' : 'Sign Up to Play'}</span>
-            <ChevronRight size={20} strokeWidth={2.5} />
+            <span className="text-lg font-bold" style={{ color: '#000' }}>
+              {authenticated ? 'Start Playing' : 'Get Started'}
+            </span>
+            <ArrowRight size={20} color="#000" strokeWidth={2.5} />
           </button>
         </div>
 
-        {/* User Stats Preview (if authenticated) */}
-        {authenticated && currentUser && (
-          <div
-            className={cn(
-              'mb-10 transition-all duration-500 delay-100',
-              sectionsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-            )}
-          >
-            <div
-              className="rounded-2xl p-5 border"
-              style={{ backgroundColor: Colors.dark.surface, borderColor: Colors.dark.border }}
-            >
-              <div className="flex items-center gap-3 mb-4">
-                <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center text-xl font-bold"
-                  style={{ backgroundColor: Colors.dark.accentDim, color: Colors.dark.accent }}
-                >
-                  {currentUser.handle?.[0]?.toUpperCase() || '?'}
-                </div>
-                <div>
-                  <div className="font-bold" style={{ color: Colors.dark.text }}>
-                    {currentUser.handle || 'Player'}
-                  </div>
-                  <div className="text-sm" style={{ color: Colors.dark.textMuted }}>
-                    Welcome back!
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <div
-                  className="flex-1 rounded-xl p-3 text-center border"
-                  style={{ backgroundColor: Colors.dark.backgroundAlt, borderColor: Colors.dark.border }}
-                >
-                  <div className="flex items-center justify-center gap-1 mb-1">
-                    <Star size={14} color={Colors.dark.warning} />
-                    <span className="text-xs font-semibold" style={{ color: Colors.dark.textMuted }}>
-                      POINTS
-                    </span>
-                  </div>
-                  <div className="text-xl font-black" style={{ color: Colors.dark.text }}>
-                    1,000
-                  </div>
-                </div>
-
-                <div
-                  className="flex-1 rounded-xl p-3 text-center border"
-                  style={{ backgroundColor: Colors.dark.backgroundAlt, borderColor: Colors.dark.border }}
-                >
-                  <div className="flex items-center justify-center gap-1 mb-1">
-                    <Flame size={14} color={Colors.dark.accent} />
-                    <span className="text-xs font-semibold" style={{ color: Colors.dark.textMuted }}>
-                      STREAK
-                    </span>
-                  </div>
-                  <div className="text-xl font-black" style={{ color: Colors.dark.text }}>
-                    0
-                  </div>
-                </div>
-
-                <div
-                  className="flex-1 rounded-xl p-3 text-center border"
-                  style={{ backgroundColor: Colors.dark.backgroundAlt, borderColor: Colors.dark.border }}
-                >
-                  <div className="flex items-center justify-center gap-1 mb-1">
-                    <Trophy size={14} color={Colors.dark.blue} />
-                    <span className="text-xs font-semibold" style={{ color: Colors.dark.textMuted }}>
-                      RANK
-                    </span>
-                  </div>
-                  <div className="text-xl font-black" style={{ color: Colors.dark.text }}>
-                    --
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* How It Works Section */}
+        {/* How it works */}
         <div
           className={cn(
-            'mb-10 transition-all duration-500 delay-150',
-            sectionsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+            'py-12 transition-all duration-700 delay-200',
+            contentVisible ? 'opacity-100' : 'opacity-0'
           )}
         >
-          <h2
-            className="text-sm font-extrabold tracking-[2px] mb-4 text-center"
-            style={{ color: Colors.dark.textMuted }}
-          >
-            HOW IT WORKS
-          </h2>
-
-          <div className="space-y-3">
-            {/* Step 1 */}
-            <div
-              className="flex items-start gap-4 p-4 rounded-xl border"
-              style={{ backgroundColor: Colors.dark.surface, borderColor: Colors.dark.border }}
-            >
+          <div className="space-y-6">
+            <div className="flex items-start gap-4">
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ backgroundColor: Colors.dark.accentDim }}
+                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: Colors.dark.surface }}
               >
-                <Clock size={20} color={Colors.dark.accent} />
-              </div>
-              <div>
-                <div className="font-bold mb-1" style={{ color: Colors.dark.text }}>
-                  Daily predictions drop at noon ET
-                </div>
-                <div className="text-sm" style={{ color: Colors.dark.textSecondary }}>
-                  New questions every day covering sports, crypto, culture, and more.
-                </div>
-              </div>
-            </div>
-
-            {/* Step 2 */}
-            <div
-              className="flex items-start gap-4 p-4 rounded-xl border"
-              style={{ backgroundColor: Colors.dark.surface, borderColor: Colors.dark.border }}
-            >
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ backgroundColor: Colors.dark.blueDim }}
-              >
-                <Crosshair size={20} color={Colors.dark.blue} />
-              </div>
-              <div>
-                <div className="font-bold mb-1" style={{ color: Colors.dark.text }}>
-                  Vote on questions and wager points
-                </div>
-                <div className="text-sm" style={{ color: Colors.dark.textSecondary }}>
-                  Lock in your prediction and decide how many points to wager.
-                </div>
-              </div>
-            </div>
-
-            {/* Step 3 */}
-            <div
-              className="flex items-start gap-4 p-4 rounded-xl border"
-              style={{ backgroundColor: Colors.dark.surface, borderColor: Colors.dark.border }}
-            >
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ backgroundColor: Colors.dark.successDim }}
-              >
-                <Trophy size={20} color={Colors.dark.success} />
-              </div>
-              <div>
-                <div className="font-bold mb-1" style={{ color: Colors.dark.text }}>
-                  Results reveal and winners get points
-                </div>
-                <div className="text-sm" style={{ color: Colors.dark.textSecondary }}>
-                  Correct predictions earn points. Climb the leaderboard!
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Get the App Section */}
-        <div
-          className={cn(
-            'mb-10 transition-all duration-500 delay-200',
-            sectionsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-          )}
-        >
-          <h2
-            className="text-sm font-extrabold tracking-[2px] mb-4 text-center"
-            style={{ color: Colors.dark.textMuted }}
-          >
-            GET THE APP
-          </h2>
-
-          <div className="space-y-3">
-            {/* PWA Install */}
-            {!isStandalone && (
-              <button
-                onClick={handleInstall}
-                className="w-full flex items-center gap-4 p-4 rounded-xl border transition-all hover:border-opacity-80"
-                style={{ backgroundColor: Colors.dark.surface, borderColor: Colors.dark.border }}
-              >
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: Colors.dark.violetDim }}
+                <span
+                  className="text-sm font-bold"
+                  style={{
+                    color: Colors.dark.accent,
+                    fontFamily: 'JetBrains Mono, monospace',
+                  }}
                 >
-                  {isIOS ? (
-                    <Smartphone size={20} color={Colors.dark.violet} />
-                  ) : (
-                    <Download size={20} color={Colors.dark.violet} />
-                  )}
+                  01
+                </span>
+              </div>
+              <div>
+                <div className="font-semibold mb-1" style={{ color: Colors.dark.text }}>
+                  New question daily at noon ET
                 </div>
-                <div className="flex-1 text-left">
-                  <div className="font-bold" style={{ color: Colors.dark.text }}>
-                    {isIOS ? 'Add to Home Screen' : 'Install App'}
-                  </div>
-                  <div className="text-sm" style={{ color: Colors.dark.textSecondary }}>
-                    {isIOS
-                      ? 'Get the full app experience on iOS'
-                      : 'Install for quick access and notifications'}
-                  </div>
+                <div className="text-sm" style={{ color: Colors.dark.textMuted }}>
+                  Topics range from tech to culture to sports
                 </div>
-                <ChevronRight size={20} color={Colors.dark.textMuted} />
-              </button>
-            )}
+              </div>
+            </div>
 
-            {/* Telegram Bot */}
-            <a
-              href="https://t.me/PallyPredict_Bot"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full flex items-center gap-4 p-4 rounded-xl border transition-all hover:border-opacity-80"
-              style={{ backgroundColor: Colors.dark.surface, borderColor: Colors.dark.border }}
-            >
+            <div className="flex items-start gap-4">
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ backgroundColor: Colors.dark.blueDim }}
+                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: Colors.dark.surface }}
               >
-                <MessageCircle size={20} color={Colors.dark.blue} />
+                <span
+                  className="text-sm font-bold"
+                  style={{
+                    color: Colors.dark.accent,
+                    fontFamily: 'JetBrains Mono, monospace',
+                  }}
+                >
+                  02
+                </span>
               </div>
-              <div className="flex-1 text-left">
-                <div className="font-bold" style={{ color: Colors.dark.text }}>
-                  Play on Telegram
+              <div>
+                <div className="font-semibold mb-1" style={{ color: Colors.dark.text }}>
+                  Lock in your prediction
                 </div>
-                <div className="text-sm" style={{ color: Colors.dark.textSecondary }}>
-                  Get daily predictions in Telegram
+                <div className="text-sm" style={{ color: Colors.dark.textMuted }}>
+                  Choose wisely - you can't change your answer
                 </div>
               </div>
-              <ChevronRight size={20} color={Colors.dark.textMuted} />
-            </a>
+            </div>
+
+            <div className="flex items-start gap-4">
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: Colors.dark.surface }}
+              >
+                <span
+                  className="text-sm font-bold"
+                  style={{
+                    color: Colors.dark.accent,
+                    fontFamily: 'JetBrains Mono, monospace',
+                  }}
+                >
+                  03
+                </span>
+              </div>
+              <div>
+                <div className="font-semibold mb-1" style={{ color: Colors.dark.text }}>
+                  Results reveal, climb the ranks
+                </div>
+                <div className="text-sm" style={{ color: Colors.dark.textMuted }}>
+                  Earn points and compete on the leaderboard
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Footer */}
         <div
           className={cn(
-            'text-center transition-all duration-500 delay-250',
-            sectionsVisible ? 'opacity-100' : 'opacity-0'
+            'pt-6 border-t transition-all duration-700 delay-300',
+            contentVisible ? 'opacity-100' : 'opacity-0'
           )}
+          style={{ borderColor: Colors.dark.border }}
         >
-          <div className="flex items-center justify-center gap-4 text-sm">
+          <div className="flex items-center justify-center gap-6 text-sm">
             <a
               href="/terms"
-              className="hover:underline"
               style={{ color: Colors.dark.textMuted }}
             >
-              Terms of Service
+              Terms
             </a>
-            <span style={{ color: Colors.dark.border }}>|</span>
             <a
               href="/privacy"
-              className="hover:underline"
               style={{ color: Colors.dark.textMuted }}
             >
-              Privacy Policy
+              Privacy
+            </a>
+            <a
+              href="https://t.me/PallyPredict_Bot"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: Colors.dark.textMuted }}
+            >
+              Telegram
             </a>
           </div>
         </div>
       </div>
-
-      {/* iOS Instructions Modal */}
-      {showIOSInstructions && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4">
-          <div
-            className="w-full max-w-sm rounded-2xl p-6"
-            style={{ backgroundColor: Colors.dark.surface }}
-          >
-            <div className="flex justify-between items-start mb-4">
-              <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center"
-                style={{ backgroundColor: Colors.dark.accentDim }}
-              >
-                <Smartphone size={24} color={Colors.dark.accent} />
-              </div>
-              <button
-                onClick={() => setShowIOSInstructions(false)}
-                className="p-2 rounded-lg hover:bg-white/10 transition-colors"
-                style={{ color: Colors.dark.textMuted }}
-              >
-                ✕
-              </button>
-            </div>
-
-            <h3 className="text-lg font-bold mb-2" style={{ color: Colors.dark.text }}>
-              Add to Home Screen
-            </h3>
-
-            <div className="space-y-3 mb-6">
-              <div className="flex items-start gap-3">
-                <div
-                  className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold"
-                  style={{ backgroundColor: Colors.dark.accent, color: '#fff' }}
-                >
-                  1
-                </div>
-                <p className="text-sm" style={{ color: Colors.dark.textSecondary }}>
-                  Tap the{' '}
-                  <span className="font-semibold" style={{ color: Colors.dark.text }}>
-                    Share
-                  </span>{' '}
-                  button at the bottom of Safari
-                </p>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <div
-                  className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold"
-                  style={{ backgroundColor: Colors.dark.accent, color: '#fff' }}
-                >
-                  2
-                </div>
-                <p className="text-sm" style={{ color: Colors.dark.textSecondary }}>
-                  Scroll down and tap{' '}
-                  <span className="font-semibold" style={{ color: Colors.dark.text }}>
-                    "Add to Home Screen"
-                  </span>
-                </p>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <div
-                  className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold"
-                  style={{ backgroundColor: Colors.dark.accent, color: '#fff' }}
-                >
-                  3
-                </div>
-                <p className="text-sm" style={{ color: Colors.dark.textSecondary }}>
-                  Tap{' '}
-                  <span className="font-semibold" style={{ color: Colors.dark.text }}>
-                    "Add"
-                  </span>{' '}
-                  in the top right
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setShowIOSInstructions(false)}
-              className="w-full py-3 rounded-xl font-semibold transition-colors"
-              style={{ backgroundColor: Colors.dark.border, color: Colors.dark.text }}
-            >
-              Got it
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

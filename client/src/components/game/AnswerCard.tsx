@@ -11,15 +11,13 @@ interface AnswerCardProps {
   onPress: () => void;
 }
 
-const CARD_LABELS = ['A', 'B', 'C', 'D'];
-
 export default function AnswerCard({ text, index, isSelected, isLocked, onPress }: AnswerCardProps) {
   const [isAnimated, setIsAnimated] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
   const colors = OPTION_COLORS[index % OPTION_COLORS.length];
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsAnimated(true), index * 80 + 120);
+    const timer = setTimeout(() => setIsAnimated(true), index * 60 + 100);
     return () => clearTimeout(timer);
   }, [index]);
 
@@ -28,11 +26,14 @@ export default function AnswerCard({ text, index, isSelected, isLocked, onPress 
     onPress();
   };
 
+  // Large watermark number
+  const optionNumber = String(index + 1).padStart(2, '0');
+
   return (
     <div
       className={cn(
-        'w-[48%] mb-3 transition-all duration-300',
-        isAnimated ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+        'w-full mb-3 transition-all duration-300',
+        isAnimated ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
       )}
     >
       <button
@@ -42,53 +43,47 @@ export default function AnswerCard({ text, index, isSelected, isLocked, onPress 
         onMouseUp={() => setIsPressed(false)}
         onMouseLeave={() => setIsPressed(false)}
         className={cn(
-          'w-full rounded-2xl overflow-hidden min-h-[120px] relative transition-all duration-150',
-          'border focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#0A0D15]',
-          isPressed && !isLocked && 'scale-[0.97]',
-          isLocked && !isSelected && 'opacity-30 cursor-not-allowed',
-          !isLocked && 'cursor-pointer hover:scale-[0.98]'
+          'w-full rounded-xl overflow-hidden min-h-[72px] relative transition-all duration-200',
+          'focus:outline-none',
+          isPressed && !isLocked && 'scale-[0.98]',
+          isLocked && !isSelected && 'opacity-25',
+          !isLocked && 'cursor-pointer active:scale-[0.98]'
         )}
         style={{
           backgroundColor: isSelected ? colors.bg : Colors.dark.surface,
-          borderColor: isSelected ? colors.border : Colors.dark.border,
-          borderWidth: isSelected ? '1.5px' : '1px',
         }}
       >
-        {isSelected && (
-          <div
-            className="absolute top-0 left-0 right-0 h-[3px]"
-            style={{ backgroundColor: colors.border }}
-          />
-        )}
+        {/* Watermark number */}
+        <div
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-[48px] font-black select-none pointer-events-none"
+          style={{
+            color: isSelected ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.03)',
+            fontFamily: 'JetBrains Mono, monospace',
+          }}
+        >
+          {optionNumber}
+        </div>
 
-        <div className="p-4 flex flex-col justify-between min-h-[120px]">
-          <div className="flex justify-between items-center mb-2">
+        <div className="relative p-4 flex items-center gap-3">
+          {/* Selection indicator */}
+          {isSelected && (
             <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center"
-              style={{
-                backgroundColor: isSelected ? colors.glow : Colors.dark.surfaceLight,
-              }}
+              className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: 'rgba(0,0,0,0.25)' }}
             >
-              <span
-                className="text-xs font-extrabold tracking-wide"
-                style={{ color: isSelected ? colors.text : Colors.dark.textMuted }}
-              >
-                {CARD_LABELS[index]}
-              </span>
+              <Check size={14} color="#000" strokeWidth={3} />
             </div>
-            {isSelected && (
-              <div
-                className="w-5 h-5 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: colors.border }}
-              >
-                <Check size={9} color="#fff" strokeWidth={3.5} />
-              </div>
-            )}
-          </div>
+          )}
 
+          {/* Answer text */}
           <p
-            className="text-[13px] font-bold leading-[18px] tracking-tight"
-            style={{ color: isSelected ? colors.text : Colors.dark.text }}
+            className={cn(
+              'text-[15px] font-semibold leading-tight pr-12',
+              !isSelected && 'pl-9'
+            )}
+            style={{
+              color: isSelected ? colors.text : Colors.dark.text,
+            }}
           >
             {text}
           </p>

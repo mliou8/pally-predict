@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { usePrivy, useLogin } from '@privy-io/react-auth';
 import { useLocation } from 'wouter';
-import { Users, Flame, ChevronRight, Lock, Crosshair, BarChart3, Shuffle } from 'lucide-react';
+import { Lock, ArrowRight } from 'lucide-react';
 import Colors from '@/constants/colors';
 import { cn } from '@/lib/utils';
 import AnswerCard from '@/components/game/AnswerCard';
@@ -13,7 +13,6 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest, ApiError } from '@/lib/api';
 import { queryClient } from '@/lib/queryClient';
 import type { VoteChoice, Question, Vote, User } from '@shared/schema';
-import type { PayoutMode } from '@/types/game';
 
 interface VoteData {
   questionId: string;
@@ -34,29 +33,20 @@ export default function Play() {
   const [selectedOptionId, setSelectedOptionId] = useState<VoteChoice | null>(null);
   const [hasConfirmed, setHasConfirmed] = useState(false);
   const [wagerAmount, setWagerAmount] = useState(100);
-  const [payoutMode, setPayoutMode] = useState<PayoutMode>('even_split');
   const [pendingVote, setPendingVote] = useState<VoteData | null>(null);
   const [userPoints, setUserPoints] = useState(DEFAULT_POINTS);
-  const [currentStreak, setCurrentStreak] = useState(0);
 
   // Animations
-  const [headerVisible, setHeaderVisible] = useState(false);
-  const [questionVisible, setQuestionVisible] = useState(false);
+  const [contentVisible, setContentVisible] = useState(false);
 
   useEffect(() => {
-    const t1 = setTimeout(() => setHeaderVisible(true), 100);
-    const t2 = setTimeout(() => setQuestionVisible(true), 220);
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
+    const timer = setTimeout(() => setContentVisible(true), 100);
+    return () => clearTimeout(timer);
   }, []);
 
-  // Login hook for unauthenticated users
+  // Login hook
   const { login } = useLogin({
-    onComplete: () => {
-      // Vote will be processed via useEffect
-    },
+    onComplete: () => {},
     onError: (error) => {
       console.error('Login error:', error);
       setPendingVote(null);
@@ -87,15 +77,12 @@ export default function Play() {
     staleTime: 60000,
   });
 
-  // Update points from user data
   useEffect(() => {
     if (currentUser) {
-      // For now use default points, could be extended to use actual balance
       setUserPoints(DEFAULT_POINTS);
     }
   }, [currentUser]);
 
-  // Redirect to create-profile if user doesn't have a profile
   useEffect(() => {
     if (user && !isLoadingUser && isError && error) {
       if (error instanceof ApiError && error.status === 404) {
@@ -116,10 +103,9 @@ export default function Play() {
     enabled: !!user && !!currentUser,
   });
 
-  // Get today's question
   const question = activeQuestions[0];
 
-  // Check if user already voted on this question
+  // Check existing vote
   useEffect(() => {
     if (question && userVotes.length > 0) {
       const existingVote = userVotes.find((v) => v.questionId === question.id);
@@ -127,7 +113,7 @@ export default function Play() {
         setSelectedOptionId(existingVote.choice);
         setHasConfirmed(true);
         if (existingVote.wagerAmount) {
-          setWagerAmount(Number(existingVote.wagerAmount) / 1e9 * 100); // Convert back to points
+          setWagerAmount(Number(existingVote.wagerAmount) / 1e9 * 100);
         }
       }
     }
@@ -141,28 +127,23 @@ export default function Play() {
         method: 'POST',
         body: JSON.stringify(voteData),
       }, user.id);
-      const result = await response.json();
-      return result;
+      return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/votes/mine'] });
       queryClient.invalidateQueries({ queryKey: ['/api/questions/active'] });
       setHasConfirmed(true);
       toast({
-        title: 'Prediction locked in!',
-        description: 'Your answer has been recorded.',
+        title: 'Locked in',
+        description: 'Your prediction has been recorded.',
       });
     },
     onError: (error: Error) => {
       if (error instanceof ApiError && error.status === 404) {
         setLocation('/create-profile');
-        toast({
-          title: 'Profile Required',
-          description: 'Please create your profile to play',
-        });
       } else {
         toast({
-          title: 'Failed to submit',
+          title: 'Failed',
           description: error.message,
           variant: 'destructive',
         });
@@ -171,13 +152,11 @@ export default function Play() {
     },
   });
 
-  // Handle option selection
   const handleSelectOption = useCallback((index: number) => {
     if (hasConfirmed) return;
     setSelectedOptionId(OPTION_LABELS[index]);
   }, [hasConfirmed]);
 
-  // Handle confirm
   const handleConfirm = useCallback(() => {
     if (!selectedOptionId || hasConfirmed) return;
 
@@ -185,25 +164,20 @@ export default function Play() {
       questionId: question!.id,
       choice: selectedOptionId,
       isPublic: true,
-      wagerAmount: undefined, // Points-based for now
+      wagerAmount: undefined,
     };
 
-    // If not authenticated, trigger login
     if (!authenticated || !user) {
       setPendingVote(voteData);
       login();
       return;
     }
 
-    // Deduct points locally
     setUserPoints((prev) => prev - wagerAmount);
     setHasConfirmed(true);
-
-    // Submit vote
     voteMutation.mutate(voteData);
   }, [selectedOptionId, hasConfirmed, question, authenticated, user, login, wagerAmount, voteMutation]);
 
-  // Process pending vote after login
   useEffect(() => {
     if (pendingVote && authenticated && user && currentUser) {
       setUserPoints((prev) => prev - wagerAmount);
@@ -216,10 +190,6 @@ export default function Play() {
   const handleViewResults = useCallback(() => {
     setLocation('/results');
   }, [setLocation]);
-
-  const togglePayoutMode = useCallback(() => {
-    setPayoutMode((prev) => (prev === 'even_split' ? 'multiplier_odds' : 'even_split'));
-  }, []);
 
   // Get options from question
   const options = question
@@ -237,7 +207,10 @@ export default function Play() {
   if (!ready) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: Colors.dark.background }}>
-        <div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderColor: Colors.dark.accent, borderTopColor: 'transparent' }} />
+        <div
+          className="w-8 h-8 border-2 rounded-full animate-spin"
+          style={{ borderColor: Colors.dark.accent, borderTopColor: 'transparent' }}
+        />
       </div>
     );
   }
@@ -245,13 +218,24 @@ export default function Play() {
   // No questions
   if (!isLoadingActive && !question) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-5" style={{ backgroundColor: Colors.dark.background }}>
-        <div className="text-5xl mb-4">🎲</div>
-        <h2 className="text-xl font-bold mb-2" style={{ color: Colors.dark.text }}>
-          No questions today
+      <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ backgroundColor: Colors.dark.background }}>
+        <div
+          className="text-6xl mb-6"
+          style={{ filter: 'grayscale(100%)' }}
+        >
+          🎯
+        </div>
+        <h2
+          className="text-xl font-semibold mb-2"
+          style={{ color: Colors.dark.text }}
+        >
+          No predictions today
         </h2>
-        <p className="text-sm" style={{ color: Colors.dark.textMuted }}>
-          Check back soon for new predictions!
+        <p
+          className="text-sm text-center"
+          style={{ color: Colors.dark.textMuted }}
+        >
+          New questions drop daily at noon ET
         </p>
       </div>
     );
@@ -260,131 +244,83 @@ export default function Play() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: Colors.dark.background }}>
       <PWAInstallPrompt />
-      <div className="max-w-lg mx-auto px-5 py-6 pb-24">
+      <div className="max-w-lg mx-auto px-5 py-8 pb-28">
         {/* Header */}
         <div
           className={cn(
-            'flex justify-between items-center mb-8 transition-all duration-450',
-            headerVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+            'flex justify-between items-center mb-10 transition-all duration-500',
+            contentVisible ? 'opacity-100' : 'opacity-0'
           )}
         >
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-3">
             <div
-              className="w-[38px] h-[38px] rounded-xl flex items-center justify-center"
+              className="w-10 h-10 rounded-lg flex items-center justify-center"
               style={{ backgroundColor: Colors.dark.accent }}
             >
-              <span className="text-lg font-black text-white">P</span>
+              <span className="text-lg font-black" style={{ color: '#000' }}>P</span>
             </div>
             <div>
-              <div className="text-[17px] font-black tracking-[2.5px]" style={{ color: Colors.dark.text }}>
+              <div
+                className="text-base font-bold"
+                style={{ color: Colors.dark.text }}
+              >
                 PALLY
-              </div>
-              <div className="text-[10px] font-medium tracking-[0.5px] -mt-0.5" style={{ color: Colors.dark.textMuted }}>
-                Family Feud
               </div>
             </div>
           </div>
 
-          <div className="flex gap-1.5">
-            <div
-              className="flex items-center gap-[5px] px-2.5 py-[7px] rounded-[10px] border"
-              style={{ backgroundColor: Colors.dark.surface, borderColor: Colors.dark.border }}
+          <div
+            className="px-4 py-2 rounded-lg"
+            style={{ backgroundColor: Colors.dark.surface }}
+          >
+            <span
+              className="text-sm font-bold tabular-nums"
+              style={{
+                color: Colors.dark.text,
+                fontFamily: 'JetBrains Mono, monospace',
+              }}
             >
-              <span className="text-[9px] font-bold tracking-[1px]" style={{ color: Colors.dark.textMuted }}>
-                PTS
-              </span>
-              <span className="text-[13px] font-extrabold tabular-nums" style={{ color: Colors.dark.text }}>
-                {userPoints.toLocaleString()}
-              </span>
-            </div>
-            {currentStreak > 0 && (
-              <div
-                className="flex items-center gap-[5px] px-2.5 py-[7px] rounded-[10px] border"
-                style={{ backgroundColor: Colors.dark.warningDim, borderColor: 'rgba(251, 191, 36, 0.18)' }}
-              >
-                <Flame size={11} color={Colors.dark.warning} />
-                <span className="text-[13px] font-extrabold tabular-nums" style={{ color: Colors.dark.warning }}>
-                  {currentStreak}
-                </span>
-              </div>
-            )}
+              {userPoints.toLocaleString()}
+            </span>
+            <span
+              className="text-xs font-medium ml-1"
+              style={{ color: Colors.dark.textMuted }}
+            >
+              pts
+            </span>
           </div>
         </div>
 
-        {/* Question Block */}
+        {/* Question */}
         {question && (
           <div
             className={cn(
-              'mb-6 transition-all duration-400',
-              questionVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2.5'
+              'mb-8 transition-all duration-500 delay-100',
+              contentVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
             )}
           >
-            <div className="flex justify-between items-center mb-4">
-              <div
-                className="px-[11px] py-[5px] rounded-lg border"
-                style={{
-                  backgroundColor: Colors.dark.accentDim,
-                  borderColor: Colors.dark.accentGlow,
-                }}
-              >
-                <span
-                  className="text-[10px] font-extrabold tracking-[1.2px] uppercase"
-                  style={{ color: Colors.dark.accent }}
-                >
-                  {question.type || 'PREDICTION'}
-                </span>
-              </div>
-
-              <button
-                onClick={togglePayoutMode}
-                className="flex items-center gap-[5px] px-2.5 py-1.5 rounded-lg border transition-colors"
-                style={{ backgroundColor: Colors.dark.surface, borderColor: Colors.dark.border }}
-              >
-                {payoutMode === 'even_split' ? (
-                  <BarChart3 size={11} color={Colors.dark.textSecondary} />
-                ) : (
-                  <Shuffle size={11} color={Colors.dark.blue} />
-                )}
-                <span
-                  className="text-[11px] font-semibold"
-                  style={{ color: payoutMode === 'multiplier_odds' ? Colors.dark.blue : Colors.dark.textSecondary }}
-                >
-                  {payoutMode === 'even_split' ? 'Split' : 'Odds'}
-                </span>
-              </button>
+            {/* Timer */}
+            <div className="mb-4">
+              <CountdownTimer closesAt={new Date(question.revealsAt).getTime()} />
             </div>
 
+            {/* Question text */}
             <h1
-              className="text-[26px] font-extrabold leading-[34px] tracking-tight mb-[18px]"
+              className="text-2xl font-bold leading-tight"
               style={{ color: Colors.dark.text }}
             >
               {question.prompt}
             </h1>
-
-            <CountdownTimer closesAt={new Date(question.revealsAt).getTime()} />
           </div>
         )}
 
-        {/* Section Divider */}
-        <div className="flex items-center gap-2.5 mb-[18px]">
-          <div className="flex-1 h-px" style={{ backgroundColor: Colors.dark.border }} />
-          <div
-            className="flex items-center gap-[5px] px-2.5 py-1 rounded-md border"
-            style={{ backgroundColor: Colors.dark.surface, borderColor: Colors.dark.border }}
-          >
-            <Crosshair size={10} color={Colors.dark.accent} strokeWidth={2.5} />
-            <span
-              className="text-[9px] font-extrabold tracking-[1.8px]"
-              style={{ color: Colors.dark.textMuted }}
-            >
-              {hasConfirmed ? 'LOCKED' : 'YOUR CALL'}
-            </span>
-          </div>
-          <div className="flex-1 h-px" style={{ backgroundColor: Colors.dark.border }} />
-        </div>
-
-        {/* Options Grid */}
-        <div className="flex flex-wrap justify-between mb-1.5">
+        {/* Options */}
+        <div
+          className={cn(
+            'mb-6 transition-all duration-500 delay-200',
+            contentVisible ? 'opacity-100' : 'opacity-0'
+          )}
+        >
           {options.map((option, index) => (
             <AnswerCard
               key={option.id}
@@ -397,9 +333,14 @@ export default function Play() {
           ))}
         </div>
 
-        {/* Wager Selector & Confirm */}
+        {/* Wager & Confirm */}
         {!hasConfirmed && selectedOptionId && (
-          <>
+          <div
+            className={cn(
+              'transition-all duration-300',
+              contentVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+            )}
+          >
             <WagerSelector
               wagerAmount={wagerAmount}
               maxPoints={userPoints}
@@ -411,95 +352,75 @@ export default function Play() {
               onClick={handleConfirm}
               disabled={voteMutation.isPending}
               className={cn(
-                'w-full rounded-[14px] py-[17px] px-6 flex items-center justify-center gap-2.5 transition-all',
-                'hover:opacity-90 active:scale-[0.98]',
-                voteMutation.isPending && 'opacity-70 cursor-not-allowed'
+                'w-full rounded-xl py-4 flex items-center justify-center gap-2 transition-all',
+                'active:scale-[0.98]',
+                voteMutation.isPending && 'opacity-70'
               )}
-              style={{
-                backgroundColor: Colors.dark.accent,
-                boxShadow: `0 8px 16px ${Colors.dark.accent}4D`,
-              }}
+              style={{ backgroundColor: Colors.dark.accent }}
             >
-              <span className="text-[15px] font-extrabold text-white tracking-[0.2px]">
-                {voteMutation.isPending ? 'Locking...' : `Lock in ${selectedOption?.text}`}
-              </span>
-              <div
-                className="px-2.5 py-1 rounded-lg"
-                style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
+              <span
+                className="text-base font-bold"
+                style={{ color: '#000' }}
               >
-                <span className="text-[11px] font-extrabold text-white tracking-[0.5px]">
-                  {wagerAmount} PTS
-                </span>
-              </div>
+                {voteMutation.isPending ? 'Locking...' : 'Lock in'}
+              </span>
+              <ArrowRight size={18} color="#000" strokeWidth={2.5} />
             </button>
-          </>
+          </div>
         )}
 
         {/* Locked State */}
         {hasConfirmed && (
-          <div className="space-y-2.5">
+          <div
+            className={cn(
+              'space-y-3 transition-all duration-300',
+              contentVisible ? 'opacity-100' : 'opacity-0'
+            )}
+          >
             <div
-              className="flex items-center gap-3.5 p-4 rounded-[14px] border"
-              style={{
-                backgroundColor: Colors.dark.surface,
-                borderColor: Colors.dark.border,
-                borderLeftWidth: 3,
-                borderLeftColor: Colors.dark.accent,
-              }}
+              className="flex items-center gap-3 p-4 rounded-xl"
+              style={{ backgroundColor: Colors.dark.surface }}
             >
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center"
+                className="w-10 h-10 rounded-lg flex items-center justify-center"
                 style={{ backgroundColor: Colors.dark.accentDim }}
               >
-                <Lock size={16} color={Colors.dark.accent} />
+                <Lock size={18} color={Colors.dark.accent} />
               </div>
               <div className="flex-1">
-                <div className="text-sm font-bold mb-[3px]" style={{ color: Colors.dark.text }}>
-                  Prediction sealed
+                <div
+                  className="text-sm font-semibold mb-1"
+                  style={{ color: Colors.dark.text }}
+                >
+                  Prediction locked
                 </div>
-                <div className="text-[13px] font-semibold" style={{ color: Colors.dark.accent }}>
+                <div
+                  className="text-sm font-medium"
+                  style={{ color: Colors.dark.accent }}
+                >
                   {selectedOption?.text}
-                </div>
-              </div>
-              <div
-                className="text-center px-2.5 py-1.5 rounded-[10px] border"
-                style={{ backgroundColor: Colors.dark.warningDim, borderColor: 'rgba(251, 191, 36, 0.18)' }}
-              >
-                <div className="text-[8px] font-extrabold tracking-[1px] mb-[1px]" style={{ color: Colors.dark.textMuted }}>
-                  WAGERED
-                </div>
-                <div className="text-[15px] font-black tabular-nums" style={{ color: Colors.dark.warning }}>
-                  {wagerAmount}
                 </div>
               </div>
             </div>
 
             <button
               onClick={handleViewResults}
-              className="w-full flex items-center justify-center gap-1.5 py-4 rounded-[14px] transition-all hover:opacity-90 active:scale-[0.98]"
-              style={{
-                backgroundColor: Colors.dark.accent,
-                boxShadow: `0 4px 12px ${Colors.dark.accent}40`,
-              }}
+              className={cn(
+                'w-full flex items-center justify-center gap-2 py-4 rounded-xl transition-all',
+                'active:scale-[0.98]'
+              )}
+              style={{ backgroundColor: Colors.dark.surface }}
             >
-              <span className="text-[15px] font-bold text-white">See Results</span>
-              <ChevronRight size={16} color="#fff" strokeWidth={2.5} />
+              <span
+                className="text-base font-semibold"
+                style={{ color: Colors.dark.text }}
+              >
+                View Results
+              </span>
+              <ArrowRight size={18} color={Colors.dark.textSecondary} />
             </button>
           </div>
         )}
-
-        {/* Footer */}
-        <div className="flex justify-center mt-[18px]">
-          <div
-            className="flex items-center gap-[5px] px-3 py-[7px] rounded-lg border"
-            style={{ backgroundColor: Colors.dark.surface, borderColor: Colors.dark.border }}
-          >
-            <Users size={11} color={Colors.dark.textMuted} />
-            <span className="text-[11px] font-medium" style={{ color: Colors.dark.textMuted }}>
-              2,847 playing
-            </span>
-          </div>
-        </div>
       </div>
     </div>
   );
