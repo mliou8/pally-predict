@@ -72,30 +72,80 @@ app.post('/api/admin/migrate', async (req, res) => {
   }
 });
 
-// Add single active question (for immediate display)
-app.post('/api/admin/seed-active', async (req, res) => {
+// Reset and seed all questions with correct timing (noon ET each day)
+app.post('/api/admin/reset-questions', async (req, res) => {
   try {
     const { db } = await import('./db');
     const { questions } = await import('@shared/schema');
+    const { sql } = await import('drizzle-orm');
 
-    // The AI white-collar jobs question that was active in local
-    const seedData = {
-      type: 'prediction' as const,
-      prompt: 'By the end of 2026, what will be the biggest impact of AI on white-collar jobs?',
-      optionA: 'Universal 4-day work week',
-      optionB: 'Massive 30%+ layoffs',
-      optionC: 'Human-only work becomes luxury',
-      optionD: 'Government bans autonomous AI',
-      dropsAt: new Date('2026-02-27T17:00:00.000Z'), // Already dropped
-      revealsAt: new Date('2026-03-01T17:00:00.000Z'), // Reveals in future
-      isActive: true,
-      isRevealed: false,
-    };
+    // Delete all existing questions
+    await db.delete(questions);
+
+    // Seed questions with noon ET times (17:00 UTC for EST, 16:00 UTC for EDT)
+    // Currently EST so using 17:00 UTC = noon ET
+    const seedData = [
+      {
+        type: 'prediction' as const,
+        prompt: 'By the end of 2026, what will be the biggest impact of AI on white-collar jobs?',
+        optionA: 'Universal 4-day work week',
+        optionB: 'Massive 30%+ layoffs',
+        optionC: 'Human-only work becomes luxury',
+        optionD: 'Government bans autonomous AI',
+        dropsAt: new Date('2026-02-28T17:00:00.000Z'), // Feb 28 noon ET
+        revealsAt: new Date('2026-03-01T17:00:00.000Z'), // March 1 noon ET
+        isActive: true,
+      },
+      {
+        type: 'prediction' as const,
+        prompt: 'By 2027, how will most people watch their favorite movies and TV shows?',
+        optionA: 'Giant Super-App bundles',
+        optionB: 'Mandatory commercials for everyone',
+        optionC: 'AI-generated personalized shows',
+        optionD: 'Resurgence of illegal piracy',
+        dropsAt: new Date('2026-03-01T17:00:00.000Z'), // March 1 noon ET
+        revealsAt: new Date('2026-03-02T17:00:00.000Z'),
+        isActive: true,
+      },
+      {
+        type: 'consensus' as const,
+        prompt: 'What will be the coolest way to use social media in 2026?',
+        optionA: 'Private, invite-only group chats',
+        optionB: 'Raw, unedited ugly content',
+        optionC: 'Following realistic AI influencers',
+        optionD: 'Quitting all digital platforms',
+        dropsAt: new Date('2026-03-02T17:00:00.000Z'), // March 2 noon ET
+        revealsAt: new Date('2026-03-03T17:00:00.000Z'),
+        isActive: true,
+      },
+      {
+        type: 'prediction' as const,
+        prompt: 'What will be the most controversial must-have health trend of 2026?',
+        optionA: 'Cheap, universal weight-loss jabs',
+        optionB: 'Lab-grown meat only diets',
+        optionC: 'Brain-boosting focus implants',
+        optionD: 'Mandatory phone-free sleep locks',
+        dropsAt: new Date('2026-03-03T17:00:00.000Z'), // March 3 noon ET
+        revealsAt: new Date('2026-03-04T17:00:00.000Z'),
+        isActive: true,
+      },
+      {
+        type: 'prediction' as const,
+        prompt: 'How will the majority of Gen Alpha find their first serious partners?',
+        optionA: 'AI agents talk first',
+        optionB: 'Meeting at offline clubs',
+        optionC: 'Virtual Reality Metaverse dates',
+        optionD: 'Matching by DNA compatibility',
+        dropsAt: new Date('2026-03-04T17:00:00.000Z'), // March 4 noon ET
+        revealsAt: new Date('2026-03-05T17:00:00.000Z'),
+        isActive: true,
+      },
+    ];
 
     const inserted = await db.insert(questions).values(seedData).returning();
-    res.json({ status: 'success', question: inserted[0] });
+    res.json({ status: 'success', count: inserted.length, questions: inserted });
   } catch (error: any) {
-    console.error('Seed active error:', error);
+    console.error('Reset questions error:', error);
     res.status(500).json({
       status: 'error',
       message: error.message || String(error),
