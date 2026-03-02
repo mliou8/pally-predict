@@ -7,18 +7,20 @@ interface LeaderboardRowProps {
   handle: string;
   accuracyPct: number;
   points: number;
+  earnings?: string;
   badges?: string[];
   isCurrentUser?: boolean;
 }
 
-export default function LeaderboardRow({ 
-  rank, 
-  avatarUrl, 
-  handle, 
-  accuracyPct, 
-  points, 
+export default function LeaderboardRow({
+  rank,
+  avatarUrl,
+  handle,
+  accuracyPct,
+  points,
+  earnings,
   badges = [],
-  isCurrentUser = false 
+  isCurrentUser = false
 }: LeaderboardRowProps) {
   return (
     <div 
@@ -47,13 +49,27 @@ export default function LeaderboardRow({
       </div>
       
       <div className="text-right">
-        <div className="text-sm font-semibold text-foreground font-mono inline-flex items-center gap-1" data-testid={`text-points-${rank}`}>
-          <span className="text-gold font-bold" style={{ fontSize: '14px' }}>α</span>
-          {points.toLocaleString()}
-        </div>
-        <div className="text-xs text-muted-foreground">
-          {accuracyPct}% acc
-        </div>
+        {earnings !== undefined ? (
+          <>
+            <div className="text-sm font-semibold text-foreground font-mono inline-flex items-center gap-1" data-testid={`text-earnings-${rank}`}>
+              <span className="text-green-500 font-bold">$</span>
+              {parseFloat(earnings).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {accuracyPct}% acc
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="text-sm font-semibold text-foreground font-mono inline-flex items-center gap-1" data-testid={`text-points-${rank}`}>
+              <span className="text-gold font-bold" style={{ fontSize: '14px' }}>α</span>
+              {points.toLocaleString()}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {accuracyPct}% acc
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

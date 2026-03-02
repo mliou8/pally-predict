@@ -77,6 +77,7 @@ export interface IStorage {
 
   // Leaderboard operations
   getLeaderboard(limit?: number): Promise<LeaderboardEntry[]>;
+  getEarningsLeaderboard(limit?: number): Promise<LeaderboardEntry[]>;
   getUnifiedLeaderboard(limit?: number): Promise<LeaderboardEntry[]>;
 
   // Reward distribution (atomic transaction)
@@ -507,15 +508,21 @@ export class DbStorage implements IStorage {
   }
 
   // Distribute rewards atomically using a database transaction
-  // Points-based system: winners get pot share, 2nd place gets 25% consolation
+  // Points-based system:
+  // - 1st place (winner): gets pot share
+  // - 2nd place: 25% of bet back + bonus points
+  // - 3rd place: 15% of bet back + bonus points
+  // - 4th place: 10% of bet back + bonus points
   async distributeRewards(params: {
     questionVotes: Vote[];
     winningChoice: VoteChoice;
     secondPlaceChoice: VoteChoice | null;
+    thirdPlaceChoice?: VoteChoice | null;
+    fourthPlaceChoice?: VoteChoice | null;
     rarityMultipliers: Record<VoteChoice, number>;
     totalPot: bigint;
   }): Promise<void> {
-    const { questionVotes, winningChoice, secondPlaceChoice, rarityMultipliers, totalPot } = params;
+    const { questionVotes, winningChoice, secondPlaceChoice, thirdPlaceChoice, fourthPlaceChoice, rarityMultipliers, totalPot } = params;
 
     // Calculate total bets for point-based wagering
     const totalPointsBet = questionVotes.reduce((sum, v) => sum + parseFloat(v.betAmount), 0);
@@ -527,15 +534,31 @@ export class DbStorage implements IStorage {
       for (const vote of questionVotes) {
         const rarityMultiplier = rarityMultipliers[vote.choice] || 1;
         const publicMultiplier = vote.isPublic ? 2 : 1;
-        const basePoints = 100;
-        const totalMultiplier = rarityMultiplier * publicMultiplier;
-        const points = basePoints * totalMultiplier;
+        let basePoints = 100;
 
         const betAmount = parseFloat(vote.betAmount);
         const isWinner = vote.choice === winningChoice;
         const isSecondPlace = secondPlaceChoice && vote.choice === secondPlaceChoice;
+        const isThirdPlace = thirdPlaceChoice && vote.choice === thirdPlaceChoice;
+        const isFourthPlace = fourthPlaceChoice && vote.choice === fourthPlaceChoice;
 
-        // Calculate payout based on points betting
+        // Bonus points for placing (even if not winner)
+        if (isWinner) {
+          basePoints = 100; // Winner base
+        } else if (isSecondPlace) {
+          basePoints = 75; // 2nd place bonus
+        } else if (isThirdPlace) {
+          basePoints = 50; // 3rd place bonus
+        } else if (isFourthPlace) {
+          basePoints = 25; // 4th place bonus
+        } else {
+          basePoints = 10; // Participation points
+        }
+
+        const totalMultiplier = rarityMultiplier * publicMultiplier;
+        const points = basePoints * totalMultiplier;
+
+        // Calculate payout based on placement
         let payout = 0;
         if (isWinner && betAmount > 0 && totalWinningBets > 0) {
           // Winners get proportional share of the total pot
@@ -543,6 +566,12 @@ export class DbStorage implements IStorage {
         } else if (isSecondPlace && betAmount > 0) {
           // 2nd place gets 25% of their bet back as consolation
           payout = betAmount * 0.25;
+        } else if (isThirdPlace && betAmount > 0) {
+          // 3rd place gets 15% of their bet back
+          payout = betAmount * 0.15;
+        } else if (isFourthPlace && betAmount > 0) {
+          // 4th place gets 10% of their bet back
+          payout = betAmount * 0.10;
         }
         // Everyone else loses their bet (payout = 0)
 
@@ -777,6 +806,80 @@ export class DbStorage implements IStorage {
           ? Math.round((correctVotes / votesWithResults) * 100)
           : 0;
           
+        return { ...user, accuracy };
+      })
+    );
+
+    return usersWithAccuracy;
+  }
+
+  // Earnings leaderboard (sorted by total winnings)
+  async getEarningsLeaderboard(limit: number = 50): Promise<LeaderboardEntry[]> {
+    const allUsers = await db
+      .select()
+      .from(users)
+      .orderBy(desc(users.totalWon), desc(users.alphaPoints))
+      .limit(limit);
+
+    // Return with accuracy calculated same as regular leaderboard
+    const allResults = await db
+      .select()
+      .from(questionResults)
+      .innerJoin(questions, eq(questionResults.questionId, questions.id))
+      .where(eq(questions.isRevealed, true));
+
+    const resultsMap = new Map<string, QuestionResults>();
+    for (const row of allResults) {
+      resultsMap.set(row.question_results.questionId, row.question_results);
+    }
+
+    const usersWithAccuracy = await Promise.all(
+      allUsers.map(async (user) => {
+        const userVotesQuery = await db
+          .select({
+            voteId: votes.id,
+            voteChoice: votes.choice,
+            questionId: votes.questionId,
+          })
+          .from(votes)
+          .innerJoin(questions, eq(votes.questionId, questions.id))
+          .where(and(
+            eq(votes.userId, user.id),
+            eq(questions.isRevealed, true)
+          ));
+
+        if (userVotesQuery.length === 0) {
+          return { ...user, accuracy: 0 };
+        }
+
+        let correctVotes = 0;
+        let votesWithResults = 0;
+
+        for (const vote of userVotesQuery) {
+          const results = resultsMap.get(vote.questionId);
+          if (!results) continue;
+
+          votesWithResults++;
+
+          const voteCounts = {
+            A: results.votesA,
+            B: results.votesB,
+            C: results.votesC || 0,
+            D: results.votesD || 0,
+          };
+
+          const winningChoice = Object.entries(voteCounts)
+            .reduce((a, b) => (b[1] > a[1] ? b : a))[0] as 'A' | 'B' | 'C' | 'D';
+
+          if (vote.voteChoice === winningChoice) {
+            correctVotes++;
+          }
+        }
+
+        const accuracy = votesWithResults > 0
+          ? Math.round((correctVotes / votesWithResults) * 100)
+          : 0;
+
         return { ...user, accuracy };
       })
     );

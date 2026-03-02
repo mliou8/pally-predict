@@ -785,6 +785,8 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
 
         const winningChoice = sortedChoices[0][0] as 'A' | 'B' | 'C' | 'D';
         const secondPlaceChoice = sortedChoices.length > 1 ? sortedChoices[1][0] as 'A' | 'B' | 'C' | 'D' : null;
+        const thirdPlaceChoice = sortedChoices.length > 2 ? sortedChoices[2][0] as 'A' | 'B' | 'C' | 'D' : null;
+        const fourthPlaceChoice = sortedChoices.length > 3 ? sortedChoices[3][0] as 'A' | 'B' | 'C' | 'D' : null;
 
         const newResults = await storage.createQuestionResults({
           questionId: req.params.questionId,
@@ -807,11 +809,13 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
 
         if (!alreadyProcessed) {
           // Use atomic transaction to distribute rewards
-          // 2nd place gets 25% of their wager back as consolation
+          // 1st: pot share, 2nd: 25% back, 3rd: 15% back, 4th: 10% back
           await storage.distributeRewards({
             questionVotes: votes,
             winningChoice,
             secondPlaceChoice,
+            thirdPlaceChoice,
+            fourthPlaceChoice,
             rarityMultipliers: rarityMultipliers as Record<'A' | 'B' | 'C' | 'D', number>,
             totalPot,
           });
@@ -829,10 +833,23 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
 
   // ===== LEADERBOARD ROUTE =====
   
+  // Points leaderboard (sorted by alpha points)
   app.get('/api/leaderboard', async (req, res) => {
     try {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
       const leaders = await storage.getLeaderboard(limit);
+      res.json(leaders);
+    } catch (error: any) {
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
+    }
+  });
+
+  // Earnings leaderboard (sorted by total won)
+  app.get('/api/leaderboard/earnings', async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+      const leaders = await storage.getEarningsLeaderboard(limit);
       res.json(leaders);
     } catch (error: any) {
       console.error('API Error:', error);

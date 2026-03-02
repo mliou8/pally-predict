@@ -4,8 +4,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import LeaderboardRow from '@/components/LeaderboardRow';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import { Clock } from 'lucide-react';
+import { Clock, Trophy, Coins } from 'lucide-react';
 import type { User } from '@shared/schema';
 
 interface LeaderboardEntry extends User {
@@ -19,14 +18,14 @@ const SEASON_LENGTH_MS = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 
 function getSeasonEndTime(): Date {
   const now = Date.now();
-  
+
   // Calculate how many complete seasons have passed since epoch
   const timeSinceEpoch = now - SEASON_START_EPOCH;
   const seasonsPassed = Math.floor(timeSinceEpoch / SEASON_LENGTH_MS);
-  
+
   // Calculate when the current season ends (start of next season)
   const currentSeasonEnd = SEASON_START_EPOCH + ((seasonsPassed + 1) * SEASON_LENGTH_MS);
-  
+
   return new Date(currentSeasonEnd);
 }
 
@@ -65,12 +64,19 @@ function useSeasonCountdown() {
 }
 
 export default function Leaderboard() {
-  const [activeTab, setActiveTab] = useState('daily');
+  const [mainTab, setMainTab] = useState('points');
   const { user } = usePrivy();
   const seasonCountdown = useSeasonCountdown();
 
-  const { data: leaderboardData = [], isLoading } = useQuery<LeaderboardEntry[]>({
+  // Points leaderboard (sorted by alpha points)
+  const { data: pointsLeaderboard = [], isLoading: isLoadingPoints } = useQuery<LeaderboardEntry[]>({
     queryKey: ['/api/leaderboard'],
+    enabled: !!user,
+  });
+
+  // Earnings leaderboard (sorted by total won)
+  const { data: earningsLeaderboard = [], isLoading: isLoadingEarnings } = useQuery<LeaderboardEntry[]>({
+    queryKey: ['/api/leaderboard/earnings'],
     enabled: !!user,
   });
 
@@ -79,12 +85,20 @@ export default function Leaderboard() {
     enabled: !!user,
   });
 
-  const currentUserRank = currentUser 
-    ? leaderboardData.findIndex(u => u.id === currentUser.id) + 1
+  const currentUserPointsRank = currentUser
+    ? pointsLeaderboard.findIndex(u => u.id === currentUser.id) + 1
     : 0;
-  
-  const currentUserEntry = currentUser 
-    ? leaderboardData.find(u => u.id === currentUser.id)
+
+  const currentUserEarningsRank = currentUser
+    ? earningsLeaderboard.findIndex(u => u.id === currentUser.id) + 1
+    : 0;
+
+  const currentUserPointsEntry = currentUser
+    ? pointsLeaderboard.find(u => u.id === currentUser.id)
+    : null;
+
+  const currentUserEarningsEntry = currentUser
+    ? earningsLeaderboard.find(u => u.id === currentUser.id)
     : null;
 
   if (!user) {
@@ -94,6 +108,45 @@ export default function Leaderboard() {
       </div>
     );
   }
+
+  const renderLeaderboardList = (
+    data: LeaderboardEntry[],
+    isLoading: boolean,
+    showEarnings: boolean = false
+  ) => {
+    if (isLoading) {
+      return (
+        <>
+          {[...Array(8)].map((_, i) => (
+            <Skeleton key={i} className="h-16 w-full rounded-xl" />
+          ))}
+        </>
+      );
+    }
+
+    if (data.length === 0) {
+      return (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground mb-2">No leaderboard data yet</p>
+          <p className="text-sm text-muted-foreground">
+            Start voting to see rankings!
+          </p>
+        </div>
+      );
+    }
+
+    return data.map((entry, index) => (
+      <LeaderboardRow
+        key={entry.id}
+        rank={index + 1}
+        handle={entry.handle || `@User${entry.id.slice(0, 4)}`}
+        accuracyPct={entry.accuracy}
+        points={entry.alphaPoints}
+        earnings={showEarnings ? entry.totalWon : undefined}
+        badges={entry.badgesEarned}
+      />
+    ));
+  };
 
   return (
     <div className="min-h-screen pb-20 md:pb-6">
@@ -111,109 +164,64 @@ export default function Leaderboard() {
           </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="daily" data-testid="tab-daily">Daily</TabsTrigger>
-            <TabsTrigger value="weekly" data-testid="tab-weekly">Weekly</TabsTrigger>
-            <TabsTrigger value="alltime" data-testid="tab-alltime">All-time</TabsTrigger>
+        {/* Main tabs: Points vs Earnings */}
+        <Tabs value={mainTab} onValueChange={setMainTab} className="mb-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="points" className="flex items-center gap-2" data-testid="tab-points">
+              <Trophy size={16} />
+              Points
+            </TabsTrigger>
+            <TabsTrigger value="earnings" className="flex items-center gap-2" data-testid="tab-earnings">
+              <Coins size={16} />
+              Earnings
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="daily" className="space-y-2 mt-6">
-            {isLoading ? (
-              <>
-                {[...Array(8)].map((_, i) => (
-                  <Skeleton key={i} className="h-16 w-full rounded-xl" />
-                ))}
-              </>
-            ) : leaderboardData.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground mb-2">No leaderboard data yet</p>
-                <p className="text-sm text-muted-foreground">
-                  Start voting to see rankings!
-                </p>
-              </div>
-            ) : (
-              leaderboardData.map((entry, index) => (
-                <LeaderboardRow 
-                  key={entry.id} 
-                  rank={index + 1}
-                  handle={entry.handle || `@User${entry.id.slice(0, 4)}`}
-                  accuracyPct={entry.accuracy}
-                  points={entry.alphaPoints}
-                  badges={entry.badgesEarned}
+          {/* Points Leaderboard */}
+          <TabsContent value="points" className="space-y-2 mt-6">
+            <div className="mb-4 p-3 rounded-lg bg-muted/50">
+              <p className="text-xs text-muted-foreground text-center">
+                Ranked by Alpha Points earned from predictions. Points unlock future rewards.
+              </p>
+            </div>
+            {renderLeaderboardList(pointsLeaderboard, isLoadingPoints, false)}
+
+            {currentUser && currentUserPointsRank > 0 && currentUserPointsEntry && (
+              <div className="sticky bottom-20 md:bottom-6 mt-6 p-4 rounded-xl bg-primary/10 border border-primary/50">
+                <LeaderboardRow
+                  rank={currentUserPointsRank}
+                  handle={currentUser.handle || '@You'}
+                  accuracyPct={currentUserPointsEntry.accuracy}
+                  points={currentUser.alphaPoints}
+                  isCurrentUser
                 />
-              ))
+              </div>
             )}
           </TabsContent>
 
-          <TabsContent value="weekly" className="space-y-2 mt-6">
-            {isLoading ? (
-              <>
-                {[...Array(8)].map((_, i) => (
-                  <Skeleton key={i} className="h-16 w-full rounded-xl" />
-                ))}
-              </>
-            ) : leaderboardData.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground mb-2">No leaderboard data yet</p>
-                <p className="text-sm text-muted-foreground">
-                  Start voting to see rankings!
-                </p>
-              </div>
-            ) : (
-              leaderboardData.map((entry, index) => (
-                <LeaderboardRow 
-                  key={entry.id} 
-                  rank={index + 1}
-                  handle={entry.handle || `@User${entry.id.slice(0, 4)}`}
-                  accuracyPct={entry.accuracy}
-                  points={entry.alphaPoints}
-                  badges={entry.badgesEarned}
-                />
-              ))
-            )}
-          </TabsContent>
+          {/* Earnings Leaderboard */}
+          <TabsContent value="earnings" className="space-y-2 mt-6">
+            <div className="mb-4 p-3 rounded-lg bg-muted/50">
+              <p className="text-xs text-muted-foreground text-center">
+                Ranked by total winnings. Top earners get the biggest payouts.
+              </p>
+            </div>
+            {renderLeaderboardList(earningsLeaderboard, isLoadingEarnings, true)}
 
-          <TabsContent value="alltime" className="space-y-2 mt-6">
-            {isLoading ? (
-              <>
-                {[...Array(8)].map((_, i) => (
-                  <Skeleton key={i} className="h-16 w-full rounded-xl" />
-                ))}
-              </>
-            ) : leaderboardData.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground mb-2">No leaderboard data yet</p>
-                <p className="text-sm text-muted-foreground">
-                  Start voting to see rankings!
-                </p>
-              </div>
-            ) : (
-              leaderboardData.map((entry, index) => (
-                <LeaderboardRow 
-                  key={entry.id} 
-                  rank={index + 1}
-                  handle={entry.handle || `@User${entry.id.slice(0, 4)}`}
-                  accuracyPct={entry.accuracy}
-                  points={entry.alphaPoints}
-                  badges={entry.badgesEarned}
+            {currentUser && currentUserEarningsRank > 0 && currentUserEarningsEntry && (
+              <div className="sticky bottom-20 md:bottom-6 mt-6 p-4 rounded-xl bg-primary/10 border border-primary/50">
+                <LeaderboardRow
+                  rank={currentUserEarningsRank}
+                  handle={currentUser.handle || '@You'}
+                  accuracyPct={currentUserEarningsEntry.accuracy}
+                  points={currentUser.alphaPoints}
+                  earnings={currentUser.totalWon}
+                  isCurrentUser
                 />
-              ))
+              </div>
             )}
           </TabsContent>
         </Tabs>
-
-        {currentUser && currentUserRank > 0 && currentUserEntry && (
-          <div className="sticky bottom-20 md:bottom-6 mt-6 p-4 rounded-xl bg-primary/10 border border-primary/50">
-            <LeaderboardRow
-              rank={currentUserRank}
-              handle={currentUser.handle || '@You'}
-              accuracyPct={currentUserEntry.accuracy}
-              points={currentUser.alphaPoints}
-              isCurrentUser
-            />
-          </div>
-        )}
       </div>
     </div>
   );
