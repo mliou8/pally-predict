@@ -47,7 +47,8 @@ export default function CreateProfile() {
       }, user.id);
 
       if (response.ok) {
-        setLocation('/link-wallet');
+        // Go straight to play - wallet linking is optional
+        setLocation('/play');
       } else {
         const error = await response.json();
         setProfileError(error.error || 'Failed to create profile');

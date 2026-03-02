@@ -416,7 +416,7 @@ export function registerTelegramRoutes(app: Express): void {
         optionD: question.optionD,
         context: question.context,
         type: 'PREDICTION',
-        revealsAt: question.expiresAt,
+        revealsAt: question.revealsAt,
         isActive: question.isActive,
       });
     } catch (error: any) {
@@ -430,7 +430,7 @@ export function registerTelegramRoutes(app: Express): void {
       const questions = await telegramStorage.getAllQuestions();
       const revealed = questions
         .filter(q => q.isRevealed)
-        .sort((a, b) => new Date(b.expiresAt).getTime() - new Date(a.expiresAt).getTime())[0];
+        .sort((a, b) => new Date(b.revealsAt).getTime() - new Date(a.revealsAt).getTime())[0];
 
       if (!revealed) {
         return res.status(404).json({ error: 'No revealed questions' });
@@ -445,7 +445,7 @@ export function registerTelegramRoutes(app: Express): void {
         optionD: revealed.optionD,
         context: revealed.context,
         type: 'PREDICTION',
-        revealsAt: revealed.expiresAt,
+        revealsAt: revealed.revealsAt,
         correctAnswer: revealed.correctAnswer,
         isRevealed: revealed.isRevealed,
       });

@@ -2,17 +2,28 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { usePrivy, useLogin } from '@privy-io/react-auth';
 import { useLocation } from 'wouter';
-import { Lock, ArrowRight } from 'lucide-react';
+import { Lock, ArrowRight, Gift, TrendingUp, Trophy } from 'lucide-react';
 import Colors from '@/constants/colors';
 import { cn } from '@/lib/utils';
 import AnswerCard from '@/components/game/AnswerCard';
 import CountdownTimer from '@/components/game/CountdownTimer';
 import WagerSelector from '@/components/game/WagerSelector';
+import ActivityFeed from '@/components/game/ActivityFeed';
 import PWAInstallPrompt from '@/components/PWAInstallPrompt';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, ApiError } from '@/lib/api';
 import { queryClient } from '@/lib/queryClient';
 import type { VoteChoice, Question, Vote, User } from '@shared/schema';
+
+interface LiveStats {
+  totalVotes: number;
+  distribution: {
+    A: { votes: number; percent: number; multiplier: number };
+    B: { votes: number; percent: number; multiplier: number };
+    C: { votes: number; percent: number; multiplier: number };
+    D: { votes: number; percent: number; multiplier: number };
+  };
+}
 
 interface VoteData {
   questionId: string;
@@ -97,13 +108,26 @@ export default function Play() {
     enabled: ready,
   });
 
+  const question = activeQuestions[0];
+
+  // Fetch live stats for the current question
+  const { data: liveStats } = useQuery<LiveStats>({
+    queryKey: ['/api/questions', question?.id, 'live-stats'],
+    queryFn: async () => {
+      const res = await fetch(`/api/questions/${question!.id}/live-stats`);
+      if (!res.ok) throw new Error('Failed to fetch stats');
+      return res.json();
+    },
+    enabled: !!question?.id,
+    refetchInterval: 30000, // Refresh every 30 seconds
+    staleTime: 10000,
+  });
+
   // User votes
   const { data: userVotes = [] } = useQuery<Vote[]>({
     queryKey: ['/api/votes/mine'],
     enabled: !!user && !!currentUser,
   });
-
-  const question = activeQuestions[0];
 
   // Check existing vote
   useEffect(() => {
@@ -314,6 +338,18 @@ export default function Play() {
           </div>
         )}
 
+        {/* Live Activity Feed */}
+        {question && (
+          <div
+            className={cn(
+              'transition-all duration-500 delay-150',
+              contentVisible ? 'opacity-100' : 'opacity-0'
+            )}
+          >
+            <ActivityFeed questionId={question.id} />
+          </div>
+        )}
+
         {/* Options */}
         <div
           className={cn(
@@ -321,16 +357,22 @@ export default function Play() {
             contentVisible ? 'opacity-100' : 'opacity-0'
           )}
         >
-          {options.map((option, index) => (
-            <AnswerCard
-              key={option.id}
-              text={option.text}
-              index={index}
-              isSelected={selectedOptionId === option.id}
-              isLocked={hasConfirmed}
-              onPress={() => handleSelectOption(index)}
-            />
-          ))}
+          {options.map((option, index) => {
+            const optionKey = option.id as 'A' | 'B' | 'C' | 'D';
+            const stats = liveStats?.distribution[optionKey];
+            return (
+              <AnswerCard
+                key={option.id}
+                text={option.text}
+                index={index}
+                isSelected={selectedOptionId === option.id}
+                isLocked={hasConfirmed}
+                onPress={() => handleSelectOption(index)}
+                percent={stats?.percent}
+                multiplier={stats?.multiplier}
+              />
+            );
+          })}
         </div>
 
         {/* Wager & Confirm */}
@@ -421,6 +463,78 @@ export default function Play() {
             </button>
           </div>
         )}
+
+        {/* Rewards Info Section */}
+        <div
+          className={cn(
+            'mt-8 transition-all duration-500 delay-300',
+            contentVisible ? 'opacity-100' : 'opacity-0'
+          )}
+        >
+          <div
+            className="rounded-xl p-5"
+            style={{ backgroundColor: Colors.dark.surface }}
+          >
+            <div
+              className="text-xs font-medium mb-4 uppercase tracking-wider"
+              style={{ color: Colors.dark.textMuted }}
+            >
+              How you earn
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ backgroundColor: Colors.dark.accentDim }}
+                >
+                  <TrendingUp size={16} color={Colors.dark.accent} />
+                </div>
+                <div>
+                  <div className="text-sm font-medium" style={{ color: Colors.dark.text }}>
+                    Win up to 10x
+                  </div>
+                  <div className="text-xs" style={{ color: Colors.dark.textMuted }}>
+                    Pick underdogs for bigger multipliers
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ backgroundColor: Colors.dark.accentDim }}
+                >
+                  <Trophy size={16} color={Colors.dark.accent} />
+                </div>
+                <div>
+                  <div className="text-sm font-medium" style={{ color: Colors.dark.text }}>
+                    Climb the leaderboard
+                  </div>
+                  <div className="text-xs" style={{ color: Colors.dark.textMuted }}>
+                    Top predictors earn bonus rewards
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ backgroundColor: 'rgba(147, 51, 234, 0.15)' }}
+                >
+                  <Gift size={16} color="#9333ea" />
+                </div>
+                <div>
+                  <div className="text-sm font-medium" style={{ color: Colors.dark.text }}>
+                    SOL airdrops at 100 SOL volume
+                  </div>
+                  <div className="text-xs" style={{ color: Colors.dark.textMuted }}>
+                    Top 10% of predictors get weekly drops
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

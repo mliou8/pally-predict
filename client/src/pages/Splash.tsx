@@ -21,10 +21,10 @@ export default function Splash() {
         <div className="mb-8">
           <BrandMark size="lg" animated />
           <p className="mt-4 text-lg font-semibold text-foreground">
-            Crypto Family Feud. Prove you're the best on CT.
+            Predict outcomes. Win up to 10x.
           </p>
           <p className="text-sm text-muted-foreground">
-            Daily prediction game where the best are rewarded
+            Daily prediction game with real rewards. Top predictors earn SOL.
           </p>
         </div>
 

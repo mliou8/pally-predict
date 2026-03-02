@@ -57,6 +57,7 @@ export interface IStorage {
   getUserVotes(userId: string): Promise<Vote[]>;
   getQuestionVotes(questionId: string): Promise<Vote[]>;
   getQuestionVotesCount(questionId: string): Promise<number>;
+  getRecentPublicVotes(limit: number, questionId?: string): Promise<Vote[]>;
   createVote(vote: InsertVote): Promise<Vote>;
   createVoteWithBet(data: { userId: string; questionId: string; choice: VoteChoice; betAmount: number; platform: PlatformType }): Promise<Vote>;
   updateVote(voteId: string, updates: Partial<Vote>): Promise<Vote | undefined>;
@@ -356,6 +357,20 @@ export class DbStorage implements IStorage {
       .from(votes)
       .where(eq(votes.questionId, questionId));
     return result[0]?.count || 0;
+  }
+
+  async getRecentPublicVotes(limit: number, questionId?: string): Promise<Vote[]> {
+    const conditions = [eq(votes.isPublic, true)];
+    if (questionId) {
+      conditions.push(eq(votes.questionId, questionId));
+    }
+
+    return await db
+      .select()
+      .from(votes)
+      .where(and(...conditions))
+      .orderBy(desc(votes.votedAt))
+      .limit(limit);
   }
 
   async createVote(insertVote: InsertVote): Promise<Vote> {

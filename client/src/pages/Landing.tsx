@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { usePrivy, useLogin } from '@privy-io/react-auth';
 import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, TrendingUp, Trophy, Zap } from 'lucide-react';
 import Colors from '@/constants/colors';
 import { cn } from '@/lib/utils';
 import type { User } from '@shared/schema';
@@ -76,18 +76,33 @@ export default function Landing() {
             className="text-4xl font-bold leading-tight mb-4"
             style={{ color: Colors.dark.text }}
           >
-            Predict the future.
+            Predict. Compete.
             <br />
-            <span style={{ color: Colors.dark.accent }}>Win points.</span>
+            <span style={{ color: Colors.dark.accent }}>Get rewarded.</span>
           </h1>
 
           {/* Subtitle */}
           <p
-            className="text-lg mb-12"
+            className="text-lg mb-6"
             style={{ color: Colors.dark.textSecondary }}
           >
-            Daily prediction questions. Lock in your answer. See how you stack up.
+            Daily prediction game where the best predictors earn real rewards.
           </p>
+
+          {/* Value Props */}
+          <div
+            className="flex items-center gap-6 mb-10 text-sm"
+            style={{ color: Colors.dark.textMuted }}
+          >
+            <div className="flex items-center gap-2">
+              <TrendingUp size={16} style={{ color: Colors.dark.accent }} />
+              <span>Bet on outcomes</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Trophy size={16} style={{ color: Colors.dark.accent }} />
+              <span>Win 2-10x</span>
+            </div>
+          </div>
 
           {/* CTA */}
           <button
@@ -133,7 +148,7 @@ export default function Landing() {
                   New question daily at noon ET
                 </div>
                 <div className="text-sm" style={{ color: Colors.dark.textMuted }}>
-                  Topics range from tech to culture to sports
+                  Crypto, tech, markets, culture - predict what happens next
                 </div>
               </div>
             </div>
@@ -155,10 +170,10 @@ export default function Landing() {
               </div>
               <div>
                 <div className="font-semibold mb-1" style={{ color: Colors.dark.text }}>
-                  Lock in your prediction
+                  Place your bet, lock it in
                 </div>
                 <div className="text-sm" style={{ color: Colors.dark.textMuted }}>
-                  Choose wisely - you can't change your answer
+                  Pick the underdog for bigger multipliers (up to 10x)
                 </div>
               </div>
             </div>
@@ -180,10 +195,10 @@ export default function Landing() {
               </div>
               <div>
                 <div className="font-semibold mb-1" style={{ color: Colors.dark.text }}>
-                  Results reveal, climb the ranks
+                  Win and climb the leaderboard
                 </div>
                 <div className="text-sm" style={{ color: Colors.dark.textMuted }}>
-                  Earn points and compete on the leaderboard
+                  Top predictors earn SOL airdrops at 100 SOL volume
                 </div>
               </div>
             </div>

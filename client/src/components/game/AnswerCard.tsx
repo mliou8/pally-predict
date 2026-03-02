@@ -9,9 +9,11 @@ interface AnswerCardProps {
   isSelected: boolean;
   isLocked: boolean;
   onPress: () => void;
+  percent?: number;
+  multiplier?: number;
 }
 
-export default function AnswerCard({ text, index, isSelected, isLocked, onPress }: AnswerCardProps) {
+export default function AnswerCard({ text, index, isSelected, isLocked, onPress, percent, multiplier }: AnswerCardProps) {
   const [isAnimated, setIsAnimated] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
   const colors = OPTION_COLORS[index % OPTION_COLORS.length];
@@ -76,17 +78,41 @@ export default function AnswerCard({ text, index, isSelected, isLocked, onPress 
           )}
 
           {/* Answer text */}
-          <p
-            className={cn(
-              'text-[15px] font-semibold leading-tight pr-12',
-              !isSelected && 'pl-9'
+          <div className={cn('flex-1 pr-16', !isSelected && 'pl-9')}>
+            <p
+              className="text-[15px] font-semibold leading-tight"
+              style={{
+                color: isSelected ? colors.text : Colors.dark.text,
+              }}
+            >
+              {text}
+            </p>
+            {/* Stats row */}
+            {(percent !== undefined || multiplier !== undefined) && (
+              <div className="flex items-center gap-3 mt-1">
+                {percent !== undefined && (
+                  <span
+                    className="text-xs"
+                    style={{
+                      color: isSelected ? 'rgba(0,0,0,0.6)' : Colors.dark.textMuted,
+                    }}
+                  >
+                    {percent}% picked
+                  </span>
+                )}
+                {multiplier !== undefined && multiplier > 1 && (
+                  <span
+                    className="text-xs font-bold"
+                    style={{
+                      color: isSelected ? 'rgba(0,0,0,0.8)' : Colors.dark.accent,
+                    }}
+                  >
+                    {multiplier}x
+                  </span>
+                )}
+              </div>
             )}
-            style={{
-              color: isSelected ? colors.text : Colors.dark.text,
-            }}
-          >
-            {text}
-          </p>
+          </div>
         </div>
       </button>
     </div>

@@ -123,7 +123,7 @@ export default function LinkWallet() {
       });
 
       setTimeout(() => {
-        setLocation('/');
+        setLocation('/profile');
       }, 1500);
 
     } catch (error: any) {
@@ -165,7 +165,7 @@ export default function LinkWallet() {
             Link Your Wallet
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Connect your Phantom wallet to place bets and receive payouts
+            Connect your Phantom wallet to receive SOL airdrops and rewards
           </p>
         </div>
 
@@ -174,9 +174,9 @@ export default function LinkWallet() {
             <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-[#AB9FF2] to-[#7C3AED] flex items-center justify-center mb-4">
               <Wallet className="w-8 h-8 text-white" />
             </div>
-            <CardTitle>Phantom Wallet Required</CardTitle>
+            <CardTitle>Link Your Wallet</CardTitle>
             <CardDescription>
-              To participate in predictions and win SOL, you need to link a Phantom wallet. Your winnings will be sent directly to this wallet.
+              Connect your Phantom wallet to be eligible for SOL airdrops when we hit 100 SOL volume. Top predictors get rewarded.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -257,14 +257,14 @@ export default function LinkWallet() {
             <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
             <div>
               <p className="font-medium text-foreground">Direct Payouts</p>
-              <p className="text-muted-foreground">Winnings are sent directly to your wallet when results are revealed.</p>
+              <p className="text-muted-foreground">SOL rewards are sent directly to your wallet.</p>
             </div>
           </div>
           <div className="flex items-start gap-3 text-sm">
             <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-medium text-foreground">Devnet for Testing</p>
-              <p className="text-muted-foreground">Currently using Solana Devnet. No real funds required.</p>
+              <p className="font-medium text-foreground">Season 1 - Earn Points</p>
+              <p className="text-muted-foreground">Build your prediction record now. SOL airdrops start at 100 SOL volume.</p>
             </div>
           </div>
         </div>

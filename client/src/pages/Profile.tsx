@@ -345,10 +345,33 @@ export default function Profile() {
               </div>
             </div>
 
+            {/* Link Wallet CTA (if not linked) */}
+            {!currentUser.solanaAddress && (
+              <div className="relative overflow-hidden rounded-3xl border-2 border-dashed border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10 p-6" data-testid="link-wallet-cta">
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  <div className="p-3 rounded-xl bg-gradient-to-r from-purple-500/20 to-cyan-500/20">
+                    <Wallet className="h-8 w-8 text-primary" />
+                  </div>
+                  <div className="flex-1 text-center sm:text-left">
+                    <h3 className="text-lg font-semibold text-foreground mb-1">Link your wallet for payouts</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Connect your Phantom wallet to receive SOL rewards directly
+                    </p>
+                  </div>
+                  <Link href="/link-wallet">
+                    <Button className="gap-2 bg-gradient-to-r from-[#AB9FF2] to-[#7C3AED] hover:opacity-90">
+                      <Wallet size={16} />
+                      Link Wallet
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            )}
+
             {/* SOL Earnings Section */}
             <div className="relative overflow-hidden rounded-3xl border border-card-border bg-gradient-to-br from-card via-card to-muted p-6" data-testid="sol-earnings-section">
               <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-cyan-500/5" />
-              
+
               <div className="relative space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-gradient-to-r from-purple-500/20 to-cyan-500/20">

@@ -41,9 +41,19 @@ function serializeBigInt<T>(obj: T): T {
 // Optimized to update all eligible questions in a single query
 async function checkAndRevealQuestions() {
   const now = new Date();
-  
+
   // Update all questions that should be revealed in a single query
   await storage.revealExpiredQuestions(now);
+}
+
+// Helper function to format time ago
+function getTimeAgo(date: Date): string {
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+
+  if (seconds < 60) return 'just now';
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  return `${Math.floor(seconds / 86400)}d ago`;
 }
 
 export async function registerRoutes(app: Express, server?: Server): Promise<void> {
@@ -186,6 +196,40 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
     }
   });
 
+  // Get live stats for a question (vote distribution, implied odds)
+  app.get('/api/questions/:id/live-stats', async (req, res) => {
+    try {
+      const question = await storage.getQuestion(req.params.id);
+      if (!question) {
+        return res.status(404).json({ error: 'Question not found' });
+      }
+
+      const stats = await storage.getQuestionStats(req.params.id);
+      const totalVotes = stats.votesA + stats.votesB + stats.votesC + stats.votesD;
+
+      // Calculate percentages and implied multipliers
+      const calcMultiplier = (votes: number) => {
+        if (totalVotes === 0 || votes === 0) return 10; // Max multiplier for no votes
+        const percentage = (votes / totalVotes) * 100;
+        // Inverse relationship: fewer picks = higher multiplier, capped at 10x
+        return Math.min(Math.max(Math.round(100 / percentage), 1), 10);
+      };
+
+      res.json({
+        totalVotes,
+        distribution: {
+          A: { votes: stats.votesA, percent: totalVotes > 0 ? Math.round((stats.votesA / totalVotes) * 100) : 0, multiplier: calcMultiplier(stats.votesA) },
+          B: { votes: stats.votesB, percent: totalVotes > 0 ? Math.round((stats.votesB / totalVotes) * 100) : 0, multiplier: calcMultiplier(stats.votesB) },
+          C: { votes: stats.votesC, percent: totalVotes > 0 ? Math.round((stats.votesC / totalVotes) * 100) : 0, multiplier: calcMultiplier(stats.votesC) },
+          D: { votes: stats.votesD, percent: totalVotes > 0 ? Math.round((stats.votesD / totalVotes) * 100) : 0, multiplier: calcMultiplier(stats.votesD) },
+        },
+      });
+    } catch (error: any) {
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
+    }
+  });
+
   // Create question (admin only)
   app.post('/api/questions', async (req, res) => {
     try {
@@ -263,6 +307,39 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
       res.status(201).json({ vote: serializeBigInt(vote) });
     } catch (error: any) {
       res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Get recent activity feed (public votes, anonymized)
+  app.get('/api/activity/recent', async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 10, 20);
+      const questionId = req.query.questionId as string | undefined;
+
+      const recentVotes = await storage.getRecentPublicVotes(limit, questionId);
+
+      // Anonymize and format for display
+      const activity = await Promise.all(recentVotes.map(async (vote) => {
+        const user = await storage.getUser(vote.userId);
+        const handle = user?.handle || 'Anonymous';
+        // Partially obscure handle for privacy
+        const displayHandle = handle.length > 3
+          ? handle.slice(0, 2) + '***' + handle.slice(-1)
+          : '***';
+
+        return {
+          id: vote.id,
+          handle: displayHandle,
+          choice: vote.choice,
+          timestamp: vote.votedAt,
+          timeAgo: getTimeAgo(new Date(vote.votedAt)),
+        };
+      }));
+
+      res.json(activity);
+    } catch (error: any) {
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
     }
   });
 

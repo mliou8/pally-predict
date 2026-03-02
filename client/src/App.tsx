@@ -26,20 +26,16 @@ import LinkTelegram from '@/pages/LinkTelegram';
 import TabBar from '@/components/TabBar';
 import IntroAnimation from '@/components/IntroAnimation';
 
-const INTRO_SHOWN_KEY = 'pally_intro_shown';
-
 function AppContent() {
   const [location, setLocation] = useLocation();
   const { ready, authenticated, user } = usePrivy();
   const [initTimeout, setInitTimeout] = useState(false);
   const [checkingProfile, setCheckingProfile] = useState(false);
-  const [showIntro, setShowIntro] = useState(() => {
-    // Only show intro if not shown before in this session
-    return !sessionStorage.getItem(INTRO_SHOWN_KEY);
-  });
+  const [introComplete, setIntroComplete] = useState(false);
+  const [showIntro, setShowIntro] = useState(true); // Always show intro on app start
 
   const handleIntroComplete = () => {
-    sessionStorage.setItem(INTRO_SHOWN_KEY, 'true');
+    setIntroComplete(true);
     setShowIntro(false);
   };
 
@@ -59,11 +55,16 @@ function AppContent() {
     return () => clearTimeout(timer);
   }, [ready]);
 
-  // Redirect authenticated users from splash
+  // Redirect authenticated users after intro completes (or from splash)
   useEffect(() => {
     if (!ready || !authenticated || !user?.id) return;
 
-    if (location === '/splash' && !checkingProfile) {
+    // Only redirect after intro is done, or if already on splash
+    const shouldRedirect = (introComplete || location === '/splash') && !checkingProfile;
+    // Don't redirect if already on a valid authenticated route
+    const alreadyOnValidRoute = ['/play', '/create-profile', '/link-wallet', '/history', '/profile', '/leaderboard', '/admin', '/telegram-admin'].includes(location);
+
+    if (shouldRedirect && !alreadyOnValidRoute) {
       setCheckingProfile(true);
 
       fetch('/api/user/me', {
@@ -73,12 +74,8 @@ function AppContent() {
       })
         .then(async (response) => {
           if (response.ok) {
-            const userData = await response.json();
-            if (!userData.solanaAddress) {
-              setLocation('/link-wallet');
-            } else {
-              setLocation('/play');
-            }
+            // User has profile - go straight to play (wallet linking is optional)
+            setLocation('/play');
           } else if (response.status === 404) {
             setLocation('/create-profile');
           }
@@ -88,7 +85,7 @@ function AppContent() {
           setCheckingProfile(false);
         });
     }
-  }, [ready, authenticated, location, setLocation, user, checkingProfile]);
+  }, [ready, authenticated, location, setLocation, user, checkingProfile, introComplete]);
 
   // Redirect unauthenticated users to splash (except for public routes)
   useEffect(() => {
@@ -112,7 +109,16 @@ function AppContent() {
   // Routes that should have the bottom tab bar
   const showTabBar = ['/play', '/leaderboard', '/history', '/profile'].includes(location);
 
-  // Show loading while Privy initializes
+  // Always show intro first, regardless of Privy state
+  if (showIntro) {
+    return (
+      <div className="min-h-screen" style={{ backgroundColor: Colors.dark.background }}>
+        <IntroAnimation onComplete={handleIntroComplete} />
+      </div>
+    );
+  }
+
+  // Show loading while Privy initializes (only after intro completes)
   if (!ready && !initTimeout) {
     return (
       <div
@@ -171,8 +177,6 @@ function AppContent() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: Colors.dark.background }}>
-      {/* Intro animation on first load */}
-      {showIntro && <IntroAnimation onComplete={handleIntroComplete} />}
 
       <Switch>
         <Route path="/splash" component={Splash} />
