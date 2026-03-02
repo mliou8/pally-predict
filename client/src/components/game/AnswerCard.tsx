@@ -28,8 +28,9 @@ export default function AnswerCard({ text, index, isSelected, isLocked, onPress,
     onPress();
   };
 
-  // Large watermark number
-  const optionNumber = String(index + 1).padStart(2, '0');
+  // Large watermark letter (A, B, C, D)
+  const optionLabels = ['A', 'B', 'C', 'D'];
+  const optionLabel = optionLabels[index] || String.fromCharCode(65 + index);
 
   return (
     <div
@@ -63,7 +64,7 @@ export default function AnswerCard({ text, index, isSelected, isLocked, onPress,
             fontFamily: 'JetBrains Mono, monospace',
           }}
         >
-          {optionNumber}
+          {optionLabel}
         </div>
 
         <div className="relative p-4 flex items-center gap-3">
@@ -87,31 +88,6 @@ export default function AnswerCard({ text, index, isSelected, isLocked, onPress,
             >
               {text}
             </p>
-            {/* Stats row */}
-            {(percent !== undefined || multiplier !== undefined) && (
-              <div className="flex items-center gap-3 mt-1">
-                {percent !== undefined && (
-                  <span
-                    className="text-xs"
-                    style={{
-                      color: isSelected ? 'rgba(0,0,0,0.6)' : Colors.dark.textMuted,
-                    }}
-                  >
-                    {percent}% picked
-                  </span>
-                )}
-                {multiplier !== undefined && multiplier > 1 && (
-                  <span
-                    className="text-xs font-bold"
-                    style={{
-                      color: isSelected ? 'rgba(0,0,0,0.8)' : Colors.dark.accent,
-                    }}
-                  >
-                    {multiplier}x
-                  </span>
-                )}
-              </div>
-            )}
           </div>
         </div>
       </button>

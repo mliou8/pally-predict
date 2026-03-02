@@ -248,7 +248,7 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen pb-20 md:pb-6">
-      <div className="max-w-4xl mx-auto px-4 md:px-6 py-6 space-y-6">
+      <div className="max-w-5xl mx-auto px-4 md:px-8 py-6 md:py-10 space-y-6">
         <div className="flex justify-end">
           <Link href="/leaderboard">
             <Button variant="outline" className="gap-2" data-testid="button-leaderboard">

@@ -24,6 +24,7 @@ import TermsOfService from '@/pages/TermsOfService';
 import PrivacyPolicy from '@/pages/PrivacyPolicy';
 import LinkTelegram from '@/pages/LinkTelegram';
 import TabBar from '@/components/TabBar';
+import DesktopSidebar from '@/components/DesktopSidebar';
 import IntroAnimation from '@/components/IntroAnimation';
 
 function AppContent() {
@@ -106,8 +107,8 @@ function AppContent() {
     }
   }, [ready, authenticated, location, setLocation]);
 
-  // Routes that should have the bottom tab bar
-  const showTabBar = ['/play', '/leaderboard', '/history', '/profile'].includes(location);
+  // Routes that should have navigation (tab bar on mobile, sidebar on desktop)
+  const showNavigation = ['/play', '/leaderboard', '/history', '/profile'].includes(location);
 
   // Always show intro first, regardless of Privy state
   if (showIntro) {
@@ -177,27 +178,33 @@ function AppContent() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: Colors.dark.background }}>
+      {/* Desktop Sidebar */}
+      {showNavigation && <DesktopSidebar />}
 
-      <Switch>
-        <Route path="/splash" component={Splash} />
-        <Route path="/create-profile" component={CreateProfile} />
-        <Route path="/link-wallet" component={LinkWallet} />
-        <Route path="/" component={Landing} />
-        <Route path="/play" component={Play} />
-        <Route path="/results" component={Results} />
-        <Route path="/leaderboard" component={Leaderboard} />
-        <Route path="/history" component={History} />
-        <Route path="/profile" component={Profile} />
-        <Route path="/admin" component={Admin} />
-        <Route path="/telegram-admin" component={TelegramAdmin} />
-        <Route path="/all-results" component={AllResults} />
-        <Route path="/link" component={LinkTelegram} />
-        <Route path="/terms" component={TermsOfService} />
-        <Route path="/privacy" component={PrivacyPolicy} />
-        <Route component={NotFound} />
-      </Switch>
+      {/* Main Content */}
+      <div className={showNavigation ? 'md:ml-64' : ''}>
+        <Switch>
+          <Route path="/splash" component={Splash} />
+          <Route path="/create-profile" component={CreateProfile} />
+          <Route path="/link-wallet" component={LinkWallet} />
+          <Route path="/" component={Landing} />
+          <Route path="/play" component={Play} />
+          <Route path="/results" component={Results} />
+          <Route path="/leaderboard" component={Leaderboard} />
+          <Route path="/history" component={History} />
+          <Route path="/profile" component={Profile} />
+          <Route path="/admin" component={Admin} />
+          <Route path="/telegram-admin" component={TelegramAdmin} />
+          <Route path="/all-results" component={AllResults} />
+          <Route path="/link" component={LinkTelegram} />
+          <Route path="/terms" component={TermsOfService} />
+          <Route path="/privacy" component={PrivacyPolicy} />
+          <Route component={NotFound} />
+        </Switch>
+      </div>
 
-      {showTabBar && <TabBar />}
+      {/* Mobile Tab Bar */}
+      {showNavigation && <TabBar />}
     </div>
   );
 }

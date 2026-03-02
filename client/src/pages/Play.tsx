@@ -9,7 +9,7 @@ import AnswerCard from '@/components/game/AnswerCard';
 import CountdownTimer from '@/components/game/CountdownTimer';
 import WagerSelector from '@/components/game/WagerSelector';
 import ActivityFeed from '@/components/game/ActivityFeed';
-import PWAInstallPrompt from '@/components/PWAInstallPrompt';
+import RecentPolls from '@/components/RecentPolls';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, ApiError } from '@/lib/api';
 import { queryClient } from '@/lib/queryClient';
@@ -211,8 +211,8 @@ export default function Play() {
     }
   }, [pendingVote, authenticated, user, currentUser, wagerAmount, voteMutation]);
 
-  const handleViewResults = useCallback(() => {
-    setLocation('/results');
+  const handleViewPastPolls = useCallback(() => {
+    setLocation('/history');
   }, [setLocation]);
 
   // Get options from question
@@ -267,8 +267,10 @@ export default function Play() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: Colors.dark.background }}>
-      <PWAInstallPrompt />
-      <div className="max-w-lg mx-auto px-5 py-8 pb-28">
+      <div className="max-w-6xl mx-auto px-5 py-8 pb-28 md:pb-8">
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Main Poll Column */}
+          <div className="flex-1 max-w-xl">
         {/* Header */}
         <div
           className={cn(
@@ -446,7 +448,7 @@ export default function Play() {
             </div>
 
             <button
-              onClick={handleViewResults}
+              onClick={handleViewPastPolls}
               className={cn(
                 'w-full flex items-center justify-center gap-2 py-4 rounded-xl transition-all',
                 'active:scale-[0.98]'
@@ -457,17 +459,47 @@ export default function Play() {
                 className="text-base font-semibold"
                 style={{ color: Colors.dark.text }}
               >
-                View Results
+                Past Polls
               </span>
               <ArrowRight size={18} color={Colors.dark.textSecondary} />
             </button>
           </div>
         )}
 
-        {/* Rewards Info Section */}
+        {/* Total Volume */}
         <div
           className={cn(
             'mt-8 transition-all duration-500 delay-300',
+            contentVisible ? 'opacity-100' : 'opacity-0'
+          )}
+        >
+          <div
+            className="rounded-xl p-4 flex items-center justify-between"
+            style={{ backgroundColor: Colors.dark.surface }}
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center"
+                style={{ backgroundColor: Colors.dark.accentDim }}
+              >
+                <TrendingUp size={16} color={Colors.dark.accent} />
+              </div>
+              <div>
+                <div className="text-xs uppercase tracking-wider" style={{ color: Colors.dark.textMuted }}>
+                  Total Volume
+                </div>
+                <div className="text-lg font-bold" style={{ color: Colors.dark.text }}>
+                  0 SOL
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* How It Works Section */}
+        <div
+          className={cn(
+            'mt-4 transition-all duration-500 delay-300',
             contentVisible ? 'opacity-100' : 'opacity-0'
           )}
         >
@@ -479,26 +511,9 @@ export default function Play() {
               className="text-xs font-medium mb-4 uppercase tracking-wider"
               style={{ color: Colors.dark.textMuted }}
             >
-              How you earn
+              How It Works
             </div>
             <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center"
-                  style={{ backgroundColor: Colors.dark.accentDim }}
-                >
-                  <TrendingUp size={16} color={Colors.dark.accent} />
-                </div>
-                <div>
-                  <div className="text-sm font-medium" style={{ color: Colors.dark.text }}>
-                    Win up to 10x
-                  </div>
-                  <div className="text-xs" style={{ color: Colors.dark.textMuted }}>
-                    Pick underdogs for bigger multipliers
-                  </div>
-                </div>
-              </div>
-
               <div className="flex items-center gap-3">
                 <div
                   className="w-8 h-8 rounded-lg flex items-center justify-center"
@@ -519,19 +534,28 @@ export default function Play() {
               <div className="flex items-center gap-3">
                 <div
                   className="w-8 h-8 rounded-lg flex items-center justify-center"
-                  style={{ backgroundColor: 'rgba(147, 51, 234, 0.15)' }}
+                  style={{ backgroundColor: 'rgba(34, 197, 94, 0.15)' }}
                 >
-                  <Gift size={16} color="#9333ea" />
+                  <Gift size={16} color="#22c55e" />
                 </div>
                 <div>
                   <div className="text-sm font-medium" style={{ color: Colors.dark.text }}>
-                    SOL airdrops at 100 SOL volume
+                    Example payout
                   </div>
                   <div className="text-xs" style={{ color: Colors.dark.textMuted }}>
-                    Top 10% of predictors get weekly drops
+                    Wager 1 SOL on underdog (5x) → Win 5 SOL
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+          </div>
+
+          {/* Sidebar - Past Polls (Desktop only) */}
+          <div className="hidden lg:block w-80 flex-shrink-0">
+            <div className="sticky top-8">
+              <RecentPolls />
             </div>
           </div>
         </div>

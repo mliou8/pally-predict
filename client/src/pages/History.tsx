@@ -109,9 +109,9 @@ export default function History() {
 
   return (
     <div className="min-h-screen pb-20 md:pb-6">
-      <div className="max-w-4xl mx-auto px-4 md:px-6 py-6">
+      <div className="max-w-5xl mx-auto px-4 md:px-8 py-6 md:py-10">
         <h1 className="text-2xl font-display font-bold mb-6 bg-gradient-to-r from-primary to-brand-magenta bg-clip-text text-transparent">
-          History
+          Past Polls
         </h1>
 
         <div className="space-y-3">
