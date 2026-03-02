@@ -43,7 +43,7 @@ export default function TabBar() {
                   strokeWidth={isActive ? 2 : 1.5}
                 />
                 <span
-                  className="text-[10px] font-medium"
+                  className="text-xs font-medium"
                   style={{
                     color: isActive ? Colors.dark.accent : Colors.dark.textMuted,
                   }}

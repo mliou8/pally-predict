@@ -2,13 +2,14 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { usePrivy, useLogin } from '@privy-io/react-auth';
 import { useLocation } from 'wouter';
-import { Lock, ArrowRight, Gift, TrendingUp, Trophy } from 'lucide-react';
+import { Lock, ArrowRight, TrendingUp, Share2, Bell } from 'lucide-react';
 import Colors from '@/constants/colors';
 import { cn } from '@/lib/utils';
 import AnswerCard from '@/components/game/AnswerCard';
 import CountdownTimer from '@/components/game/CountdownTimer';
 import WagerSelector from '@/components/game/WagerSelector';
 import ActivityFeed from '@/components/game/ActivityFeed';
+import ConfettiEffect from '@/components/game/ConfettiEffect';
 import RecentPolls from '@/components/RecentPolls';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, ApiError } from '@/lib/api';
@@ -49,6 +50,7 @@ export default function Play() {
 
   // Animations
   const [contentVisible, setContentVisible] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setContentVisible(true), 100);
@@ -157,6 +159,7 @@ export default function Play() {
       queryClient.invalidateQueries({ queryKey: ['/api/votes/mine'] });
       queryClient.invalidateQueries({ queryKey: ['/api/questions/active'] });
       setHasConfirmed(true);
+      setShowConfetti(true);
       toast({
         title: 'Locked in',
         description: 'Your prediction has been recorded.',
@@ -239,34 +242,52 @@ export default function Play() {
     );
   }
 
-  // No questions
+  // No questions - improved empty state
   if (!isLoadingActive && !question) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ backgroundColor: Colors.dark.background }}>
         <div
-          className="text-6xl mb-6"
-          style={{ filter: 'grayscale(100%)' }}
+          className="w-16 h-16 rounded-xl flex items-center justify-center mb-6"
+          style={{ backgroundColor: Colors.dark.surface }}
         >
-          🎯
+          <Bell size={32} color={Colors.dark.accent} />
         </div>
         <h2
-          className="text-xl font-semibold mb-2"
+          className="text-2xl font-bold mb-2 text-center"
           style={{ color: Colors.dark.text }}
         >
-          No predictions today
+          Next question drops at noon ET
         </h2>
         <p
-          className="text-sm text-center"
+          className="text-sm text-center mb-8 max-w-xs"
           style={{ color: Colors.dark.textMuted }}
         >
-          New questions drop daily at noon ET
+          Check back soon for the next prediction challenge
         </p>
+        <button
+          className={cn(
+            'flex items-center gap-2 px-6 py-3 rounded-xl transition-all',
+            'active:scale-[0.98]'
+          )}
+          style={{ backgroundColor: Colors.dark.surface }}
+        >
+          <Bell size={18} color={Colors.dark.accent} />
+          <span
+            className="text-sm font-semibold"
+            style={{ color: Colors.dark.text }}
+          >
+            Enable notifications
+          </span>
+        </button>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: Colors.dark.background }}>
+      {/* Confetti effect on successful vote */}
+      <ConfettiEffect active={showConfetti} />
+
       <div className="max-w-6xl mx-auto px-5 py-8 pb-28 md:pb-8">
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Main Poll Column */}
@@ -332,23 +353,11 @@ export default function Play() {
 
             {/* Question text */}
             <h1
-              className="text-2xl font-bold leading-tight"
+              className="text-3xl md:text-4xl font-bold leading-tight"
               style={{ color: Colors.dark.text }}
             >
               {question.prompt}
             </h1>
-          </div>
-        )}
-
-        {/* Live Activity Feed */}
-        {question && (
-          <div
-            className={cn(
-              'transition-all duration-500 delay-150',
-              contentVisible ? 'opacity-100' : 'opacity-0'
-            )}
-          >
-            <ActivityFeed questionId={question.id} />
           </div>
         )}
 
@@ -406,7 +415,7 @@ export default function Play() {
                 className="text-base font-bold"
                 style={{ color: '#000' }}
               >
-                {voteMutation.isPending ? 'Locking...' : 'Lock in'}
+                {voteMutation.isPending ? 'Locking...' : `Lock in for ${wagerAmount} pts`}
               </span>
               <ArrowRight size={18} color="#000" strokeWidth={2.5} />
             </button>
@@ -446,6 +455,57 @@ export default function Play() {
                 </div>
               </div>
             </div>
+
+            {/* Share and Notification CTAs */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  const shareText = `I just made my prediction on Pally! What do you think?`;
+                  if (navigator.share) {
+                    navigator.share({ text: shareText, url: window.location.href });
+                  } else {
+                    navigator.clipboard.writeText(`${shareText} ${window.location.href}`);
+                    toast({ title: 'Copied to clipboard', description: 'Share link copied!' });
+                  }
+                }}
+                className={cn(
+                  'flex-1 flex items-center justify-center gap-2 py-4 rounded-xl transition-all',
+                  'active:scale-[0.98]'
+                )}
+                style={{ backgroundColor: Colors.dark.accent }}
+              >
+                <Share2 size={18} color="#000" />
+                <span
+                  className="text-base font-semibold"
+                  style={{ color: '#000' }}
+                >
+                  Share your prediction
+                </span>
+              </button>
+            </div>
+
+            <button
+              className={cn(
+                'w-full flex items-center justify-center gap-2 py-4 rounded-xl transition-all',
+                'active:scale-[0.98]'
+              )}
+              style={{ backgroundColor: Colors.dark.surface }}
+            >
+              <Bell size={18} color={Colors.dark.accent} />
+              <span
+                className="text-base font-semibold"
+                style={{ color: Colors.dark.text }}
+              >
+                Get notified when results drop
+              </span>
+            </button>
+
+            {/* Live Activity Feed - shown after lock-in */}
+            {question && (
+              <div className="mt-4">
+                <ActivityFeed questionId={question.id} />
+              </div>
+            )}
 
             <button
               onClick={handleViewPastPolls}
@@ -488,68 +548,14 @@ export default function Play() {
                 <div className="text-xs uppercase tracking-wider" style={{ color: Colors.dark.textMuted }}>
                   Total Volume
                 </div>
-                <div className="text-lg font-bold" style={{ color: Colors.dark.text }}>
-                  0 SOL
+                <div className="text-lg font-bold" style={{ color: Colors.dark.textMuted }}>
+                  Coming soon
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* How It Works Section */}
-        <div
-          className={cn(
-            'mt-4 transition-all duration-500 delay-300',
-            contentVisible ? 'opacity-100' : 'opacity-0'
-          )}
-        >
-          <div
-            className="rounded-xl p-5"
-            style={{ backgroundColor: Colors.dark.surface }}
-          >
-            <div
-              className="text-xs font-medium mb-4 uppercase tracking-wider"
-              style={{ color: Colors.dark.textMuted }}
-            >
-              How It Works
-            </div>
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center"
-                  style={{ backgroundColor: Colors.dark.accentDim }}
-                >
-                  <Trophy size={16} color={Colors.dark.accent} />
-                </div>
-                <div>
-                  <div className="text-sm font-medium" style={{ color: Colors.dark.text }}>
-                    Climb the leaderboard
-                  </div>
-                  <div className="text-xs" style={{ color: Colors.dark.textMuted }}>
-                    Top predictors earn bonus rewards
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center"
-                  style={{ backgroundColor: 'rgba(34, 197, 94, 0.15)' }}
-                >
-                  <Gift size={16} color="#22c55e" />
-                </div>
-                <div>
-                  <div className="text-sm font-medium" style={{ color: Colors.dark.text }}>
-                    Example payout
-                  </div>
-                  <div className="text-xs" style={{ color: Colors.dark.textMuted }}>
-                    Wager 1 SOL on underdog (5x) → Win 5 SOL
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
           </div>
 
           {/* Sidebar - Past Polls (Desktop only) */}

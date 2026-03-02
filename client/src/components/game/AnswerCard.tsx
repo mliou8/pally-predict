@@ -25,6 +25,8 @@ export default function AnswerCard({ text, index, isSelected, isLocked, onPress,
 
   const handleClick = () => {
     if (isLocked) return;
+    // TODO: Add haptic feedback for mobile devices
+    // if (navigator.vibrate) navigator.vibrate(10);
     onPress();
   };
 

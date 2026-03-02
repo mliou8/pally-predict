@@ -16,7 +16,7 @@ const Colors = {
     // Text - high contrast
     text: '#FFFFFF',
     textSecondary: '#999999',
-    textMuted: '#555555',
+    textMuted: '#666666',
 
     // Primary accent - lime green (distinctive)
     accent: '#BFFF00',

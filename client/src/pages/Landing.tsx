@@ -198,7 +198,7 @@ export default function Landing() {
                   Win and climb the leaderboard
                 </div>
                 <div className="text-sm" style={{ color: Colors.dark.textMuted }}>
-                  Top predictors earn SOL airdrops at 100 SOL volume
+                  Top predictors earn rewards
                 </div>
               </div>
             </div>
