@@ -229,6 +229,8 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
   'http://localhost:5000',
   'http://localhost:5173',
   'https://pally-predict-production.up.railway.app',
+  'https://www.pallyfeud.com',
+  'https://pallyfeud.com',
 ];
 app.use(cors({
   origin: (origin, callback) => {
