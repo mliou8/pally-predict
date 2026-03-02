@@ -2,8 +2,7 @@ import { useLogin } from '@privy-io/react-auth';
 import { Link } from 'wouter';
 import BrandMark from '@/components/BrandMark';
 import { Button } from '@/components/ui/button';
-import { Mail, Wallet } from 'lucide-react';
-import { SiX, SiGoogle, SiDiscord } from 'react-icons/si';
+import { SiX } from 'react-icons/si';
 
 export default function Splash() {
   const { login } = useLogin({
@@ -28,87 +27,34 @@ export default function Splash() {
           </p>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
           <Button
-            onClick={() => login({ loginMethods: ['wallet'] })}
-            className="w-full bg-gradient-to-r from-[#AB9FF2] to-[#7C3AED] hover:opacity-90 transition-opacity"
+            onClick={() => login({ loginMethods: ['twitter'] })}
+            className="w-full bg-foreground text-background hover:bg-foreground/90 transition-opacity"
             size="lg"
-            data-testid="button-connect-phantom"
+            data-testid="button-continue-x"
           >
-            <Wallet size={20} className="mr-2" />
-            Connect Wallet
+            <SiX size={18} className="mr-2" />
+            Continue with X
           </Button>
 
-          <div className="relative my-4">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-border" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Button
-              onClick={() => login({ loginMethods: ['twitter'] })}
-              variant="outline"
-              className="w-full"
-              size="lg"
-              data-testid="button-continue-x"
-            >
-              <SiX size={16} className="mr-2" />
-              X
-            </Button>
-
-            <Button
-              onClick={() => login({ loginMethods: ['google'] })}
-              variant="outline"
-              className="w-full"
-              size="lg"
-              data-testid="button-continue-google"
-            >
-              <SiGoogle size={16} className="mr-2" />
-              Google
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Button
-              onClick={() => login({ loginMethods: ['discord'] })}
-              variant="outline"
-              className="w-full"
-              size="lg"
-              data-testid="button-continue-discord"
-            >
-              <SiDiscord size={18} className="mr-2" />
-              Discord
-            </Button>
-
-            <Button
-              onClick={() => login({ loginMethods: ['email'] })}
-              variant="outline"
-              className="w-full"
-              size="lg"
-              data-testid="button-continue-email"
-            >
-              <Mail size={18} className="mr-2" />
-              Email
-            </Button>
-          </div>
+          <p className="text-xs text-muted-foreground">
+            We use X to verify you're a real person and prevent bots.
+          </p>
         </div>
 
         <div className="pt-6 text-xs text-muted-foreground space-x-4">
-          <Link 
-            href="/terms" 
-            className="hover:text-foreground transition-colors" 
+          <Link
+            href="/terms"
+            className="hover:text-foreground transition-colors"
             data-testid="link-terms"
           >
             Terms of Service
           </Link>
           <span>•</span>
-          <Link 
-            href="/privacy" 
-            className="hover:text-foreground transition-colors" 
+          <Link
+            href="/privacy"
+            className="hover:text-foreground transition-colors"
             data-testid="link-privacy"
           >
             Privacy Policy

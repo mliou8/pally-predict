@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { usePrivy, useLogin } from '@privy-io/react-auth';
 import { useLocation } from 'wouter';
@@ -218,15 +218,37 @@ export default function Play() {
     setLocation('/history');
   }, [setLocation]);
 
-  // Get options from question
-  const options = question
-    ? [
-        { id: 'A', text: question.optionA },
-        { id: 'B', text: question.optionB },
-        ...(question.optionC ? [{ id: 'C', text: question.optionC }] : []),
-        ...(question.optionD ? [{ id: 'D', text: question.optionD }] : []),
-      ]
-    : [];
+  // Seeded random shuffle to prevent collusion via "everyone pick option 1"
+  // Each user sees options in a different order based on their ID + question ID
+  const seededShuffle = useCallback(<T,>(array: T[], seed: string): T[] => {
+    const shuffled = [...array];
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+      hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+      hash = hash & hash;
+    }
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      hash = ((hash << 5) - hash) + i;
+      hash = hash & hash;
+      const j = Math.abs(hash) % (i + 1);
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  }, []);
+
+  // Get options from question (randomized per user to prevent coordination)
+  const options = useMemo(() => {
+    if (!question) return [];
+    const baseOptions = [
+      { id: 'A', text: question.optionA },
+      { id: 'B', text: question.optionB },
+      ...(question.optionC ? [{ id: 'C', text: question.optionC }] : []),
+      ...(question.optionD ? [{ id: 'D', text: question.optionD }] : []),
+    ];
+    // Use user ID + question ID as seed for consistent but unique ordering
+    const seed = (user?.id || 'anonymous') + question.id;
+    return seededShuffle(baseOptions, seed);
+  }, [question, user?.id, seededShuffle]);
 
   const selectedOption = options.find((o) => o.id === selectedOptionId);
 

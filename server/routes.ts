@@ -21,6 +21,32 @@ const solanaConnection = new Connection(SOLANA_RPC_URL, 'confirmed');
 const nonceStore = new Map<string, { nonce: string; address: string; timestamp: number; userId: string }>();
 const NONCE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
 
+// Anti-collusion: Rate limiting for votes (prevent rapid voting across questions)
+// Maps user ID to their last vote timestamp
+const voteRateLimiter = new Map<string, number>();
+const VOTE_COOLDOWN_MS = 10 * 1000; // 10 seconds between votes
+
+// Anti-collusion: Track voting patterns for anomaly detection
+// Maps IP address to list of user IDs voting from that IP
+const ipVoteTracker = new Map<string, Set<string>>();
+const MAX_USERS_PER_IP = 5; // Flag if more than 5 different users vote from same IP
+
+// Helper to get client IP address
+function getClientIP(req: any): string {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (forwarded) {
+    return (typeof forwarded === 'string' ? forwarded : forwarded[0]).split(',')[0].trim();
+  }
+  return req.socket?.remoteAddress || req.ip || 'unknown';
+}
+
+// Helper to get device fingerprint from user agent
+function getDeviceFingerprint(req: any): string {
+  const userAgent = req.headers['user-agent'] || 'unknown';
+  const acceptLanguage = req.headers['accept-language'] || '';
+  return `${userAgent}|${acceptLanguage}`;
+}
+
 // Helper function to serialize BigInt fields to strings for JSON responses
 // This is necessary because JSON.stringify cannot handle BigInt values
 function serializeBigInt<T>(obj: T): T {
@@ -269,6 +295,31 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
         return res.status(404).json({ error: 'User not found' });
       }
 
+      // Anti-collusion: Rate limiting
+      const lastVoteTime = voteRateLimiter.get(user.id);
+      const now = Date.now();
+      if (lastVoteTime && (now - lastVoteTime) < VOTE_COOLDOWN_MS) {
+        const waitTime = Math.ceil((VOTE_COOLDOWN_MS - (now - lastVoteTime)) / 1000);
+        return res.status(429).json({
+          error: `Please wait ${waitTime} seconds before voting again`
+        });
+      }
+
+      // Anti-collusion: Track IP patterns
+      const clientIP = getClientIP(req);
+      const deviceFingerprint = getDeviceFingerprint(req);
+
+      if (!ipVoteTracker.has(clientIP)) {
+        ipVoteTracker.set(clientIP, new Set());
+      }
+      const usersFromIP = ipVoteTracker.get(clientIP)!;
+      usersFromIP.add(user.id);
+
+      // Log suspicious activity (many users from same IP)
+      if (usersFromIP.size > MAX_USERS_PER_IP) {
+        console.warn(`[ANTI-COLLUSION] Suspicious: ${usersFromIP.size} users voting from IP ${clientIP}`);
+      }
+
       const { questionId, choice, isPublic = true, wagerAmount } = req.body;
 
       // Check if question exists and is active
@@ -303,6 +354,12 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
       const parsedVoteData = insertVoteSchema.parse(voteData);
 
       const vote = await storage.createVote(parsedVoteData);
+
+      // Update rate limiter after successful vote
+      voteRateLimiter.set(user.id, now);
+
+      // Log vote metadata for anomaly detection (not stored in DB for privacy)
+      console.log(`[VOTE] User: ${user.id.slice(0, 8)}... Q: ${questionId.slice(0, 8)}... Choice: ${choice} IP: ${clientIP.slice(0, 10)}... Time: ${new Date().toISOString()}`);
 
       res.status(201).json({ vote: serializeBigInt(vote) });
     } catch (error: any) {

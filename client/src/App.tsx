@@ -234,7 +234,7 @@ function App() {
     <PrivyProvider
       appId={privyAppId}
       config={{
-        loginMethods: ['wallet', 'email', 'google', 'twitter', 'discord'],
+        loginMethods: ['twitter'],
         appearance: {
           theme: 'dark',
           accentColor: '#FF6B35',
