@@ -16,6 +16,8 @@ interface HistoryCardProps {
   userChoiceLabel: string;
   outcome: 'correct' | 'incorrect' | 'pending';
   pointsEarned: number;
+  betAmount: number;
+  payout: number | null;
   timestamp: string | Date;
   isPublic: boolean;
   outcomeDescription?: string;
@@ -29,6 +31,8 @@ export default function HistoryCard({
   userChoiceLabel,
   outcome,
   pointsEarned,
+  betAmount,
+  payout,
   timestamp,
   isPublic,
   outcomeDescription,
@@ -100,12 +104,21 @@ export default function HistoryCard({
           ) : (
             <span className="text-muted-foreground">{isCorrect ? 'You picked the majority!' : 'Not the majority this time'}</span>
           )}
-          {pointsEarned > 0 && (
-            <Badge variant="outline" className="text-xs font-mono inline-flex items-center gap-1">
-              <span className="text-gold font-bold" style={{ fontSize: '12px' }}>α</span>
-              +{pointsEarned}
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {betAmount > 0 && (
+              <Badge variant="secondary" className="text-xs font-mono">
+                Bet: {betAmount.toFixed(0)} pts
+              </Badge>
+            )}
+            {!isPending && payout !== null && (
+              <Badge
+                variant="outline"
+                className={`text-xs font-mono ${isCorrect ? 'text-success border-success' : 'text-destructive border-destructive'}`}
+              >
+                {isCorrect ? '+' : ''}{(payout - betAmount).toFixed(0)} pts
+              </Badge>
+            )}
+          </div>
         </div>
       </button>
 

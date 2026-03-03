@@ -162,6 +162,8 @@ export default function History() {
               }
 
               const pointsEarned = vote.pointsEarned || 0;
+              const betAmount = vote.betAmount ? parseFloat(vote.betAmount) : 0;
+              const payout = vote.payout ? parseFloat(vote.payout) : null;
 
               // Build all options for expanded view
               const allOptions = results ? [
@@ -179,6 +181,8 @@ export default function History() {
                   userChoiceLabel={userChoiceLabel}
                   outcome={outcome}
                   pointsEarned={pointsEarned}
+                  betAmount={betAmount}
+                  payout={payout}
                   timestamp={vote.votedAt}
                   isPublic={vote.isPublic}
                   outcomeDescription={outcomeDescription}
