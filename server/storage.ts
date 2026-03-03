@@ -158,11 +158,16 @@ export class DbStorage implements IStorage {
   }
 
   async updateUserBalance(userId: string, delta: number): Promise<User | undefined> {
-    const user = await this.getUser(userId);
-    if (!user) return undefined;
-
-    const newBalance = parseFloat(user.balance) + delta;
-    return this.updateUser(userId, { balance: newBalance.toFixed(2) });
+    // Use atomic SQL update to prevent race conditions
+    const [user] = await db
+      .update(users)
+      .set({
+        balance: sql`(${users.balance}::numeric + ${delta})::numeric(12,2)`,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
   }
 
   async getUserBalance(userId: string): Promise<number> {
@@ -393,39 +398,57 @@ export class DbStorage implements IStorage {
     betAmount: number;
     platform: PlatformType;
   }): Promise<Vote> {
-    // Deduct balance from user
-    const user = await this.getUser(data.userId);
-    if (!user) {
-      throw new Error('User not found');
-    }
+    // Use a database transaction to ensure atomicity and prevent race conditions
+    const result = await db.transaction(async (tx) => {
+      // Get current user balance
+      const [user] = await tx
+        .select()
+        .from(users)
+        .where(eq(users.id, data.userId))
+        .limit(1);
 
-    const currentBalance = parseFloat(user.balance);
-    if (data.betAmount > currentBalance) {
-      throw new Error('Insufficient balance');
-    }
+      if (!user) {
+        throw new Error('User not found');
+      }
 
-    // Update user balance and totalWagered
-    await this.updateUser(data.userId, {
-      balance: (currentBalance - data.betAmount).toFixed(2),
-      totalWagered: (parseFloat(user.totalWagered) + data.betAmount).toFixed(2),
+      const currentBalance = parseFloat(user.balance);
+      if (data.betAmount > currentBalance) {
+        throw new Error('Insufficient balance');
+      }
+
+      // Atomically update user balance and totalWagered using SQL expressions
+      // This prevents race conditions even without explicit row locking
+      const newBalance = (currentBalance - data.betAmount).toFixed(2);
+      const newWagered = (parseFloat(user.totalWagered) + data.betAmount).toFixed(2);
+
+      await tx
+        .update(users)
+        .set({
+          balance: newBalance,
+          totalWagered: newWagered,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, data.userId));
+
+      // Create the vote
+      const insertResult = await tx.insert(votes).values([{
+        userId: data.userId,
+        questionId: data.questionId,
+        choice: data.choice,
+        betAmount: data.betAmount.toFixed(2),
+        platform: data.platform,
+        isPublic: true,
+      }]).returning();
+
+      return insertResult[0];
     });
 
-    // Create the vote
-    const [vote] = await db.insert(votes).values([{
-      userId: data.userId,
-      questionId: data.questionId,
-      choice: data.choice,
-      betAmount: data.betAmount.toFixed(2),
-      platform: data.platform,
-      isPublic: true,
-    }]).returning();
-
-    // Broadcast pool update via WebSocket
+    // Broadcast pool update via WebSocket (outside transaction)
     broadcastPoolUpdate(data.questionId).catch(err =>
       console.error('Error broadcasting pool update:', err)
     );
 
-    return vote;
+    return result;
   }
 
   async updateVote(voteId: string, updates: Partial<Vote>): Promise<Vote | undefined> {

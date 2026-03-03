@@ -110,9 +110,23 @@ export function registerTelegramRoutes(app: Express): void {
       return res.status(500).json({ error: 'Admin authentication not configured' });
     }
 
-    if (!adminKey || adminKey !== ADMIN_KEY) {
+    if (!adminKey) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
+
+    // Use timing-safe comparison to prevent timing attacks
+    try {
+      const adminKeyBuffer = Buffer.from(ADMIN_KEY);
+      const providedKeyBuffer = Buffer.from(adminKey);
+
+      if (adminKeyBuffer.length !== providedKeyBuffer.length ||
+          !crypto.timingSafeEqual(adminKeyBuffer, providedKeyBuffer)) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+    } catch {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     next();
   };
 

@@ -1,5 +1,6 @@
 import type { Express } from 'express';
 import type { Server } from 'http';
+import { z } from 'zod';
 import { storage } from './storage';
 import { insertUserSchema, insertQuestionSchema, insertVoteSchema, type VoteChoice, type PlatformType } from '@shared/schema';
 import { randomBytes } from 'crypto';
@@ -181,6 +182,13 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
     }
   });
 
+  // Schema for allowed profile updates
+  const updateProfileSchema = z.object({
+    handle: z.string().min(3).max(30).regex(/^[a-zA-Z0-9_]+$/, 'Handle can only contain letters, numbers, and underscores').optional(),
+    firstName: z.string().min(1).max(50).optional(),
+    lastName: z.string().min(1).max(50).optional(),
+  }).strict(); // Reject unknown fields to prevent mass assignment attacks
+
   // Update user profile
   app.patch('/api/user/profile', async (req, res) => {
     try {
@@ -194,9 +202,26 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
         return res.status(404).json({ error: 'User not found' });
       }
 
-      const updates = req.body;
-      const updatedUser = await storage.updateUser(user.id, updates);
+      // Validate input - only allow safe fields to be updated
+      const parseResult = updateProfileSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({
+          error: 'Invalid input',
+          details: parseResult.error.errors
+        });
+      }
 
+      const updates = parseResult.data;
+
+      // If handle is being changed, check uniqueness
+      if (updates.handle && updates.handle !== user.handle) {
+        const existing = await storage.getUserByHandle(updates.handle);
+        if (existing) {
+          return res.status(400).json({ error: 'Handle already taken' });
+        }
+      }
+
+      const updatedUser = await storage.updateUser(user.id, updates);
       res.json(updatedUser);
     } catch (error: any) {
       console.error('API Error:', error);

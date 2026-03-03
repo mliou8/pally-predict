@@ -59,7 +59,17 @@ const Colors = {
 };
 
 // Answer option colors - bold, full saturation
-export const OPTION_COLORS = [
+export interface OptionColor {
+  bg: string;
+  bgDim: string;
+  border: string;
+  text: string;
+  textAlt: string;
+  glow: string;
+  fill: string;
+}
+
+export const OPTION_COLORS: OptionColor[] = [
   { bg: '#BFFF00', bgDim: 'rgba(191, 255, 0, 0.12)', border: '#BFFF00', text: '#000000', textAlt: '#BFFF00', glow: 'rgba(191, 255, 0, 0.3)', fill: '#BFFF00' },
   { bg: '#00D4FF', bgDim: 'rgba(0, 212, 255, 0.12)', border: '#00D4FF', text: '#000000', textAlt: '#00D4FF', glow: 'rgba(0, 212, 255, 0.3)', fill: '#00D4FF' },
   { bg: '#FF00AA', bgDim: 'rgba(255, 0, 170, 0.12)', border: '#FF00AA', text: '#000000', textAlt: '#FF00AA', glow: 'rgba(255, 0, 170, 0.3)', fill: '#FF00AA' },

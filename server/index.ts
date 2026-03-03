@@ -244,7 +244,7 @@ app.use(cors({
   credentials: true,
 }));
 
-// Rate limiting for auth endpoints
+// Rate limiting for auth endpoints (strict)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 20, // 20 requests per window
@@ -253,9 +253,42 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Apply rate limiting to auth routes
+// Rate limiting for voting/wagering (moderate)
+const voteLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 30, // 30 requests per minute
+  message: { error: 'Too many vote attempts, please slow down' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Rate limiting for admin endpoints (strict)
+const adminLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // 100 requests per window
+  message: { error: 'Too many admin requests' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Rate limiting for wallet operations (strict)
+const walletLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 10, // 10 requests per window
+  message: { error: 'Too many wallet operations, please wait' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Apply rate limiting to routes
 app.use('/api/mobile/auth', authLimiter);
 app.use('/api/user/profile', authLimiter);
+app.use('/api/votes', voteLimiter);
+app.use('/api/wager', voteLimiter);
+app.use('/api/mobile/votes', voteLimiter);
+app.use('/api/admin', adminLimiter);
+app.use('/api/telegram/admin', adminLimiter);
+app.use('/api/solana', walletLimiter);
 
 declare module 'http' {
   interface IncomingMessage {
