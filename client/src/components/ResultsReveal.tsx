@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Trophy, Share2, TrendingUp, Coins } from 'lucide-react';
+import { Trophy, Share2, Coins } from 'lucide-react';
 import PointsBurst from './PointsBurst';
 import { Button } from '@/components/ui/button';
 import type { VoteChoice } from '@shared/schema';
@@ -18,7 +18,6 @@ interface ResultsRevealProps {
   userChoiceLabel: string;
   results: OptionResult[];
   pointsEarned?: number;
-  multiplier?: number;
   questionDate?: string;
   isPublic?: boolean;
   userWager?: bigint;
@@ -32,7 +31,6 @@ export default function ResultsReveal({
   userChoiceLabel,
   results,
   pointsEarned,
-  multiplier,
   questionDate,
   isPublic,
   userWager,
@@ -162,18 +160,6 @@ export default function ResultsReveal({
         })}
       </div>
 
-      {userRank === 4 && (
-        <div className="flex items-center gap-3 mb-6 p-4 rounded-xl bg-muted border border-border">
-          <TrendingUp className="text-brand-magenta" size={24} />
-          <div>
-            <div className="font-semibold text-foreground">Rare Pick Bonus! 🎯</div>
-            <div className="text-sm text-muted-foreground">
-              You predicted the unpopular choice - massive multiplier!
-            </div>
-          </div>
-        </div>
-      )}
-
       {userRank === 1 && (
         <div className="flex items-center gap-3 mb-6 p-4 rounded-xl bg-gradient-to-r from-yellow-500/10 to-yellow-600/10 border border-yellow-500/30">
           <Trophy className="text-yellow-500" size={24} />
@@ -186,9 +172,9 @@ export default function ResultsReveal({
         </div>
       )}
 
-      {pointsEarned && multiplier && (
+      {pointsEarned && (
         <div className="mb-6 flex justify-center">
-          <PointsBurst amount={pointsEarned} multiplier={multiplier} />
+          <PointsBurst amount={pointsEarned} />
         </div>
       )}
 

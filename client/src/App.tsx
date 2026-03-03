@@ -23,6 +23,9 @@ import AllResults from '@/pages/AllResults';
 import TermsOfService from '@/pages/TermsOfService';
 import PrivacyPolicy from '@/pages/PrivacyPolicy';
 import LinkTelegram from '@/pages/LinkTelegram';
+import HowItWorks from '@/pages/HowItWorks';
+import About from '@/pages/About';
+import FAQ from '@/pages/FAQ';
 import TabBar from '@/components/TabBar';
 import DesktopSidebar from '@/components/DesktopSidebar';
 import IntroAnimation from '@/components/IntroAnimation';
@@ -92,9 +95,9 @@ function AppContent() {
   useEffect(() => {
     if (!ready) return;
 
-    const validRoutes = ['/', '/play', '/splash', '/create-profile', '/link-wallet', '/link', '/leaderboard', '/history', '/profile', '/admin', '/telegram-admin', '/all-results', '/terms', '/privacy', '/results'];
+    const validRoutes = ['/', '/play', '/splash', '/create-profile', '/link-wallet', '/link', '/leaderboard', '/history', '/profile', '/admin', '/telegram-admin', '/all-results', '/terms', '/privacy', '/results', '/how-it-works', '/about', '/faq'];
     // Main game routes are now public
-    const publicRoutes = ['/', '/play', '/results', '/splash', '/terms', '/privacy', '/leaderboard'];
+    const publicRoutes = ['/', '/play', '/results', '/splash', '/terms', '/privacy', '/leaderboard', '/how-it-works', '/about', '/faq'];
     const isValidRoute = validRoutes.includes(location);
     const isPublicRoute = publicRoutes.includes(location);
 
@@ -199,6 +202,9 @@ function AppContent() {
           <Route path="/link" component={LinkTelegram} />
           <Route path="/terms" component={TermsOfService} />
           <Route path="/privacy" component={PrivacyPolicy} />
+          <Route path="/how-it-works" component={HowItWorks} />
+          <Route path="/about" component={About} />
+          <Route path="/faq" component={FAQ} />
           <Route component={NotFound} />
         </Switch>
       </div>

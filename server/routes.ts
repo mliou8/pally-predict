@@ -816,7 +816,6 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
             secondPlaceChoice,
             thirdPlaceChoice,
             fourthPlaceChoice,
-            rarityMultipliers: rarityMultipliers as Record<'A' | 'B' | 'C' | 'D', number>,
             totalPot,
           });
         }

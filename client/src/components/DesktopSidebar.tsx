@@ -1,4 +1,4 @@
-import { Crosshair, Trophy, Clock, User, LogOut } from 'lucide-react';
+import { Crosshair, Trophy, Clock, User, LogOut, HelpCircle, Info, BookOpen } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import { usePrivy } from '@privy-io/react-auth';
 import Colors from '@/constants/colors';
@@ -13,6 +13,12 @@ export default function DesktopSidebar() {
     { icon: Trophy, label: 'Leaderboard', path: '/leaderboard' },
     { icon: Clock, label: 'Past Polls', path: '/history' },
     { icon: User, label: 'Profile', path: '/profile' },
+  ];
+
+  const infoItems = [
+    { icon: BookOpen, label: 'How It Works', path: '/how-it-works' },
+    { icon: Info, label: 'About', path: '/about' },
+    { icon: HelpCircle, label: 'FAQ', path: '/faq' },
   ];
 
   return (
@@ -44,7 +50,7 @@ export default function DesktopSidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4">
+      <nav className="flex-1 p-4 flex flex-col">
         <ul className="space-y-2">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -79,6 +85,47 @@ export default function DesktopSidebar() {
             );
           })}
         </ul>
+
+        {/* Info section - pushed to bottom of nav area */}
+        <div className="mt-auto pt-4 border-t" style={{ borderColor: Colors.dark.border }}>
+          <div className="text-xs font-medium px-4 mb-2" style={{ color: Colors.dark.textMuted }}>
+            INFO
+          </div>
+          <ul className="space-y-1">
+            {infoItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = location === item.path;
+
+              return (
+                <li key={item.path}>
+                  <Link href={item.path}>
+                    <a
+                      className={cn(
+                        'flex items-center gap-3 px-4 py-2 rounded-xl transition-all',
+                        'hover:bg-white/5',
+                        isActive && 'bg-white/10'
+                      )}
+                    >
+                      <Icon
+                        size={18}
+                        color={isActive ? Colors.dark.accent : Colors.dark.textMuted}
+                        strokeWidth={isActive ? 2 : 1.5}
+                      />
+                      <span
+                        className="text-sm"
+                        style={{
+                          color: isActive ? Colors.dark.text : Colors.dark.textMuted,
+                        }}
+                      >
+                        {item.label}
+                      </span>
+                    </a>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       </nav>
 
       {/* User section */}

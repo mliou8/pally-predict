@@ -2,10 +2,9 @@ import { motion } from 'framer-motion';
 
 interface PointsBurstProps {
   amount: number;
-  multiplier: number;
 }
 
-export default function PointsBurst({ amount, multiplier }: PointsBurstProps) {
+export default function PointsBurst({ amount }: PointsBurstProps) {
   return (
     <motion.div
       initial={{ scale: 0.8, opacity: 0 }}
@@ -20,8 +19,8 @@ export default function PointsBurst({ amount, multiplier }: PointsBurstProps) {
           +{amount}
         </span>
       </div>
-      <p className="mt-2 text-sm text-muted-foreground font-mono">
-        rarity ×{multiplier.toFixed(2)}
+      <p className="mt-2 text-sm text-muted-foreground">
+        Alpha Points earned
       </p>
     </motion.div>
   );

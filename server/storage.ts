@@ -519,10 +519,9 @@ export class DbStorage implements IStorage {
     secondPlaceChoice: VoteChoice | null;
     thirdPlaceChoice?: VoteChoice | null;
     fourthPlaceChoice?: VoteChoice | null;
-    rarityMultipliers: Record<VoteChoice, number>;
     totalPot: bigint;
   }): Promise<void> {
-    const { questionVotes, winningChoice, secondPlaceChoice, thirdPlaceChoice, fourthPlaceChoice, rarityMultipliers, totalPot } = params;
+    const { questionVotes, winningChoice, secondPlaceChoice, thirdPlaceChoice, fourthPlaceChoice, totalPot } = params;
 
     // Calculate total bets for point-based wagering
     const totalPointsBet = questionVotes.reduce((sum, v) => sum + parseFloat(v.betAmount), 0);
@@ -532,7 +531,7 @@ export class DbStorage implements IStorage {
     // Use a database transaction to ensure atomicity
     await db.transaction(async (tx) => {
       for (const vote of questionVotes) {
-        const rarityMultiplier = rarityMultipliers[vote.choice] || 1;
+        // Consensus game: no rarity multiplier since winner = majority pick
         const publicMultiplier = vote.isPublic ? 2 : 1;
         let basePoints = 100;
 
@@ -555,7 +554,7 @@ export class DbStorage implements IStorage {
           basePoints = 10; // Participation points
         }
 
-        const totalMultiplier = rarityMultiplier * publicMultiplier;
+        const totalMultiplier = publicMultiplier;
         const points = basePoints * totalMultiplier;
 
         // Calculate payout based on placement

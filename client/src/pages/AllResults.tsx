@@ -151,8 +151,7 @@ export default function AllResults() {
 
               // If user voted, show their details
               if (userVote) {
-                const multiplier = results.rarityMultipliers?.[userVote.choice] || 1;
-                const pointsEarned = userVote.pointsEarned || (100 * multiplier);
+                const pointsEarned = userVote.pointsEarned || 100;
 
                 return (
                   <ResultsReveal
@@ -162,7 +161,6 @@ export default function AllResults() {
                     userChoiceLabel={optionLabels[userVote.choice]}
                     results={resultsList}
                     pointsEarned={pointsEarned}
-                    multiplier={multiplier}
                     questionDate={question.dropsAt.toString()}
                     isPublic={userVote.isPublic}
                   />
