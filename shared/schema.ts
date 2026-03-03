@@ -33,15 +33,30 @@ export const users = pgTable("users", {
   correctPredictions: integer("correct_predictions").notNull().default(0),
   totalPredictions: integer("total_predictions").notNull().default(0),
 
-  // Legacy fields
+  // Dual Points System
+  // PP (Pally Points) - rare, valuable, implies airdrop eligibility
+  // Earned through: social verification, winning competitions, streaks
+  pallyPoints: integer("pally_points").notNull().default(0),
+
+  // WP (Wager Points) - gameplay currency
+  // Start with 1000, earn more through referrals and daily play
+  wagerPoints: integer("wager_points").notNull().default(1000),
+
+  // Legacy field (deprecated, use pallyPoints instead)
   alphaPoints: integer("alpha_points").notNull().default(0),
+
   currentStreak: integer("current_streak").notNull().default(0),
   maxStreak: integer("max_streak").notNull().default(0),
   rank: varchar("rank").notNull().default('Rookie'),
   badgesEarned: text("badges_earned").array().notNull().default(sql`ARRAY[]::text[]`),
   isAdmin: boolean("is_admin").notNull().default(false),
 
-  // Referral system
+  // Social verification flags (for PP rewards)
+  twitterVerified: boolean("twitter_verified").notNull().default(false),
+  discordVerified: boolean("discord_verified").notNull().default(false),
+  telegramVerified: boolean("telegram_verified").notNull().default(false),
+
+  // Referral system (rewards WP)
   referralCount: integer("referral_count").notNull().default(0),
   referredBy: varchar("referred_by").references(() => users.id),
 

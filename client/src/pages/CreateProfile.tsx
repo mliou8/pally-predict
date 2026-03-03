@@ -118,11 +118,32 @@ export default function CreateProfile() {
               </p>
               <p className="text-sm" style={{ color: Colors.dark.textMuted }}>
                 You and <span style={{ color: Colors.dark.accent }}>@{referralCode}</span> will each get{' '}
-                <span style={{ color: Colors.dark.accent, fontWeight: 'bold' }}>500 points</span>
+                <span style={{ color: Colors.dark.accent, fontWeight: 'bold' }}>500 WP</span>
               </p>
             </div>
           </div>
         )}
+
+        {/* Registration Bonus Info */}
+        <div
+          className="flex items-center gap-3 p-4 rounded-xl mb-4"
+          style={{ backgroundColor: 'rgba(255, 215, 0, 0.1)' }}
+        >
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: 'rgba(255, 215, 0, 0.3)' }}
+          >
+            <span className="text-lg">✨</span>
+          </div>
+          <div>
+            <p className="font-semibold" style={{ color: Colors.dark.text }}>
+              Registration Rewards
+            </p>
+            <p className="text-sm" style={{ color: Colors.dark.textMuted }}>
+              Get <span style={{ color: '#FFD700', fontWeight: 'bold' }}>10 PP</span> + <span style={{ color: Colors.dark.accent, fontWeight: 'bold' }}>1000 WP</span> to start!
+            </p>
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="flex justify-center">

@@ -77,6 +77,7 @@ export interface IStorage {
 
   // Leaderboard operations
   getLeaderboard(limit?: number): Promise<LeaderboardEntry[]>;
+  getPPLeaderboard(limit?: number): Promise<LeaderboardEntry[]>;
   getEarningsLeaderboard(limit?: number): Promise<LeaderboardEntry[]>;
   getUnifiedLeaderboard(limit?: number): Promise<LeaderboardEntry[]>;
 
@@ -808,6 +809,25 @@ export class DbStorage implements IStorage {
         return { ...user, accuracy };
       })
     );
+
+    return usersWithAccuracy;
+  }
+
+  // PP (Pally Points) leaderboard - sorted by pallyPoints
+  async getPPLeaderboard(limit: number = 50): Promise<LeaderboardEntry[]> {
+    const allUsers = await db
+      .select()
+      .from(users)
+      .orderBy(desc(users.pallyPoints), desc(users.currentStreak))
+      .limit(limit);
+
+    // Return with basic accuracy (simplified for PP leaderboard)
+    const usersWithAccuracy = allUsers.map((user) => ({
+      ...user,
+      accuracy: user.totalPredictions > 0
+        ? Math.round((user.correctPredictions / user.totalPredictions) * 100)
+        : 0,
+    }));
 
     return usersWithAccuracy;
   }

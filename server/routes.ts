@@ -141,26 +141,38 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
       const userData = insertUserSchema.parse({ privyUserId, handle });
       const user = await storage.createUser(userData);
 
-      // Award referral bonuses (500 points each)
-      const REFERRAL_BONUS = 500;
+      // Award WP (Wager Points) for referrals - 500 WP each
+      // Award PP (Pally Points) for registration with verified Twitter - 10 PP
+      const REFERRAL_WP_BONUS = 500;
+      const REGISTRATION_PP_BONUS = 10; // Awarded when socials verified
+
+      // Award initial PP bonus for registering (Twitter verified via Privy)
+      // User gets 10 PP just for creating account with verified social
+      await storage.updateUser(user.id, {
+        pallyPoints: REGISTRATION_PP_BONUS,
+        twitterVerified: true, // They logged in with Twitter via Privy
+      });
+
       if (referrer) {
-        // Award bonus to new user
+        // Award WP bonus to new user
+        const newUserWP = (user.wagerPoints || 1000) + REFERRAL_WP_BONUS;
         await storage.updateUser(user.id, {
-          alphaPoints: user.alphaPoints + REFERRAL_BONUS,
+          wagerPoints: newUserWP,
           referredBy: referrer.id,
         });
 
-        // Award bonus to referrer and increment their referral count
+        // Award WP bonus to referrer and increment their referral count
+        const referrerWP = (referrer.wagerPoints || 1000) + REFERRAL_WP_BONUS;
         await storage.updateUser(referrer.id, {
-          alphaPoints: referrer.alphaPoints + REFERRAL_BONUS,
+          wagerPoints: referrerWP,
           referralCount: (referrer.referralCount || 0) + 1,
         });
 
-        console.log(`[REFERRAL] User ${user.handle} referred by ${referrer.handle}. Both awarded ${REFERRAL_BONUS} points.`);
+        console.log(`[REFERRAL] User ${user.handle} referred by ${referrer.handle}. Both awarded ${REFERRAL_WP_BONUS} WP.`);
       }
 
-      // Get updated user with referral bonus applied
-      const updatedUser = referrer ? await storage.getUser(user.id) : user;
+      // Get updated user
+      const updatedUser = await storage.getUser(user.id);
 
       res.status(201).json(updatedUser);
     } catch (error: any) {
@@ -875,7 +887,7 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
     }
   });
 
-  // Points leaderboard (formatted for profile page)
+  // PP (Pally Points) leaderboard - sorted by pallyPoints (formatted for profile page)
   app.get('/api/leaderboard/points', async (req, res) => {
     try {
       const privyUserId = req.header('x-privy-user-id');
@@ -887,12 +899,12 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
       }
 
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
-      const leaders = await storage.getLeaderboard(limit);
+      const leaders = await storage.getPPLeaderboard(limit);
 
       const formattedLeaders = leaders.map((leader, index) => ({
         rank: index + 1,
         handle: leader.handle || `User${(index + 1).toString().padStart(3, '0')}`,
-        points: leader.alphaPoints,
+        points: leader.pallyPoints || leader.alphaPoints || 0, // Fallback to alphaPoints
         isCurrentUser: currentUserId ? leader.id === currentUserId : false,
       }));
 

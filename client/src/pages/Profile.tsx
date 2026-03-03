@@ -38,34 +38,35 @@ interface LeaderboardEntry {
   isCurrentUser: boolean;
 }
 
-// Tier system based on points
+// Tier system based on PP (Pally Points) - the rare airdrop points
 const TIERS = [
-  { name: 'Wood', min: 0, max: 499, color: '#8B7355', emoji: '🪵' },
-  { name: 'Bronze', min: 500, max: 1499, color: '#CD7F32', emoji: '🥉' },
-  { name: 'Silver', min: 1500, max: 2999, color: '#C0C0C0', emoji: '🥈' },
-  { name: 'Gold', min: 3000, max: 5999, color: '#FFD700', emoji: '🥇' },
-  { name: 'Platinum', min: 6000, max: 9999, color: '#E5E4E2', emoji: '💎' },
-  { name: 'Diamond', min: 10000, max: Infinity, color: '#B9F2FF', emoji: '💠' },
+  { name: 'Wood', min: 0, max: 9, color: '#8B7355', emoji: '🪵' },
+  { name: 'Bronze', min: 10, max: 49, color: '#CD7F32', emoji: '🥉' },
+  { name: 'Silver', min: 50, max: 149, color: '#C0C0C0', emoji: '🥈' },
+  { name: 'Gold', min: 150, max: 499, color: '#FFD700', emoji: '🥇' },
+  { name: 'Platinum', min: 500, max: 999, color: '#E5E4E2', emoji: '💎' },
+  { name: 'Diamond', min: 1000, max: Infinity, color: '#B9F2FF', emoji: '💠' },
 ];
 
-const getTierInfo = (points: number) => {
-  const tier = TIERS.find(t => points >= t.min && points <= t.max) || TIERS[0];
+const getTierInfo = (pallyPoints: number) => {
+  const tier = TIERS.find(t => pallyPoints >= t.min && pallyPoints <= t.max) || TIERS[0];
   const tierIndex = TIERS.indexOf(tier);
   const nextTier = tierIndex < TIERS.length - 1 ? TIERS[tierIndex + 1] : null;
 
-  const progressInTier = points - tier.min;
-  const tierRange = tier.max === Infinity ? 10000 : tier.max - tier.min + 1;
+  const progressInTier = pallyPoints - tier.min;
+  const tierRange = tier.max === Infinity ? 1000 : tier.max - tier.min + 1;
   const progressPercent = Math.min(100, (progressInTier / tierRange) * 100);
-  const pointsToNext = nextTier ? nextTier.min - points : 0;
+  const pointsToNext = nextTier ? nextTier.min - pallyPoints : 0;
 
   return { tier, nextTier, progressPercent, pointsToNext };
 };
 
-// Quest definitions
+// Quest definitions - PP quests are harder, WP quests are easier
 const QUESTS = [
-  { id: 'referral', title: 'Invite Friends', description: 'Invite 3 friends', target: 3, icon: Users, reward: 1500 },
-  { id: 'predictions', title: 'Daily Predictions', description: 'Make 10 predictions', target: 10, icon: Target, reward: 500 },
-  { id: 'streak', title: 'Win Streak', description: 'Get a 5-day streak', target: 5, icon: Flame, reward: 1000 },
+  { id: 'referral', title: 'Invite Friends', description: 'Invite 3 friends', target: 3, icon: Users, reward: 500, rewardType: 'WP' as const },
+  { id: 'predictions', title: 'Daily Predictions', description: 'Make 10 predictions', target: 10, icon: Target, reward: 100, rewardType: 'WP' as const },
+  { id: 'streak', title: 'Win Streak', description: 'Get a 5-day streak', target: 5, icon: Flame, reward: 5, rewardType: 'PP' as const },
+  { id: 'verify', title: 'Verify Socials', description: 'Connect Twitter & Discord', target: 2, icon: Star, reward: 10, rewardType: 'PP' as const },
 ];
 
 export default function Profile() {
@@ -143,18 +144,24 @@ export default function Profile() {
     }
   };
 
-  // Mock quest progress - in production this would come from the API
+  // Quest progress - in production this would come from the API
+  const socialVerifyCount = (currentUser?.twitterVerified ? 1 : 0) + (currentUser?.discordVerified ? 1 : 0);
   const questProgress = {
     referral: currentUser?.referralCount || 0,
     predictions: userStats?.totalPredictions || 0,
     streak: currentUser?.currentStreak || 0,
+    verify: socialVerifyCount,
   };
 
   // Mock claimable rewards
   const claimableSOL = 0;
-  const claimablePoints = 0;
+  const claimableWP = 0;
+  const claimablePP = 0;
 
-  const tierInfo = currentUser ? getTierInfo(currentUser.alphaPoints) : null;
+  // Use pallyPoints for tier, fallback to alphaPoints for backwards compatibility
+  const pallyPoints = currentUser?.pallyPoints ?? currentUser?.alphaPoints ?? 0;
+  const wagerPoints = currentUser?.wagerPoints ?? 1000;
+  const tierInfo = currentUser ? getTierInfo(pallyPoints) : null;
 
   if (!user) {
     return (
@@ -315,39 +322,60 @@ export default function Profile() {
                 {tierInfo.tier.name} Tier
               </p>
 
-              {/* Points display */}
-              <div className="flex justify-center gap-8 mb-4">
-                <div>
+              {/* Dual Points Display */}
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                {/* PP - Pally Points (rare, airdrop) */}
+                <div
+                  className="p-3 rounded-xl text-center"
+                  style={{ backgroundColor: Colors.dark.surface }}
+                >
                   <div
-                    className="text-3xl font-bold"
-                    style={{ color: Colors.dark.accent }}
+                    className="text-2xl font-bold"
+                    style={{ color: '#FFD700' }}
                   >
-                    {currentUser.alphaPoints.toLocaleString()}
+                    {pallyPoints.toLocaleString()}
                   </div>
-                  <div className="text-xs" style={{ color: Colors.dark.textMuted }}>
-                    POINTS
+                  <div className="text-xs font-medium" style={{ color: '#FFD700' }}>
+                    PP
+                  </div>
+                  <div className="text-[10px]" style={{ color: Colors.dark.textMuted }}>
+                    Pally Points
                   </div>
                 </div>
-                <div className="w-px" style={{ backgroundColor: Colors.dark.border }} />
-                <div>
+                {/* WP - Wager Points (gameplay) */}
+                <div
+                  className="p-3 rounded-xl text-center"
+                  style={{ backgroundColor: Colors.dark.surface }}
+                >
                   <div
-                    className="text-3xl font-bold"
-                    style={{ color: Colors.dark.text }}
+                    className="text-2xl font-bold"
+                    style={{ color: Colors.dark.accent }}
                   >
-                    {userStats?.totalEarned ? (Number(userStats.totalEarned) / 1e9).toFixed(2) : '0.00'}
+                    {wagerPoints.toLocaleString()}
                   </div>
-                  <div className="text-xs" style={{ color: Colors.dark.textMuted }}>
-                    SOL EARNED
+                  <div className="text-xs font-medium" style={{ color: Colors.dark.accent }}>
+                    WP
+                  </div>
+                  <div className="text-[10px]" style={{ color: Colors.dark.textMuted }}>
+                    Wager Points
                   </div>
                 </div>
               </div>
 
-              {/* Progress to next tier */}
+              {/* PP explainer */}
+              <p
+                className="text-xs text-center mb-4 px-4"
+                style={{ color: Colors.dark.textMuted }}
+              >
+                <span style={{ color: '#FFD700' }}>PP</span> = airdrop eligibility (rare) | <span style={{ color: Colors.dark.accent }}>WP</span> = wager currency
+              </p>
+
+              {/* Progress to next tier (based on PP) */}
               {tierInfo.nextTier && (
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs" style={{ color: Colors.dark.textMuted }}>
                     <span>{tierInfo.tier.name}</span>
-                    <span>{tierInfo.pointsToNext.toLocaleString()} pts to {tierInfo.nextTier.name}</span>
+                    <span>{tierInfo.pointsToNext.toLocaleString()} <span style={{ color: '#FFD700' }}>PP</span> to {tierInfo.nextTier.name}</span>
                   </div>
                   <div
                     className="h-2 rounded-full overflow-hidden"
@@ -357,7 +385,7 @@ export default function Profile() {
                       className="h-full rounded-full transition-all duration-500"
                       style={{
                         width: `${tierInfo.progressPercent}%`,
-                        backgroundColor: Colors.dark.accent
+                        backgroundColor: '#FFD700'
                       }}
                     />
                   </div>
@@ -382,7 +410,7 @@ export default function Profile() {
                     Invite Friends
                   </h3>
                   <p className="text-sm" style={{ color: Colors.dark.textMuted }}>
-                    You both get <span style={{ color: Colors.dark.accent, fontWeight: 'bold' }}>500 points</span>
+                    You both get <span style={{ color: Colors.dark.accent, fontWeight: 'bold' }}>500 WP</span>
                   </p>
                 </div>
               </div>
@@ -464,6 +492,78 @@ export default function Profile() {
                   </h3>
 
                   <div className="space-y-3">
+                    {/* PP Rewards (rare) */}
+                    <div
+                      className="flex items-center justify-between p-4 rounded-xl"
+                      style={{ backgroundColor: Colors.dark.surface }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-10 h-10 rounded-full flex items-center justify-center"
+                          style={{ backgroundColor: 'rgba(255, 215, 0, 0.2)' }}
+                        >
+                          <Star size={18} style={{ color: '#FFD700' }} />
+                        </div>
+                        <div>
+                          <div className="font-semibold" style={{ color: Colors.dark.text }}>
+                            {claimablePP.toLocaleString()} PP
+                          </div>
+                          <div className="text-xs" style={{ color: Colors.dark.textMuted }}>
+                            Pally Points (airdrop)
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        disabled={claimablePP === 0}
+                        className={cn(
+                          "py-2 px-4 rounded-lg text-sm font-medium transition-all",
+                          claimablePP > 0 ? "active:scale-[0.98]" : "opacity-50"
+                        )}
+                        style={{
+                          backgroundColor: claimablePP > 0 ? '#FFD700' : Colors.dark.border,
+                          color: claimablePP > 0 ? '#000' : Colors.dark.textMuted
+                        }}
+                      >
+                        Claim
+                      </button>
+                    </div>
+
+                    {/* WP Rewards */}
+                    <div
+                      className="flex items-center justify-between p-4 rounded-xl"
+                      style={{ backgroundColor: Colors.dark.surface }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-10 h-10 rounded-full flex items-center justify-center"
+                          style={{ backgroundColor: Colors.dark.accentDim }}
+                        >
+                          <Target size={18} style={{ color: Colors.dark.accent }} />
+                        </div>
+                        <div>
+                          <div className="font-semibold" style={{ color: Colors.dark.text }}>
+                            {claimableWP.toLocaleString()} WP
+                          </div>
+                          <div className="text-xs" style={{ color: Colors.dark.textMuted }}>
+                            Wager Points
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        disabled={claimableWP === 0}
+                        className={cn(
+                          "py-2 px-4 rounded-lg text-sm font-medium transition-all",
+                          claimableWP > 0 ? "active:scale-[0.98]" : "opacity-50"
+                        )}
+                        style={{
+                          backgroundColor: claimableWP > 0 ? Colors.dark.accent : Colors.dark.border,
+                          color: claimableWP > 0 ? '#000' : Colors.dark.textMuted
+                        }}
+                      >
+                        Claim
+                      </button>
+                    </div>
+
                     {/* SOL Rewards */}
                     <div
                       className="flex items-center justify-between p-4 rounded-xl"
@@ -499,42 +599,6 @@ export default function Profile() {
                         Claim
                       </button>
                     </div>
-
-                    {/* Points Rewards */}
-                    <div
-                      className="flex items-center justify-between p-4 rounded-xl"
-                      style={{ backgroundColor: Colors.dark.surface }}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="w-10 h-10 rounded-full flex items-center justify-center"
-                          style={{ backgroundColor: Colors.dark.accentDim }}
-                        >
-                          <Star size={18} style={{ color: Colors.dark.accent }} />
-                        </div>
-                        <div>
-                          <div className="font-semibold" style={{ color: Colors.dark.text }}>
-                            {claimablePoints.toLocaleString()} Points
-                          </div>
-                          <div className="text-xs" style={{ color: Colors.dark.textMuted }}>
-                            Quest rewards
-                          </div>
-                        </div>
-                      </div>
-                      <button
-                        disabled={claimablePoints === 0}
-                        className={cn(
-                          "py-2 px-4 rounded-lg text-sm font-medium transition-all",
-                          claimablePoints > 0 ? "active:scale-[0.98]" : "opacity-50"
-                        )}
-                        style={{
-                          backgroundColor: claimablePoints > 0 ? Colors.dark.accent : Colors.dark.border,
-                          color: claimablePoints > 0 ? '#000' : Colors.dark.textMuted
-                        }}
-                      >
-                        Claim
-                      </button>
-                    </div>
                   </div>
                 </div>
 
@@ -556,6 +620,7 @@ export default function Profile() {
                       const progress = Math.min(100, (current / quest.target) * 100);
                       const isComplete = current >= quest.target;
                       const Icon = quest.icon;
+                      const isPP = quest.rewardType === 'PP';
 
                       return (
                         <div
@@ -569,7 +634,7 @@ export default function Profile() {
                             >
                               <Icon
                                 size={20}
-                                style={{ color: isComplete ? Colors.dark.accent : Colors.dark.textMuted }}
+                                style={{ color: isComplete ? (isPP ? '#FFD700' : Colors.dark.accent) : Colors.dark.textMuted }}
                               />
                             </div>
                           </div>
@@ -583,9 +648,9 @@ export default function Profile() {
                               </span>
                               <span
                                 className="text-sm font-bold"
-                                style={{ color: Colors.dark.accent }}
+                                style={{ color: isPP ? '#FFD700' : Colors.dark.accent }}
                               >
-                                +{quest.reward}
+                                +{quest.reward} {quest.rewardType}
                               </span>
                             </div>
                             <div
