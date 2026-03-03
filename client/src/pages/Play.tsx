@@ -299,10 +299,10 @@ export default function Play() {
   const options = useMemo(() => {
     if (!question) return [];
     const baseOptions = [
-      { id: 'A', text: question.optionA },
-      { id: 'B', text: question.optionB },
-      ...(question.optionC ? [{ id: 'C', text: question.optionC }] : []),
-      ...(question.optionD ? [{ id: 'D', text: question.optionD }] : []),
+      { id: 'A', text: question.optionA, imageUrl: question.imageOptionA },
+      { id: 'B', text: question.optionB, imageUrl: question.imageOptionB },
+      ...(question.optionC ? [{ id: 'C', text: question.optionC, imageUrl: question.imageOptionC }] : []),
+      ...(question.optionD ? [{ id: 'D', text: question.optionD, imageUrl: question.imageOptionD }] : []),
     ];
     // Use user ID + question ID as seed for consistent but unique ordering
     const seed = (user?.id || 'anonymous') + question.id;
@@ -415,6 +415,18 @@ export default function Play() {
               <CountdownTimer closesAt={new Date(question.revealsAt).getTime()} />
             </div>
 
+            {/* Question image */}
+            {question.imageUrl && (
+              <div
+                className="w-full h-48 rounded-2xl overflow-hidden mb-6"
+                style={{
+                  backgroundImage: `url(${question.imageUrl})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                }}
+              />
+            )}
+
             {/* Question text */}
             <h1
               className="text-3xl md:text-4xl font-bold leading-tight mb-3"
@@ -451,6 +463,7 @@ export default function Play() {
               isSelected={selectedOptionId === option.id}
               isLocked={hasConfirmed}
               onPress={() => handleSelectOption(option.id as VoteChoice)}
+              imageUrl={option.imageUrl}
             />
           ))}
         </div>

@@ -10,9 +10,10 @@ interface AnswerCardProps {
   isSelected: boolean;
   isLocked: boolean;
   onPress: () => void;
+  imageUrl?: string | null;
 }
 
-export default function AnswerCard({ text, optionId, index, isSelected, isLocked, onPress }: AnswerCardProps) {
+export default function AnswerCard({ text, optionId, index, isSelected, isLocked, onPress, imageUrl }: AnswerCardProps) {
   const [isAnimated, setIsAnimated] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
   // Use the actual option ID (A, B, C, D) for colors, not the visual position
@@ -70,8 +71,20 @@ export default function AnswerCard({ text, optionId, index, isSelected, isLocked
         </div>
 
         <div className="relative p-4 flex items-center gap-3">
+          {/* Option image thumbnail */}
+          {imageUrl && (
+            <div
+              className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0"
+              style={{
+                backgroundImage: `url(${imageUrl})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+              }}
+            />
+          )}
+
           {/* Selection indicator */}
-          {isSelected && (
+          {isSelected && !imageUrl && (
             <div
               className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
               style={{ backgroundColor: 'rgba(0,0,0,0.25)' }}
@@ -80,8 +93,18 @@ export default function AnswerCard({ text, optionId, index, isSelected, isLocked
             </div>
           )}
 
+          {/* Check overlay on image when selected */}
+          {isSelected && imageUrl && (
+            <div
+              className="absolute left-4 top-4 w-6 h-6 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: colors.bg }}
+            >
+              <Check size={14} color={colors.text} strokeWidth={3} />
+            </div>
+          )}
+
           {/* Answer text */}
-          <div className={cn('flex-1 pr-16', !isSelected && 'pl-9')}>
+          <div className={cn('flex-1 pr-16', !isSelected && !imageUrl && 'pl-9')}>
             <p
               className="text-[15px] font-semibold leading-tight"
               style={{

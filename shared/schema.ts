@@ -92,6 +92,14 @@ export const questions = pgTable("questions", {
   // Correct answer for prediction questions (A, B, C, or D)
   correctAnswer: varchar("correct_answer").$type<VoteChoice>(),
 
+  // Generated images (Leonardo.ai)
+  imageUrl: text("image_url"),
+  imageOptionA: text("image_option_a"),
+  imageOptionB: text("image_option_b"),
+  imageOptionC: text("image_option_c"),
+  imageOptionD: text("image_option_d"),
+  imageResults: text("image_results"),
+
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

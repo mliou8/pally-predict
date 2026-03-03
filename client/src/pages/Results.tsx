@@ -188,6 +188,21 @@ export default function Results() {
       </div>
 
       <div className="max-w-lg mx-auto px-5 pt-16 pb-10">
+        {/* Results image */}
+        {question?.imageResults && (
+          <div
+            className={cn(
+              'w-full h-40 rounded-2xl overflow-hidden mb-6 transition-all duration-450',
+              titleVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+            )}
+            style={{
+              backgroundImage: `url(${question.imageResults})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }}
+          />
+        )}
+
         {/* Outcome Area */}
         <div
           className={cn(

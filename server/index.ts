@@ -9,6 +9,7 @@ import { initBot, getBot } from "./telegram-bot";
 import { startScheduler, stopScheduler } from "./telegram-scheduler";
 import { initWebSocket } from "./websocket";
 import { setupVite, serveStatic, log } from "./vite";
+import { generateQuestionImages } from "./leonardo";
 
 console.log('[startup] Server initializing...');
 console.log('[startup] NODE_ENV:', process.env.NODE_ENV);
@@ -211,6 +212,121 @@ app.post('/api/admin/seed-questions', async (req, res) => {
     res.json({ status: 'success', count: inserted.length, questions: inserted });
   } catch (error: any) {
     console.error('Seed error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: error.message || String(error),
+    });
+  }
+});
+
+// Generate images for a question using Leonardo.ai
+app.post('/api/admin/generate-images/:questionId', async (req, res) => {
+  try {
+    const { questionId } = req.params;
+    const { db } = await import('./db');
+    const { questions } = await import('@shared/schema');
+    const { eq } = await import('drizzle-orm');
+
+    // Get the question
+    const [question] = await db.select().from(questions).where(eq(questions.id, questionId)).limit(1);
+
+    if (!question) {
+      return res.status(404).json({ error: 'Question not found' });
+    }
+
+    console.log(`Generating images for question: ${question.prompt}`);
+
+    // Generate images using Leonardo.ai
+    const images = await generateQuestionImages(
+      question.prompt,
+      question.optionA,
+      question.optionB,
+      question.optionC,
+      question.optionD
+    );
+
+    // Update the question with image URLs
+    const [updated] = await db
+      .update(questions)
+      .set({
+        imageUrl: images.imageUrl,
+        imageOptionA: images.imageOptionA,
+        imageOptionB: images.imageOptionB,
+        imageOptionC: images.imageOptionC,
+        imageOptionD: images.imageOptionD,
+        imageResults: images.imageResults,
+      })
+      .where(eq(questions.id, questionId))
+      .returning();
+
+    res.json({ status: 'success', question: updated, images });
+  } catch (error: any) {
+    console.error('Image generation error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: error.message || String(error),
+    });
+  }
+});
+
+// Create a new question with images
+app.post('/api/admin/create-question', async (req, res) => {
+  try {
+    const { db } = await import('./db');
+    const { questions } = await import('@shared/schema');
+
+    const { type, prompt, optionA, optionB, optionC, optionD, dropsAt, revealsAt, generateImages } = req.body;
+
+    if (!type || !prompt || !optionA || !optionB || !dropsAt || !revealsAt) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Insert the question first
+    const [question] = await db.insert(questions).values({
+      type,
+      prompt,
+      optionA,
+      optionB,
+      optionC: optionC || null,
+      optionD: optionD || null,
+      dropsAt: new Date(dropsAt),
+      revealsAt: new Date(revealsAt),
+      isActive: true,
+    }).returning();
+
+    // Generate images if requested
+    if (generateImages) {
+      console.log(`Generating images for new question: ${prompt}`);
+
+      const images = await generateQuestionImages(
+        prompt,
+        optionA,
+        optionB,
+        optionC,
+        optionD
+      );
+
+      // Update with images
+      const { eq } = await import('drizzle-orm');
+      const [updated] = await db
+        .update(questions)
+        .set({
+          imageUrl: images.imageUrl,
+          imageOptionA: images.imageOptionA,
+          imageOptionB: images.imageOptionB,
+          imageOptionC: images.imageOptionC,
+          imageOptionD: images.imageOptionD,
+          imageResults: images.imageResults,
+        })
+        .where(eq(questions.id, question.id))
+        .returning();
+
+      return res.json({ status: 'success', question: updated, images });
+    }
+
+    res.json({ status: 'success', question });
+  } catch (error: any) {
+    console.error('Create question error:', error);
     res.status(500).json({
       status: 'error',
       message: error.message || String(error),
