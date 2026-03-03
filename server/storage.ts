@@ -693,6 +693,102 @@ export class DbStorage implements IStorage {
     });
   }
 
+  // Claim rewards for a consensus question (majority wins)
+  async claimVoteRewards(voteId: string, userId: string): Promise<{ success: boolean; payout: number; message: string }> {
+    // Get the vote
+    const [vote] = await db
+      .select()
+      .from(votes)
+      .where(and(eq(votes.id, voteId), eq(votes.userId, userId)))
+      .limit(1);
+
+    if (!vote) {
+      return { success: false, payout: 0, message: 'Vote not found' };
+    }
+
+    // Check if already claimed (payout is set and > 0 means already processed)
+    if (vote.payout && parseFloat(vote.payout) > 0) {
+      return { success: false, payout: parseFloat(vote.payout), message: 'Rewards already claimed' };
+    }
+
+    // Get the question
+    const question = await this.getQuestion(vote.questionId);
+    if (!question) {
+      return { success: false, payout: 0, message: 'Question not found' };
+    }
+
+    // Question must be revealed
+    if (!question.isRevealed) {
+      return { success: false, payout: 0, message: 'Results not revealed yet' };
+    }
+
+    // Get results to determine majority winner
+    const results = await this.getQuestionResults(vote.questionId);
+    if (!results) {
+      return { success: false, payout: 0, message: 'Results not available' };
+    }
+
+    // Determine winning choice (majority)
+    const percentages = [
+      { choice: 'A' as VoteChoice, percent: results.percentA },
+      { choice: 'B' as VoteChoice, percent: results.percentB },
+      { choice: 'C' as VoteChoice, percent: results.percentC || 0 },
+      { choice: 'D' as VoteChoice, percent: results.percentD || 0 },
+    ];
+    const sorted = [...percentages].sort((a, b) => b.percent - a.percent);
+    const winningChoice = sorted[0].choice;
+
+    const isCorrect = vote.choice === winningChoice;
+    const betAmount = parseFloat(vote.betAmount);
+
+    if (!isCorrect) {
+      // User lost - mark as processed with 0 payout
+      await this.updateVote(vote.id, {
+        isCorrect: false,
+        payout: '0.00',
+      });
+      return { success: true, payout: 0, message: 'You did not pick the majority choice' };
+    }
+
+    // Calculate payout for winner
+    // Get all bets for this question
+    const allVotes = await this.getQuestionVotes(vote.questionId);
+    let totalPot = 0;
+    let winningPot = 0;
+
+    for (const v of allVotes) {
+      const amount = parseFloat(v.betAmount);
+      totalPot += amount;
+      if (v.choice === winningChoice) {
+        winningPot += amount;
+      }
+    }
+
+    // Winner gets proportional share of total pot
+    const payout = winningPot > 0 ? (betAmount / winningPot) * totalPot : betAmount;
+
+    // Update vote record
+    await this.updateVote(vote.id, {
+      isCorrect: true,
+      payout: payout.toFixed(2),
+    });
+
+    // Update user balance
+    const user = await this.getUser(userId);
+    if (user) {
+      await this.updateUser(userId, {
+        totalPredictions: user.totalPredictions + 1,
+        correctPredictions: user.correctPredictions + 1,
+        currentStreak: user.currentStreak + 1,
+        maxStreak: Math.max(user.maxStreak, user.currentStreak + 1),
+        totalWon: (parseFloat(user.totalWon) + payout).toFixed(2),
+        balance: (parseFloat(user.balance) + payout).toFixed(2),
+      });
+    }
+
+    return { success: true, payout, message: `Claimed ${payout.toFixed(2)} WP` };
+  }
+
   // Account linking operations
   async createLinkToken(data: InsertAccountLinkToken): Promise<AccountLinkToken> {
     const [token] = await db.insert(accountLinkTokens).values([data]).returning();

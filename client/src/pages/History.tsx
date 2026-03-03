@@ -1,10 +1,12 @@
-import { useQuery } from '@tanstack/react-query';
+import { useState, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePrivy } from '@privy-io/react-auth';
 import { Clock } from 'lucide-react';
 import HistoryCard from '@/components/HistoryCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import EmptyState from '@/components/ui/EmptyState';
 import PageContainer from '@/components/ui/PageContainer';
+import { useToast } from '@/hooks/use-toast';
 import type { Vote, Question, QuestionResults } from '@shared/schema';
 
 interface VoteWithDetails {
@@ -14,7 +16,10 @@ interface VoteWithDetails {
 }
 
 export default function History() {
-  const { user } = usePrivy();
+  const { user, getAccessToken } = usePrivy();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [claimingVoteId, setClaimingVoteId] = useState<string | null>(null);
 
   const { data: votes = [], isLoading: isLoadingVotes } = useQuery<Vote[]>({
     queryKey: ['/api/votes/mine'],
@@ -48,6 +53,54 @@ export default function History() {
     },
     enabled: !!user && votes.length > 0,
   });
+
+  const handleClaimRewards = useCallback(async (voteId: string) => {
+    setClaimingVoteId(voteId);
+    try {
+      const token = await getAccessToken();
+      const response = await fetch(`/api/votes/${voteId}/claim`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to claim rewards');
+      }
+
+      if (result.success) {
+        toast({
+          title: 'Rewards Claimed!',
+          description: result.payout > 0
+            ? `You received ${result.payout.toFixed(2)} WP`
+            : result.message,
+        });
+
+        // Invalidate queries to refresh data
+        queryClient.invalidateQueries({ queryKey: ['/api/votes/mine'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/votes/mine/details'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/user/me'] });
+      } else {
+        toast({
+          title: 'Claim Failed',
+          description: result.message,
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to claim rewards',
+        variant: 'destructive',
+      });
+    } finally {
+      setClaimingVoteId(null);
+    }
+  }, [getAccessToken, queryClient, toast]);
 
   if (!user) {
     return (
@@ -123,6 +176,12 @@ export default function History() {
                 ...(question.optionD ? [{ choice: 'D', label: question.optionD, percent: results.percentD || 0, isUserChoice: vote.choice === 'D', isWinner: winningChoice === 'D' }] : []),
               ] : [];
 
+              // Use votedAt if available, otherwise fall back to question dropsAt
+              const displayDate = vote.votedAt || question.dropsAt;
+
+              // Can claim if: revealed, payout not yet processed, and user placed a bet
+              const canClaim = outcome !== 'pending' && payout === null && betAmount > 0;
+
               return (
                 <HistoryCard
                   key={vote.id}
@@ -133,11 +192,15 @@ export default function History() {
                   pointsEarned={pointsEarned}
                   betAmount={betAmount}
                   payout={payout}
-                  timestamp={vote.votedAt}
+                  timestamp={displayDate}
                   isPublic={vote.isPublic}
                   outcomeDescription={outcomeDescription}
                   allOptions={allOptions}
                   totalVotes={results?.totalVotes || 0}
+                  voteId={vote.id}
+                  canClaim={canClaim}
+                  onClaim={handleClaimRewards}
+                  isClaiming={claimingVoteId === vote.id}
                 />
               );
             })

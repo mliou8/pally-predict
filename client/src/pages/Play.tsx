@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { usePrivy, useLogin } from '@privy-io/react-auth';
 import { useLocation } from 'wouter';
-import { Lock, ArrowRight, TrendingUp, Share2, Bell } from 'lucide-react';
+import { Lock, ArrowRight, TrendingUp, Share2, Bell, Clock } from 'lucide-react';
 import Colors from '@/constants/colors';
 import { cn } from '@/lib/utils';
 import AnswerCard from '@/components/game/AnswerCard';
@@ -579,15 +579,16 @@ export default function Play() {
               onClick={handleViewHistory}
               className={cn(
                 'w-full flex items-center justify-center gap-2 py-4 rounded-xl transition-all',
-                'active:scale-[0.98]'
+                'active:scale-[0.98] border'
               )}
-              style={{ backgroundColor: Colors.dark.surface }}
+              style={{ backgroundColor: Colors.dark.surface, borderColor: Colors.dark.border }}
             >
+              <Clock size={18} color={Colors.dark.accent} />
               <span
                 className="text-base font-semibold"
                 style={{ color: Colors.dark.text }}
               >
-                History
+                View Past Results & Claim Rewards
               </span>
               <ArrowRight size={18} color={Colors.dark.textSecondary} />
             </button>

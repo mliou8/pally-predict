@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckCircle2, XCircle, Eye, EyeOff, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckCircle2, XCircle, Eye, EyeOff, ChevronDown, ChevronUp, Gift, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface ResultOption {
@@ -23,6 +23,10 @@ interface HistoryCardProps {
   outcomeDescription?: string;
   allOptions?: ResultOption[];
   totalVotes?: number;
+  voteId?: string;
+  canClaim?: boolean;
+  onClaim?: (voteId: string) => Promise<void>;
+  isClaiming?: boolean;
 }
 
 export default function HistoryCard({
@@ -37,7 +41,11 @@ export default function HistoryCard({
   isPublic,
   outcomeDescription,
   allOptions = [],
-  totalVotes = 0
+  totalVotes = 0,
+  voteId,
+  canClaim = false,
+  onClaim,
+  isClaiming = false,
 }: HistoryCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const isCorrect = outcome === 'correct';
@@ -121,6 +129,41 @@ export default function HistoryCard({
           </div>
         </div>
       </button>
+
+      {/* Claim rewards button */}
+      {canClaim && voteId && onClaim && (
+        <div className="px-4 pb-4">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onClaim(voteId);
+            }}
+            disabled={isClaiming}
+            className={`w-full py-3 px-4 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-opacity disabled:opacity-50 ${
+              isCorrect
+                ? 'bg-gradient-to-r from-primary to-brand-magenta text-white hover:opacity-90'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            }`}
+          >
+            {isClaiming ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Processing...
+              </>
+            ) : isCorrect ? (
+              <>
+                <Gift size={16} />
+                Claim Rewards
+              </>
+            ) : (
+              <>
+                <XCircle size={16} />
+                Acknowledge Loss
+              </>
+            )}
+          </button>
+        </div>
+      )}
 
       {/* Expanded details */}
       {isExpanded && !isPending && allOptions.length > 0 && (

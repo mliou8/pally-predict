@@ -505,6 +505,32 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
     }
   });
 
+  // Claim rewards for a vote
+  app.post('/api/votes/:voteId/claim', async (req, res) => {
+    try {
+      const privyUserId = req.header('x-privy-user-id');
+      if (!privyUserId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const user = await storage.getUserByPrivyId(privyUserId);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      const result = await storage.claimVoteRewards(req.params.voteId, user.id);
+
+      if (!result.success && result.message !== 'Rewards already claimed') {
+        return res.status(400).json({ error: result.message });
+      }
+
+      res.json(result);
+    } catch (error: any) {
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
+    }
+  });
+
   // ===== WAGER ROUTES =====
   
   // Initiate a wager (creates vote with pending wager)
