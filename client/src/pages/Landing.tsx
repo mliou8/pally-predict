@@ -189,12 +189,12 @@ export default function Landing() {
                   className="text-xl font-semibold"
                   style={{ color: Colors.dark.text }}
                 >
-                  What will Bitcoin hit first?
+                  Which platform will lose the most users in 2025?
                 </div>
               </div>
 
               <div className="space-y-3 mb-6">
-                {['$120,000', '$80,000', '$150,000', 'Stays between'].map((option, i) => (
+                {['X (Twitter)', 'Instagram', 'TikTok', 'Facebook'].map((option, i) => (
                   <div
                     key={option}
                     className="flex items-center gap-3 p-4 rounded-xl border"
