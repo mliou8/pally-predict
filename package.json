@@ -17,6 +17,8 @@
     "test:rendering": "playwright test e2e/rendering.spec.ts",
     "preview": "npx serve dist/public -l 5000 -s",
     "qa": "npm run build && npm run test:rendering",
+    "db:backup": "./scripts/backup-db.sh",
+    "db:restore": "./scripts/restore-db.sh",
     "prepare": "husky"
   },
   "dependencies": {
