@@ -286,7 +286,7 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
     }
   });
 
-  // Get live stats for a question (vote distribution, implied odds)
+  // Get live stats for a question (total bets and prize pool - no distribution to prevent collusion)
   app.get('/api/questions/:id/live-stats', async (req, res) => {
     try {
       const question = await storage.getQuestion(req.params.id);
@@ -295,24 +295,11 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
       }
 
       const stats = await storage.getQuestionStats(req.params.id);
-      const totalVotes = stats.votesA + stats.votesB + stats.votesC + stats.votesD;
 
-      // Calculate percentages and implied multipliers
-      const calcMultiplier = (votes: number) => {
-        if (totalVotes === 0 || votes === 0) return 10; // Max multiplier for no votes
-        const percentage = (votes / totalVotes) * 100;
-        // Inverse relationship: fewer picks = higher multiplier, capped at 10x
-        return Math.min(Math.max(Math.round(100 / percentage), 1), 10);
-      };
-
+      // Only return safe aggregate stats (not vote distribution) to prevent collusion
       res.json({
-        totalVotes,
-        distribution: {
-          A: { votes: stats.votesA, percent: totalVotes > 0 ? Math.round((stats.votesA / totalVotes) * 100) : 0, multiplier: calcMultiplier(stats.votesA) },
-          B: { votes: stats.votesB, percent: totalVotes > 0 ? Math.round((stats.votesB / totalVotes) * 100) : 0, multiplier: calcMultiplier(stats.votesB) },
-          C: { votes: stats.votesC, percent: totalVotes > 0 ? Math.round((stats.votesC / totalVotes) * 100) : 0, multiplier: calcMultiplier(stats.votesC) },
-          D: { votes: stats.votesD, percent: totalVotes > 0 ? Math.round((stats.votesD / totalVotes) * 100) : 0, multiplier: calcMultiplier(stats.votesD) },
-        },
+        totalBets: stats.totalBets,
+        totalAmount: stats.totalAmount,
       });
     } catch (error: any) {
       console.error('API Error:', error);

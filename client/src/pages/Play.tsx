@@ -153,6 +153,8 @@ export default function Play() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/votes/mine'] });
       queryClient.invalidateQueries({ queryKey: ['/api/questions/active'] });
+      // Refetch prize pool stats immediately after voting
+      queryClient.invalidateQueries({ queryKey: ['/api/questions', question?.id, 'safe-stats'] });
       setHasConfirmed(true);
       setShowConfetti(true);
       toast({
@@ -573,13 +575,6 @@ export default function Play() {
               </span>
             </button>
 
-            {/* Live Activity Feed - shown after lock-in */}
-            {question && (
-              <div className="mt-4">
-                <ActivityFeed questionId={question.id} />
-              </div>
-            )}
-
             <button
               onClick={handleViewHistory}
               className={cn(
@@ -641,9 +636,15 @@ export default function Play() {
 
           </div>
 
-          {/* Sidebar - History (Desktop only) */}
+          {/* Sidebar (Desktop only) */}
           <div className="hidden lg:block w-80 flex-shrink-0">
-            <div className="sticky top-8">
+            <div className="sticky top-8 space-y-6">
+              {/* Live Activity Feed */}
+              {question && (
+                <ActivityFeed questionId={question.id} />
+              )}
+
+              {/* Recent Questions */}
               <RecentQuestions />
             </div>
           </div>
