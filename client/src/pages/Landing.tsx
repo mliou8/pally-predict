@@ -5,6 +5,8 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, Users, Trophy, Clock, Coins, CheckCircle, ChevronRight, Shield, Zap } from 'lucide-react';
 import Colors from '@/constants/colors';
 import { cn } from '@/lib/utils';
+import Logo from '@/components/ui/Logo';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import type { User } from '@shared/schema';
 
 export default function Landing() {
@@ -41,14 +43,8 @@ export default function Landing() {
 
   if (!ready) {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        style={{ backgroundColor: Colors.dark.background }}
-      >
-        <div
-          className="w-8 h-8 border-2 rounded-full animate-spin"
-          style={{ borderColor: Colors.dark.accent, borderTopColor: 'transparent' }}
-        />
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <LoadingSpinner size="md" />
       </div>
     );
   }
@@ -108,11 +104,8 @@ export default function Landing() {
           {/* Left side - Text */}
           <div className="flex-1 mb-12 lg:mb-0">
             {/* Logo */}
-            <div
-              className="w-16 h-16 rounded-xl flex items-center justify-center mb-8"
-              style={{ backgroundColor: Colors.dark.accent }}
-            >
-              <span className="text-3xl font-black" style={{ color: '#000' }}>P</span>
+            <div className="mb-8">
+              <Logo size="lg" />
             </div>
 
             {/* Title */}
@@ -462,13 +455,8 @@ export default function Landing() {
         <div className="max-w-5xl mx-auto px-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">
-              <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center"
-                style={{ backgroundColor: Colors.dark.accent }}
-              >
-                <span className="text-sm font-black" style={{ color: '#000' }}>P</span>
-              </div>
-              <span className="font-semibold" style={{ color: Colors.dark.text }}>
+              <Logo size="sm" />
+              <span className="font-semibold text-foreground">
                 Pally Predict
               </span>
             </div>

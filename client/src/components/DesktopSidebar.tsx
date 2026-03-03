@@ -3,6 +3,7 @@ import { Link, useLocation } from 'wouter';
 import { usePrivy } from '@privy-io/react-auth';
 import Colors from '@/constants/colors';
 import { cn } from '@/lib/utils';
+import Logo from '@/components/ui/Logo';
 
 export default function DesktopSidebar() {
   const [location] = useLocation();
@@ -32,19 +33,9 @@ export default function DesktopSidebar() {
       {/* Logo */}
       <div className="p-6 border-b" style={{ borderColor: Colors.dark.border }}>
         <div className="flex items-center gap-3">
-          <div
-            className="w-10 h-10 rounded-lg flex items-center justify-center"
-            style={{ backgroundColor: Colors.dark.accent }}
-          >
-            <span className="text-lg font-black" style={{ color: '#000' }}>P</span>
-          </div>
-          <div>
-            <div
-              className="text-lg font-bold"
-              style={{ color: Colors.dark.text }}
-            >
-              PALLY PREDICT
-            </div>
+          <Logo size="md" />
+          <div className="text-lg font-bold text-foreground">
+            PALLY PREDICT
           </div>
         </div>
       </div>

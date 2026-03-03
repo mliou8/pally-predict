@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { usePrivy } from '@privy-io/react-auth';
 import { useLocation } from 'wouter';
@@ -52,7 +52,7 @@ export default function Results() {
   const userVote = question ? userVotes.find((v) => v.questionId === question.id) : null;
 
   // Fetch results for the question
-  const { data: results } = useQuery<QuestionResultsType>({
+  const { data: apiResults, isLoading: isLoadingResults } = useQuery<QuestionResultsType>({
     queryKey: ['/api/results', question?.id],
     queryFn: async () => {
       const response = await fetch(`/api/results/${question!.id}`);
@@ -62,9 +62,9 @@ export default function Results() {
     enabled: !!question,
   });
 
-  // Generate mock result if no real results
-  const mockResult = useCallback(() => {
-    if (!question) return null;
+  // Build result object from real API data
+  const result = useMemo(() => {
+    if (!question || !apiResults) return null;
 
     const options = [
       { id: 'A', text: question.optionA },
@@ -73,23 +73,22 @@ export default function Results() {
       ...(question.optionD ? [{ id: 'D', text: question.optionD }] : []),
     ];
 
-    const percentages = [35, 28, 22, 15].slice(0, options.length).sort(() => Math.random() - 0.5);
-    const totalVotes = 2500 + Math.floor(Math.random() * 2000);
-
-    const distribution: VoteDistribution[] = options.map((opt, i) => ({
-      optionId: opt.id,
-      percentage: percentages[i],
-      count: Math.floor(totalVotes * percentages[i] / 100),
-    }));
+    const distribution: VoteDistribution[] = [
+      { optionId: 'A', percentage: apiResults.percentA, count: apiResults.votesA },
+      { optionId: 'B', percentage: apiResults.percentB, count: apiResults.votesB },
+      ...(question.optionC ? [{ optionId: 'C', percentage: apiResults.percentC || 0, count: apiResults.votesC || 0 }] : []),
+      ...(question.optionD ? [{ optionId: 'D', percentage: apiResults.percentD || 0, count: apiResults.votesD || 0 }] : []),
+    ];
 
     const winningDist = distribution.reduce((a, b) => a.percentage > b.percentage ? a : b);
     const userWon = userVote?.choice === winningDist.optionId;
 
-    const userDist = distribution.find(d => d.optionId === userVote?.choice);
-    const userPct = userDist?.percentage ?? 50;
-    const multiplier = userWon ? parseFloat((100 / userPct).toFixed(2)) : 0;
-    const wagerAmount = 100;
-    const payoutPoints = userWon ? Math.floor(wagerAmount * multiplier) : 0;
+    const userPct = distribution.find(d => d.optionId === userVote?.choice)?.percentage ?? 0;
+    const multiplier = userWon && userPct > 0 ? parseFloat((100 / userPct).toFixed(2)) : 0;
+
+    // Use actual bet amount from user's vote
+    const wagerAmount = userVote?.betAmount ? parseFloat(userVote.betAmount) : 100;
+    const payoutPoints = userVote?.payout ? parseFloat(userVote.payout) : (userWon ? Math.floor(wagerAmount * multiplier) : 0);
 
     return {
       question,
@@ -98,14 +97,12 @@ export default function Results() {
       winningOptionId: winningDist.optionId,
       userOptionId: userVote?.choice || null,
       userWon,
-      totalVotes,
+      totalVotes: apiResults.totalVotes,
       wagerAmount,
       payoutPoints,
       multiplier,
     };
-  }, [question, userVote]);
-
-  const result = mockResult();
+  }, [question, apiResults, userVote]);
 
   // Show confetti for wins
   useEffect(() => {
@@ -122,8 +119,8 @@ export default function Results() {
     const userPct = result.distribution.find(d => d.optionId === result.userOptionId)?.percentage ?? 0;
 
     const message = result.userWon
-      ? `I picked ${userOption?.text} with ${userPct}% of players on Pally Family Feud!`
-      : `I missed the crowd on Pally Family Feud today. ${winningOption?.text} won with the majority vote!`;
+      ? `I picked ${userOption?.text} with ${userPct}% of players on Pally Predict!`
+      : `I missed the crowd on Pally Predict today. ${winningOption?.text} won with the majority vote!`;
 
     try {
       if (navigator.share) {
@@ -139,6 +136,21 @@ export default function Results() {
   const handleDone = () => {
     setLocation('/');
   };
+
+  // Loading state
+  if (isLoadingResults && question) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-5" style={{ backgroundColor: Colors.dark.background }}>
+        <div
+          className="w-8 h-8 border-2 rounded-full animate-spin mb-4"
+          style={{ borderColor: Colors.dark.accent, borderTopColor: 'transparent' }}
+        />
+        <p className="text-sm" style={{ color: Colors.dark.textMuted }}>
+          Loading results...
+        </p>
+      </div>
+    );
+  }
 
   // No results yet
   if (!result) {

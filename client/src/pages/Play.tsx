@@ -11,6 +11,8 @@ import WagerSelector from '@/components/game/WagerSelector';
 import ActivityFeed from '@/components/game/ActivityFeed';
 import ConfettiEffect from '@/components/game/ConfettiEffect';
 import RecentQuestions from '@/components/RecentQuestions';
+import Logo from '@/components/ui/Logo';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, ApiError } from '@/lib/api';
 import { queryClient } from '@/lib/queryClient';
@@ -129,8 +131,8 @@ export default function Play() {
       if (existingVote) {
         setSelectedOptionId(existingVote.choice);
         setHasConfirmed(true);
-        if (existingVote.wagerAmount) {
-          setWagerAmount(Number(existingVote.wagerAmount) / 1e9 * 100);
+        if (existingVote.betAmount) {
+          setWagerAmount(parseFloat(existingVote.betAmount));
         }
       }
     }
@@ -271,11 +273,8 @@ export default function Play() {
   // Loading state
   if (!ready) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: Colors.dark.background }}>
-        <div
-          className="w-8 h-8 border-2 rounded-full animate-spin"
-          style={{ borderColor: Colors.dark.accent, borderTopColor: 'transparent' }}
-        />
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <LoadingSpinner size="md" />
       </div>
     );
   }
@@ -338,22 +337,7 @@ export default function Play() {
             contentVisible ? 'opacity-100' : 'opacity-0'
           )}
         >
-          <div className="flex items-center gap-3">
-            <div
-              className="w-10 h-10 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: Colors.dark.accent }}
-            >
-              <span className="text-lg font-black" style={{ color: '#000' }}>P</span>
-            </div>
-            <div>
-              <div
-                className="text-base font-bold"
-                style={{ color: Colors.dark.text }}
-              >
-                PALLY
-              </div>
-            </div>
-          </div>
+          <Logo size="md" showText />
 
           <div
             className="px-4 py-2 rounded-lg"

@@ -13,27 +13,13 @@ interface NotificationsDrawerProps {
 }
 
 export default function NotificationsDrawer({ open, onOpenChange }: NotificationsDrawerProps) {
-  //todo: remove mock functionality
-  const mockNotifications = [
-    {
-      type: 'new_prompt' as const,
-      title: 'New prompt is live 🧠',
-      body: 'A new prediction is available. Cast your vote now!',
-      timestamp: '2 min ago',
-    },
-    {
-      type: 'results' as const,
-      title: 'Results revealed — you gained 120 α points!',
-      body: 'Your SOL prediction was correct. Rarity multiplier: ×1.43',
-      timestamp: '1 hour ago',
-    },
-    {
-      type: 'rank_change' as const,
-      title: "You're now Top 50 in AlphaRank 🏆",
-      body: "Congratulations! You've climbed to rank #42.",
-      timestamp: 'Yesterday',
-    },
-  ];
+  // TODO: Implement real notifications from API
+  const notifications: Array<{
+    type: 'new_prompt' | 'results' | 'rank_change';
+    title: string;
+    body: string;
+    timestamp: string;
+  }> = [];
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -41,13 +27,22 @@ export default function NotificationsDrawer({ open, onOpenChange }: Notification
         <SheetHeader>
           <SheetTitle>Notifications</SheetTitle>
           <SheetDescription>
-            Stay updated on new prompts and results
+            Stay updated on new questions and results
           </SheetDescription>
         </SheetHeader>
         <div className="mt-6 space-y-3">
-          {mockNotifications.map((notif, i) => (
-            <NotificationItem key={i} {...notif} />
-          ))}
+          {notifications.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground mb-2">No notifications yet</p>
+              <p className="text-sm text-muted-foreground">
+                Enable browser notifications to get updates
+              </p>
+            </div>
+          ) : (
+            notifications.map((notif, i) => (
+              <NotificationItem key={i} {...notif} />
+            ))
+          )}
         </div>
       </SheetContent>
     </Sheet>

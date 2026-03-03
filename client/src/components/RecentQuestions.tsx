@@ -21,7 +21,7 @@ export default function RecentQuestions() {
   });
 
   const { data: votesWithDetails = [], isLoading } = useQuery<VoteWithDetails[]>({
-    queryKey: ['/api/votes/mine/details'],
+    queryKey: ['/api/votes/mine/details', 'recent', 5],
     queryFn: async () => {
       const details = await Promise.all(
         votes.slice(0, 5).map(async (vote) => {

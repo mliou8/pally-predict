@@ -4,6 +4,7 @@ import { Clock } from 'lucide-react';
 import HistoryCard from '@/components/HistoryCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import EmptyState from '@/components/ui/EmptyState';
+import PageContainer from '@/components/ui/PageContainer';
 import type { Vote, Question, QuestionResults } from '@shared/schema';
 
 interface VoteWithDetails {
@@ -59,13 +60,12 @@ export default function History() {
   const isLoading = isLoadingVotes || isLoadingDetails;
 
   return (
-    <div className="min-h-screen pb-20 md:pb-6">
-      <div className="max-w-5xl mx-auto px-4 md:px-8 py-6 md:py-10">
-        <h1 className="text-2xl font-display font-bold mb-6 bg-gradient-to-r from-primary to-brand-magenta bg-clip-text text-transparent">
-          History
-        </h1>
+    <PageContainer maxWidth="xl">
+      <h1 className="text-2xl font-display font-bold mb-6 bg-gradient-to-r from-primary to-brand-magenta bg-clip-text text-transparent">
+        History
+      </h1>
 
-        <div className="space-y-3">
+      <div className="space-y-3">
           {isLoading ? (
             <>
               {[...Array(4)].map((_, i) => (
@@ -143,7 +143,6 @@ export default function History() {
             })
           )}
         </div>
-      </div>
-    </div>
+    </PageContainer>
   );
 }
