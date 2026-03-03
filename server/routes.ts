@@ -3,6 +3,7 @@ import type { Server } from 'http';
 import { z } from 'zod';
 import { storage } from './storage';
 import { insertUserSchema, insertQuestionSchema, insertVoteSchema, type VoteChoice, type PlatformType } from '@shared/schema';
+import { QUESTION_CYCLE_MS, QUESTION_CYCLE_HOURS } from './config';
 import { randomBytes } from 'crypto';
 import { PublicKey, Connection } from '@solana/web3.js';
 import nacl from 'tweetnacl';
@@ -1107,11 +1108,11 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
       const todayNoonET = new Date(`${year}-${month}-${day}T12:00:00`);
       todayNoonET.setHours(12 - etOffset);
       
-      // Tomorrow's noon ET in UTC (new reveal time)
-      const tomorrowNoonET = new Date(todayNoonET.getTime() + 24 * 60 * 60 * 1000);
+      // Next cycle reveal time (8 hours later)
+      const nextCycleRevealET = new Date(todayNoonET.getTime() + QUESTION_CYCLE_MS);
 
       // Fast-track questions
-      const updatedCount = await storage.fastTrackQuestions(todayNoonET, tomorrowNoonET);
+      const updatedCount = await storage.fastTrackQuestions(todayNoonET, nextCycleRevealET);
 
       res.json({ 
         success: true, 
@@ -1300,11 +1301,11 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
         },
       ];
       
-      // Create questions for each day
-      for (let day = 0; day < 5; day++) {
-        const daysAgo = 5 - day;
-        const dropTime = new Date(todayNoonET.getTime() - daysAgo * 24 * 60 * 60 * 1000);
-        const revealTime = new Date(dropTime.getTime() + 24 * 60 * 60 * 1000);
+      // Create questions for each cycle (8-hour intervals)
+      for (let cycle = 0; cycle < 5; cycle++) {
+        const cyclesAgo = 5 - cycle;
+        const dropTime = new Date(todayNoonET.getTime() - cyclesAgo * QUESTION_CYCLE_MS);
+        const revealTime = new Date(dropTime.getTime() + QUESTION_CYCLE_MS);
         
         for (let i = 0; i < 3; i++) {
           const questionIndex = day * 3 + i;
@@ -1454,12 +1455,12 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
       // Today's noon ET in UTC
       const todayNoonET = new Date(`${year}-${month}-${day}T12:00:00`);
       todayNoonET.setHours(12 - etOffset); // Convert to UTC
-      
-      // Tomorrow's noon ET in UTC (reveal time)
-      const tomorrowNoonET = new Date(todayNoonET.getTime() + 24 * 60 * 60 * 1000);
-      
+
+      // Reveal time (8 hours after drop)
+      const nextCycleReveal = new Date(todayNoonET.getTime() + QUESTION_CYCLE_MS);
+
       const dropTime = todayNoonET;
-      const revealTime = tomorrowNoonET;
+      const revealTime = nextCycleReveal;
 
       const questions = [
         {

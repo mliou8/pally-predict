@@ -1,6 +1,7 @@
 import { eq, desc, and, gte, lte, sql, isNull, lt } from 'drizzle-orm';
 import { db } from './db';
 import { broadcastPoolUpdate } from './websocket';
+import { QUESTION_CYCLE_MS } from './config';
 import {
   users,
   questions,
@@ -258,29 +259,29 @@ export class DbStorage implements IStorage {
   }
 
   async fastTrackQuestions(newDropsAt: Date, newRevealsAt: Date): Promise<number> {
-    // Calculate tomorrow's drop time (what we're searching for)
-    const tomorrowDropsAt = new Date(newDropsAt.getTime() + 24 * 60 * 60 * 1000);
+    // Calculate next cycle's drop time (what we're searching for)
+    const nextCycleDropsAt = new Date(newDropsAt.getTime() + QUESTION_CYCLE_MS);
 
-    // Find tomorrow's questions (24 hours ahead of newDropsAt)
-    const tomorrowQuestions = await db
+    // Find next cycle's questions
+    const nextCycleQuestions = await db
       .select()
       .from(questions)
-      .where(eq(questions.dropsAt, tomorrowDropsAt));
+      .where(eq(questions.dropsAt, nextCycleDropsAt));
 
-    if (tomorrowQuestions.length === 0) {
+    if (nextCycleQuestions.length === 0) {
       return 0;
     }
 
-    // Update their times to today/tomorrow
+    // Update their times to current cycle
     await db
       .update(questions)
       .set({
         dropsAt: newDropsAt,
         revealsAt: newRevealsAt
       })
-      .where(eq(questions.dropsAt, tomorrowDropsAt));
+      .where(eq(questions.dropsAt, nextCycleDropsAt));
 
-    return tomorrowQuestions.length;
+    return nextCycleQuestions.length;
   }
 
   // Telegram-specific question queries
