@@ -492,17 +492,14 @@ export default function Play() {
               </div>
             </div>
 
-            {/* Share and Notification CTAs */}
+            {/* Share to Twitter CTA */}
             <div className="flex gap-3">
               <button
                 onClick={() => {
-                  const shareText = `I just made my prediction on Pally! What do you think?`;
-                  if (navigator.share) {
-                    navigator.share({ text: shareText, url: window.location.href });
-                  } else {
-                    navigator.clipboard.writeText(`${shareText} ${window.location.href}`);
-                    toast({ title: 'Copied to clipboard', description: 'Share link copied!' });
-                  }
+                  const shareUrl = window.location.origin;
+                  const shareText = `I just locked in my prediction on Pally Feud! 🎯\n\nThink you know what the crowd will pick? Play the daily consensus game:\n\n${shareUrl}`;
+                  const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
+                  window.open(twitterUrl, '_blank', 'width=550,height=420');
                 }}
                 className={cn(
                   'flex-1 flex items-center justify-center gap-2 py-4 rounded-xl transition-all',
@@ -515,7 +512,7 @@ export default function Play() {
                   className="text-base font-semibold"
                   style={{ color: '#000' }}
                 >
-                  Share your prediction
+                  Share on X
                 </span>
               </button>
             </div>

@@ -117,20 +117,15 @@ export default function Results() {
     const winningOption = result.options.find(o => o.id === result.winningOptionId);
     const userOption = result.options.find(o => o.id === result.userOptionId);
     const userPct = result.distribution.find(d => d.optionId === result.userOptionId)?.percentage ?? 0;
+    const winPct = result.distribution.find(d => d.optionId === result.winningOptionId)?.percentage ?? 0;
 
+    const shareUrl = window.location.origin;
     const message = result.userWon
-      ? `I picked ${userOption?.text} with ${userPct}% of players on Pally Feud!`
-      : `I missed the crowd on Pally Feud today. ${winningOption?.text} won with the majority vote!`;
+      ? `🎯 I predicted what ${userPct}% of players picked on Pally Feud!\n\nThink you can read the crowd? Play the daily consensus game:\n\n${shareUrl}`
+      : `The crowd picked "${winningOption?.text}" (${winPct}%) on Pally Feud today!\n\nThink you can predict the majority? Play now:\n\n${shareUrl}`;
 
-    try {
-      if (navigator.share) {
-        await navigator.share({ text: message });
-      } else {
-        await navigator.clipboard.writeText(message);
-      }
-    } catch (e) {
-      console.log('[Results] Share cancelled');
-    }
+    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}`;
+    window.open(twitterUrl, '_blank', 'width=550,height=420');
   };
 
   const handleDone = () => {
