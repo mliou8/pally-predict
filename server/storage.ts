@@ -837,7 +837,7 @@ export class DbStorage implements IStorage {
     return usersWithAccuracy;
   }
 
-  // Leaderboard by time period - includes ALL users (even with 0 points)
+  // Leaderboard by time period - includes ALL users, ranked by WP (balance)
   async getLeaderboardByPeriod(limit: number = 50, sinceDate: Date | null = null): Promise<LeaderboardEntry[]> {
     let allUsers;
 
@@ -855,17 +855,17 @@ export class DbStorage implements IStorage {
       const allUsersRaw = await db
         .select()
         .from(users)
-        .orderBy(desc(users.pallyPoints), desc(users.createdAt));
+        .orderBy(desc(users.balance), desc(users.createdAt));
 
       allUsers = allUsersRaw.filter(user =>
         user.createdAt >= sinceDate || voterIdSet.has(user.id)
       ).slice(0, limit);
     } else {
-      // All time: just get everyone sorted by pallyPoints
+      // All time: just get everyone sorted by WP (balance)
       allUsers = await db
         .select()
         .from(users)
-        .orderBy(desc(users.pallyPoints), desc(users.createdAt))
+        .orderBy(desc(users.balance), desc(users.createdAt))
         .limit(limit);
     }
 

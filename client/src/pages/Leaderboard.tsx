@@ -73,7 +73,7 @@ export default function Leaderboard() {
             className="text-sm"
             style={{ color: Colors.dark.textMuted }}
           >
-            Ranked by <span style={{ color: '#FFD700' }}>Pally Points (PP)</span> earned from winning predictions
+            Ranked by <span style={{ color: Colors.dark.accent }}>Wager Points (WP)</span>
           </p>
         </div>
 
@@ -133,7 +133,7 @@ export default function Leaderboard() {
                   {podiumOrder.map((entry, index) => {
                     if (!entry) return null;
                     const actualRank = podiumRanks[index];
-                    const points = entry.pallyPoints || entry.alphaPoints || 0;
+                    const points = parseFloat(entry.balance) || 0;
 
                     return (
                       <div
@@ -187,9 +187,9 @@ export default function Leaderboard() {
                             'font-bold',
                             index === 1 ? 'text-base' : 'text-sm'
                           )}
-                          style={{ color: '#FFD700' }}
+                          style={{ color: Colors.dark.accent }}
                         >
-                          {points.toLocaleString()}
+                          {Math.round(points).toLocaleString()} WP
                         </p>
 
                         {/* Podium Block */}
@@ -230,7 +230,7 @@ export default function Leaderboard() {
             >
               <span className="w-12">Rank</span>
               <span className="flex-1">User</span>
-              <span className="w-20 text-right" style={{ color: '#FFD700' }}>Pally Pts</span>
+              <span className="w-20 text-right" style={{ color: Colors.dark.accent }}>WP</span>
             </div>
 
             {/* Leaderboard List */}
@@ -238,7 +238,7 @@ export default function Leaderboard() {
               {(top3.length < 3 ? leaderboard : restOfList).map((entry, index) => {
                 const rank = top3.length < 3 ? index + 1 : index + 4;
                 const isCurrentUser = currentUser?.id === entry.id;
-                const points = entry.pallyPoints || entry.alphaPoints || 0;
+                const points = parseFloat(entry.balance) || 0;
 
                 return (
                   <div
@@ -303,9 +303,9 @@ export default function Leaderboard() {
                     <div className="w-20 text-right">
                       <p
                         className="font-bold"
-                        style={{ color: '#FFD700' }}
+                        style={{ color: Colors.dark.accent }}
                       >
-                        {points.toLocaleString()}
+                        {Math.round(points).toLocaleString()}
                       </p>
                     </div>
                   </div>
@@ -357,9 +357,9 @@ export default function Leaderboard() {
                   <div className="w-20 text-right">
                     <p
                       className="font-bold"
-                      style={{ color: '#FFD700' }}
+                      style={{ color: Colors.dark.accent }}
                     >
-                      {(currentUser.pallyPoints || currentUser.alphaPoints || 0).toLocaleString()}
+                      {Math.round(parseFloat(currentUser.balance) || 0).toLocaleString()}
                     </p>
                   </div>
                 </div>
