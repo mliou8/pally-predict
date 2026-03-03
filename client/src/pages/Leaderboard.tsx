@@ -18,10 +18,9 @@ export default function Leaderboard() {
   const [period, setPeriod] = useState<TimePeriod>('weekly');
   const { user } = usePrivy();
 
-  // Fetch leaderboard data
+  // Fetch leaderboard data - always fetch, even when not logged in
   const { data: leaderboard = [], isLoading } = useQuery<LeaderboardEntry[]>({
     queryKey: ['/api/leaderboard', period],
-    enabled: !!user,
   });
 
   const { data: currentUser } = useQuery<User>({
@@ -32,17 +31,6 @@ export default function Leaderboard() {
   const currentUserRank = currentUser
     ? leaderboard.findIndex(u => u.id === currentUser.id) + 1
     : 0;
-
-  if (!user) {
-    return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        style={{ backgroundColor: Colors.dark.background }}
-      >
-        <p style={{ color: Colors.dark.textMuted }}>Please log in to view leaderboard</p>
-      </div>
-    );
-  }
 
   // Top 3 for podium
   const top3 = leaderboard.slice(0, 3);
