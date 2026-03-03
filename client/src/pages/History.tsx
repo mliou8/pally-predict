@@ -138,11 +138,12 @@ export default function History() {
               };
 
               const userChoiceLabel = optionLabels[vote.choice] || vote.choice;
-              
+
               // Determine outcome based on results
               let outcome: 'correct' | 'incorrect' | 'pending' = 'pending';
               let outcomeDescription: string | undefined;
-              
+              let winningChoice = '';
+
               if (results) {
                 const percentages = [
                   { choice: 'A', percent: results.percentA },
@@ -151,19 +152,24 @@ export default function History() {
                   { choice: 'D', percent: results.percentD || 0 },
                 ];
                 const sorted = [...percentages].sort((a, b) => b.percent - a.percent);
-                const topChoice = sorted[0].choice;
-                const isMajority = vote.choice === topChoice;
-                
+                winningChoice = sorted[0].choice;
+                const isMajority = vote.choice === winningChoice;
+
                 outcome = isMajority ? 'correct' : 'incorrect';
-                outcomeDescription = isMajority 
+                outcomeDescription = isMajority
                   ? `You predicted the majority (${sorted[0].percent}%)`
-                  : `Majority chose ${topChoice} (${sorted[0].percent}%)`;
+                  : `Majority chose ${winningChoice} (${sorted[0].percent}%)`;
               }
-              
+
               const pointsEarned = vote.pointsEarned || 0;
 
-              const crowdSplitA = results ? results.percentA : 0;
-              const crowdSplitB = results ? results.percentB : 0;
+              // Build all options for expanded view
+              const allOptions = results ? [
+                { choice: 'A', label: question.optionA, percent: results.percentA, isUserChoice: vote.choice === 'A', isWinner: winningChoice === 'A' },
+                { choice: 'B', label: question.optionB, percent: results.percentB, isUserChoice: vote.choice === 'B', isWinner: winningChoice === 'B' },
+                ...(question.optionC ? [{ choice: 'C', label: question.optionC, percent: results.percentC || 0, isUserChoice: vote.choice === 'C', isWinner: winningChoice === 'C' }] : []),
+                ...(question.optionD ? [{ choice: 'D', label: question.optionD, percent: results.percentD || 0, isUserChoice: vote.choice === 'D', isWinner: winningChoice === 'D' }] : []),
+              ] : [];
 
               return (
                 <HistoryCard
@@ -173,11 +179,11 @@ export default function History() {
                   userChoiceLabel={userChoiceLabel}
                   outcome={outcome}
                   pointsEarned={pointsEarned}
-                  timestamp={vote.votedAt.toString()}
-                  crowdSplitA={crowdSplitA}
-                  crowdSplitB={crowdSplitB}
+                  timestamp={vote.votedAt}
                   isPublic={vote.isPublic}
                   outcomeDescription={outcomeDescription}
+                  allOptions={allOptions}
+                  totalVotes={results?.totalVotes || 0}
                 />
               );
             })
