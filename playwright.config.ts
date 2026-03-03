@@ -27,11 +27,11 @@ export default defineConfig({
     },
   ],
 
-  // Run local dev server before starting tests
+  // Serve built assets for rendering tests
   webServer: {
-    command: 'npm run dev',
+    command: 'npm run preview',
     url: 'http://localhost:5000',
     reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
+    timeout: 30 * 1000,
   },
 });
