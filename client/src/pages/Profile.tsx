@@ -38,7 +38,7 @@ interface LeaderboardEntry {
   isCurrentUser: boolean;
 }
 
-// Tier system based on PP (Pally Points) - the rare airdrop points
+// Tier system based on PP (Pally Points)
 const TIERS = [
   { name: 'Wood', min: 0, max: 9, color: '#8B7355', emoji: '🪵' },
   { name: 'Bronze', min: 10, max: 49, color: '#CD7F32', emoji: '🥉' },
@@ -342,7 +342,7 @@ export default function Profile() {
 
               {/* Dual Points Display */}
               <div className="grid grid-cols-2 gap-4 mb-4">
-                {/* PP - Pally Points (rare, airdrop) */}
+                {/* PP - Pally Points */}
                 <div
                   className="p-3 rounded-xl text-center"
                   style={{ backgroundColor: Colors.dark.surface }}
@@ -385,7 +385,7 @@ export default function Profile() {
                 className="text-xs text-center mb-4 px-4"
                 style={{ color: Colors.dark.textMuted }}
               >
-                <span style={{ color: '#FFD700' }}>PP</span> = airdrop eligibility (rare) | <span style={{ color: Colors.dark.accent }}>WP</span> = wager currency
+                <span style={{ color: '#FFD700' }}>PP</span> = Pally Points | <span style={{ color: Colors.dark.accent }}>WP</span> = Wager Points
               </p>
 
               {/* Progress to next tier (based on PP) */}
@@ -527,7 +527,7 @@ export default function Profile() {
                             {claimablePP.toLocaleString()} PP
                           </div>
                           <div className="text-xs" style={{ color: Colors.dark.textMuted }}>
-                            Pally Points (airdrop)
+                            Pally Points
                           </div>
                         </div>
                       </div>

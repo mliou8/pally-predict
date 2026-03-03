@@ -181,22 +181,10 @@ export default function Leaderboard() {
           <TabsContent value="points" className="space-y-2 mt-6">
             <div className="mb-4 p-3 rounded-lg bg-muted/50">
               <p className="text-xs text-muted-foreground text-center">
-                Ranked by Alpha Points earned from predictions. Points unlock future rewards.
+                Ranked by Wager Points earned from predictions. Points unlock future rewards.
               </p>
             </div>
             {renderLeaderboardList(pointsLeaderboard, isLoadingPoints, false)}
-
-            {currentUser && currentUserPointsRank > 0 && currentUserPointsEntry && (
-              <div className="sticky bottom-20 md:bottom-6 mt-6 p-4 rounded-xl bg-primary/10 border border-primary/50">
-                <LeaderboardRow
-                  rank={currentUserPointsRank}
-                  handle={currentUser.handle || '@You'}
-                  accuracyPct={currentUserPointsEntry.accuracy}
-                  points={currentUser.alphaPoints}
-                  isCurrentUser
-                />
-              </div>
-            )}
           </TabsContent>
 
           {/* Earnings Leaderboard */}
@@ -207,19 +195,6 @@ export default function Leaderboard() {
               </p>
             </div>
             {renderLeaderboardList(earningsLeaderboard, isLoadingEarnings, true)}
-
-            {currentUser && currentUserEarningsRank > 0 && currentUserEarningsEntry && (
-              <div className="sticky bottom-20 md:bottom-6 mt-6 p-4 rounded-xl bg-primary/10 border border-primary/50">
-                <LeaderboardRow
-                  rank={currentUserEarningsRank}
-                  handle={currentUser.handle || '@You'}
-                  accuracyPct={currentUserEarningsEntry.accuracy}
-                  points={currentUser.alphaPoints}
-                  earnings={currentUser.totalWon}
-                  isCurrentUser
-                />
-              </div>
-            )}
           </TabsContent>
         </Tabs>
       </div>
