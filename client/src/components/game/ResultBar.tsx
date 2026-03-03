@@ -95,7 +95,7 @@ export default function ResultBar({
                 </div>
               )}
               <span className="text-[10px] tabular-nums font-medium" style={{ color: Colors.dark.textMuted }}>
-                {count.toLocaleString()} votes
+                {(count ?? 0).toLocaleString()} votes
               </span>
             </div>
           </div>

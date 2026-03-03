@@ -57,7 +57,7 @@ export default function ProfileHeader({
         </div>
         <div className="text-center p-4 rounded-xl bg-muted">
           <div className="text-2xl font-bold font-mono text-foreground" data-testid="text-points">
-            {totalPoints.toLocaleString()}
+            {(totalPoints ?? 0).toLocaleString()}
           </div>
           <div className="text-xs text-muted-foreground">Points</div>
         </div>

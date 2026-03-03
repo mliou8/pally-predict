@@ -296,7 +296,7 @@ export default function Results() {
                 Net profit
               </span>
               <span className="text-base font-black tabular-nums" style={{ color: Colors.dark.success }}>
-                +{(result.payoutPoints - result.wagerAmount).toLocaleString()} pts
+                +{((result.payoutPoints ?? 0) - (result.wagerAmount ?? 0)).toLocaleString()} pts
               </span>
             </div>
           )}

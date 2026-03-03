@@ -63,7 +63,7 @@ export default function LeaderboardRow({
           <>
             <div className="text-sm font-semibold text-foreground font-mono inline-flex items-center gap-1" data-testid={`text-points-${rank}`}>
               <span className="text-gold font-bold" style={{ fontSize: '14px' }}>α</span>
-              {points.toLocaleString()}
+              {(points ?? 0).toLocaleString()}
             </div>
             <div className="text-xs text-muted-foreground">
               {accuracyPct}% acc

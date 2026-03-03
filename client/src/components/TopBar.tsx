@@ -119,7 +119,7 @@ export default function TopBar({ alphaPoints }: TopBarProps) {
           >
             <span className="text-gold font-bold" style={{ fontSize: '14px' }}>α</span>
             <span className="text-sm font-bold font-mono text-foreground">
-              {alphaPoints.toLocaleString()}
+              {(alphaPoints ?? 0).toLocaleString()}
             </span>
           </div>
         </div>

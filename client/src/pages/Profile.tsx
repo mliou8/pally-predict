@@ -393,7 +393,7 @@ export default function Profile() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs" style={{ color: Colors.dark.textMuted }}>
                     <span>{tierInfo.tier.name}</span>
-                    <span>{tierInfo.pointsToNext.toLocaleString()} <span style={{ color: '#FFD700' }}>PP</span> to {tierInfo.nextTier.name}</span>
+                    <span>{(tierInfo.pointsToNext ?? 0).toLocaleString()} <span style={{ color: '#FFD700' }}>PP</span> to {tierInfo.nextTier.name}</span>
                   </div>
                   <div
                     className="h-2 rounded-full overflow-hidden"
@@ -829,7 +829,7 @@ export default function Profile() {
                           className="font-bold"
                           style={{ color: Colors.dark.accent }}
                         >
-                          {entry.points.toLocaleString()}
+                          {(entry.points ?? 0).toLocaleString()}
                         </span>
                       </div>
                     ))

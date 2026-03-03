@@ -10,7 +10,7 @@ export default function AlphaPointsPill({ points }: AlphaPointsPillProps) {
     >
       <span className="text-gold font-bold" style={{ fontSize: '14px' }}>α</span>
       <span className="text-sm font-bold font-mono text-foreground">
-        {points.toLocaleString()}
+        {(points ?? 0).toLocaleString()}
       </span>
     </div>
   );
