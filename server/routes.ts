@@ -115,7 +115,7 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
         return res.status(401).json({ error: 'Not authenticated' });
       }
 
-      const { handle } = req.body;
+      const { handle, referralCode } = req.body;
       if (!handle) {
         return res.status(400).json({ error: 'Handle is required' });
       }
@@ -132,10 +132,37 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
         return res.status(400).json({ error: 'User already has a profile' });
       }
 
+      // Handle referral if provided
+      let referrer = null;
+      if (referralCode) {
+        referrer = await storage.getUserByHandle(referralCode);
+      }
+
       const userData = insertUserSchema.parse({ privyUserId, handle });
       const user = await storage.createUser(userData);
 
-      res.status(201).json(user);
+      // Award referral bonuses (500 points each)
+      const REFERRAL_BONUS = 500;
+      if (referrer) {
+        // Award bonus to new user
+        await storage.updateUser(user.id, {
+          alphaPoints: user.alphaPoints + REFERRAL_BONUS,
+          referredBy: referrer.id,
+        });
+
+        // Award bonus to referrer and increment their referral count
+        await storage.updateUser(referrer.id, {
+          alphaPoints: referrer.alphaPoints + REFERRAL_BONUS,
+          referralCount: (referrer.referralCount || 0) + 1,
+        });
+
+        console.log(`[REFERRAL] User ${user.handle} referred by ${referrer.handle}. Both awarded ${REFERRAL_BONUS} points.`);
+      }
+
+      // Get updated user with referral bonus applied
+      const updatedUser = referrer ? await storage.getUser(user.id) : user;
+
+      res.status(201).json(updatedUser);
     } catch (error: any) {
       console.error('API Error:', error);
       res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
@@ -842,6 +869,34 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
       const leaders = await storage.getLeaderboard(limit);
       res.json(leaders);
+    } catch (error: any) {
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
+    }
+  });
+
+  // Points leaderboard (formatted for profile page)
+  app.get('/api/leaderboard/points', async (req, res) => {
+    try {
+      const privyUserId = req.header('x-privy-user-id');
+      let currentUserId: string | null = null;
+
+      if (privyUserId) {
+        const user = await storage.getUserByPrivyId(privyUserId);
+        currentUserId = user?.id || null;
+      }
+
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+      const leaders = await storage.getLeaderboard(limit);
+
+      const formattedLeaders = leaders.map((leader, index) => ({
+        rank: index + 1,
+        handle: leader.handle || `User${(index + 1).toString().padStart(3, '0')}`,
+        points: leader.alphaPoints,
+        isCurrentUser: currentUserId ? leader.id === currentUserId : false,
+      }));
+
+      res.json(formattedLeaders);
     } catch (error: any) {
       console.error('API Error:', error);
       res.status(500).json({ error: error.message || String(error) || 'Unknown error' });

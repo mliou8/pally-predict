@@ -1,14 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { usePrivy } from '@privy-io/react-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Camera } from 'lucide-react';
+import { Camera, Gift } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import BrandMark from '@/components/BrandMark';
 import { apiRequest } from '@/lib/api';
+import Colors from '@/constants/colors';
 
 export default function CreateProfile() {
   const [, setLocation] = useLocation();
@@ -16,8 +17,18 @@ export default function CreateProfile() {
   const [avatarUrl, setAvatarUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [profileError, setProfileError] = useState('');
+  const [referralCode, setReferralCode] = useState<string | null>(null);
   const { user, logout } = usePrivy();
   const { toast } = useToast();
+
+  // Check for referral code in URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (ref) {
+      setReferralCode(ref);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +54,10 @@ export default function CreateProfile() {
     try {
       const response = await apiRequest('/api/user/profile', {
         method: 'POST',
-        body: JSON.stringify({ handle: handle.trim() }),
+        body: JSON.stringify({
+          handle: handle.trim(),
+          ...(referralCode && { referralCode }),
+        }),
       }, user.id);
 
       if (response.ok) {
@@ -85,6 +99,30 @@ export default function CreateProfile() {
             Choose your handle and start making predictions
           </p>
         </div>
+
+        {/* Referral Bonus Banner */}
+        {referralCode && (
+          <div
+            className="flex items-center gap-3 p-4 rounded-xl mb-4"
+            style={{ backgroundColor: Colors.dark.accentDim }}
+          >
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: Colors.dark.accent }}
+            >
+              <Gift size={20} color="#000" />
+            </div>
+            <div>
+              <p className="font-semibold" style={{ color: Colors.dark.text }}>
+                Referral Bonus!
+              </p>
+              <p className="text-sm" style={{ color: Colors.dark.textMuted }}>
+                You and <span style={{ color: Colors.dark.accent }}>@{referralCode}</span> will each get{' '}
+                <span style={{ color: Colors.dark.accent, fontWeight: 'bold' }}>500 points</span>
+              </p>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="flex justify-center">

@@ -41,6 +41,10 @@ export const users = pgTable("users", {
   badgesEarned: text("badges_earned").array().notNull().default(sql`ARRAY[]::text[]`),
   isAdmin: boolean("is_admin").notNull().default(false),
 
+  // Referral system
+  referralCount: integer("referral_count").notNull().default(0),
+  referredBy: varchar("referred_by").references(() => users.id),
+
   // Account linking
   linkedAt: timestamp("linked_at"),
   primaryPlatform: varchar("primary_platform").$type<PlatformType>().default('web'),
