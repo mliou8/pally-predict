@@ -246,10 +246,9 @@ function App() {
           accentColor: '#FF6B35',
           logo: undefined,
         },
+        // Disable automatic wallet creation - not needed for points-based game
         embeddedWallets: {
-          ethereum: {
-            createOnLogin: 'users-without-wallets',
-          },
+          createOnLogin: 'off',
         },
       }}
     >

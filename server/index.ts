@@ -159,6 +159,7 @@ app.post('/api/admin/seed-questions', async (req, res) => {
     const { db } = await import('./db');
     const { questions } = await import('@shared/schema');
 
+    // Use 17:00 UTC = 12:00 PM EST (noon Eastern Time)
     const seedData = [
       {
         type: 'prediction' as const,
@@ -167,8 +168,8 @@ app.post('/api/admin/seed-questions', async (req, res) => {
         optionB: 'Mandatory commercials for everyone',
         optionC: 'AI-generated personalized shows',
         optionD: 'Resurgence of illegal piracy',
-        dropsAt: new Date('2026-03-01T14:00:00.000Z'),
-        revealsAt: new Date('2026-03-02T02:00:00.000Z'),
+        dropsAt: new Date('2026-03-01T17:00:00.000Z'), // noon EST
+        revealsAt: new Date('2026-03-02T17:00:00.000Z'), // noon EST next day
         isActive: true,
       },
       {
@@ -178,8 +179,8 @@ app.post('/api/admin/seed-questions', async (req, res) => {
         optionB: 'Raw, unedited ugly content',
         optionC: 'Following realistic AI influencers',
         optionD: 'Quitting all digital platforms',
-        dropsAt: new Date('2026-03-02T14:00:00.000Z'),
-        revealsAt: new Date('2026-03-03T02:00:00.000Z'),
+        dropsAt: new Date('2026-03-02T17:00:00.000Z'), // noon EST
+        revealsAt: new Date('2026-03-03T17:00:00.000Z'), // noon EST next day
         isActive: true,
       },
       {
@@ -189,8 +190,8 @@ app.post('/api/admin/seed-questions', async (req, res) => {
         optionB: 'Lab-grown meat only diets',
         optionC: 'Brain-boosting focus implants',
         optionD: 'Mandatory phone-free sleep locks',
-        dropsAt: new Date('2026-03-03T14:00:00.000Z'),
-        revealsAt: new Date('2026-03-04T02:00:00.000Z'),
+        dropsAt: new Date('2026-03-03T17:00:00.000Z'), // noon EST
+        revealsAt: new Date('2026-03-04T17:00:00.000Z'), // noon EST next day
         isActive: true,
       },
       {
@@ -200,8 +201,8 @@ app.post('/api/admin/seed-questions', async (req, res) => {
         optionB: 'Meeting at offline clubs',
         optionC: 'Virtual Reality Metaverse dates',
         optionD: 'Matching by DNA compatibility',
-        dropsAt: new Date('2026-03-04T14:00:00.000Z'),
-        revealsAt: new Date('2026-03-05T02:00:00.000Z'),
+        dropsAt: new Date('2026-03-04T17:00:00.000Z'), // noon EST
+        revealsAt: new Date('2026-03-05T17:00:00.000Z'), // noon EST next day
         isActive: true,
       },
     ];

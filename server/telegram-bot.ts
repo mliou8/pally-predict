@@ -443,53 +443,70 @@ export function initBot(token: string): Telegraf {
     }
   });
 
-  // Handle vote button callbacks
+  // Handle vote button callbacks - now shows bet amount options directly
   bot.action(/vote_([ABCD])_(.+)/, async (ctx) => {
     try {
       const choice = ctx.match[1] as 'A' | 'B' | 'C' | 'D';
       const questionId = ctx.match[2];
       const telegramId = ctx.from!.id.toString();
-      
+
       const user = await telegramStorage.getUserByTelegramId(telegramId);
       if (!user) {
         await ctx.answerCbQuery('Please use /start to register first!');
         return;
       }
-      
+
       const question = await telegramStorage.getQuestion(questionId);
       if (!question || !question.isActive) {
         await ctx.answerCbQuery('This question is no longer active.');
         return;
       }
-      
+
       // Check if already voted
       const existingBet = await telegramStorage.getBet(user.id, questionId);
       if (existingBet) {
         await ctx.answerCbQuery('You already voted on this question!');
         return;
       }
-      
-      // Store bet session
-      betSessions.set(telegramId, {
-        questionId,
-        choice,
-        awaitingAmount: true,
-      });
-      
+
       await ctx.answerCbQuery(`Selected option ${choice}`);
-      
-      // Ask for bet amount
-      const optionText = choice === 'A' ? question.optionA 
+
+      // Show bet amount options directly (no text input needed)
+      const optionText = choice === 'A' ? question.optionA
         : choice === 'B' ? question.optionB
         : choice === 'C' ? question.optionC
         : question.optionD;
-      
+
+      const balance = parseFloat(user.balance);
+      const presets = [10, 25, 50, 100].filter(amt => amt <= balance);
+
+      // Build bet amount buttons
+      const betButtons = presets.map(amt =>
+        Markup.button.callback(`$${amt}`, `bet_${choice}_${questionId}_${amt}`)
+      );
+
+      // Add "All In" option if balance > 0
+      if (balance > 0) {
+        betButtons.push(Markup.button.callback(`ALL IN ($${Math.floor(balance)})`, `bet_${choice}_${questionId}_${Math.floor(balance)}`));
+      }
+
+      // Split buttons into rows of 2-3
+      const buttonRows = [];
+      for (let i = 0; i < betButtons.length; i += 3) {
+        buttonRows.push(betButtons.slice(i, i + 3));
+      }
+
+      // Add cancel button
+      buttonRows.push([Markup.button.callback('❌ Cancel', `cancel_bet`)]);
+
       await ctx.editMessageText(
         `🎯 *Your pick:* ${choice} - ${optionText}\n\n` +
         `💰 *Your balance:* ${formatMoney(user.balance)}\n\n` +
-        `How much do you want to bet? (Min: $1)\n\n` +
-        `_Reply with a number (e.g., 50 or 100)_`,
-        { parse_mode: 'Markdown' }
+        `Choose your bet amount:`,
+        {
+          parse_mode: 'Markdown',
+          ...Markup.inlineKeyboard(buttonRows)
+        }
       );
     } catch (error) {
       console.error('Error in vote callback:', error);
@@ -497,85 +514,168 @@ export function initBot(token: string): Telegraf {
     }
   });
 
-  // Handle bet amount input
-  bot.on('text', async (ctx) => {
-    const telegramId = ctx.from.id.toString();
-    const session = betSessions.get(telegramId);
-    
-    if (!session || !session.awaitingAmount) {
-      // Not in a bet session, ignore
-      return;
-    }
-    
+  // Handle bet amount button callbacks
+  bot.action(/bet_([ABCD])_([^_]+)_(\d+)/, async (ctx) => {
     try {
-      const amount = parseFloat(ctx.message.text.replace('$', '').trim());
-      
-      if (isNaN(amount) || amount < 1) {
-        await ctx.reply('Please enter a valid amount (minimum $1)');
-        return;
-      }
-      
+      const choice = ctx.match[1] as 'A' | 'B' | 'C' | 'D';
+      const questionId = ctx.match[2];
+      const amount = parseInt(ctx.match[3], 10);
+      const telegramId = ctx.from!.id.toString();
+
       const user = await telegramStorage.getUserByTelegramId(telegramId);
       if (!user) {
-        betSessions.delete(telegramId);
-        await ctx.reply('Please use /start to register first!');
+        await ctx.answerCbQuery('Please use /start to register first!');
         return;
       }
-      
+
+      const question = await telegramStorage.getQuestion(questionId);
+      if (!question || !question.isActive) {
+        await ctx.answerCbQuery('This question is no longer active.');
+        return;
+      }
+
+      // Check if already voted
+      const existingBet = await telegramStorage.getBet(user.id, questionId);
+      if (existingBet) {
+        await ctx.answerCbQuery('You already voted on this question!');
+        return;
+      }
+
       const balance = parseFloat(user.balance);
       if (amount > balance) {
-        await ctx.reply(`Insufficient balance. You have ${formatMoney(balance)}`);
+        await ctx.answerCbQuery(`Insufficient balance. You have ${formatMoney(balance)}`);
         return;
       }
-      
-      const question = await telegramStorage.getQuestion(session.questionId);
-      if (!question || !question.isActive) {
-        betSessions.delete(telegramId);
-        await ctx.reply('This question is no longer active.');
+
+      if (amount < 1) {
+        await ctx.answerCbQuery('Minimum bet is $1');
         return;
       }
-      
-      // Check again if already voted
-      const existingBet = await telegramStorage.getBet(user.id, session.questionId);
-      if (existingBet) {
-        betSessions.delete(telegramId);
-        await ctx.reply('You already voted on this question!');
-        return;
-      }
-      
+
       // Deduct from balance
       await telegramStorage.updateUser(user.id, {
         balance: (balance - amount).toFixed(2),
         totalWagered: (parseFloat(user.totalWagered) + amount).toFixed(2),
       });
-      
+
       // Create bet
       await telegramStorage.createBet({
         userId: user.id,
-        questionId: session.questionId,
-        choice: session.choice,
+        questionId: questionId,
+        choice: choice,
         betAmount: amount.toFixed(2),
       });
-      
-      betSessions.delete(telegramId);
-      
-      const optionText = session.choice === 'A' ? question.optionA 
-        : session.choice === 'B' ? question.optionB
-        : session.choice === 'C' ? question.optionC
+
+      const optionText = choice === 'A' ? question.optionA
+        : choice === 'B' ? question.optionB
+        : choice === 'C' ? question.optionC
         : question.optionD;
-      
-      await ctx.replyWithMarkdown(
+
+      await ctx.answerCbQuery('Bet placed! 🎉');
+
+      await ctx.editMessageText(
         `✅ *Bet placed!*\n\n` +
-        `🎯 Your pick: *${session.choice} - ${optionText}*\n` +
+        `🎯 Your pick: *${choice} - ${optionText}*\n` +
         `💵 Bet amount: *${formatMoney(amount)}*\n` +
         `💰 Remaining balance: *${formatMoney(balance - amount)}*\n\n` +
-        `Results will be revealed tomorrow! Good luck! 🍀`
+        `Results will be revealed tomorrow! Good luck! 🍀`,
+        { parse_mode: 'Markdown' }
       );
     } catch (error) {
       console.error('Error placing bet:', error);
-      betSessions.delete(telegramId);
-      await ctx.reply('Something went wrong. Please try again with /question');
+      await ctx.answerCbQuery('Something went wrong. Please try again.');
     }
+  });
+
+  // Handle cancel bet
+  bot.action('cancel_bet', async (ctx) => {
+    const telegramId = ctx.from!.id.toString();
+    betSessions.delete(telegramId);
+    await ctx.answerCbQuery('Cancelled');
+    await ctx.editMessageText(
+      '❌ Bet cancelled.\n\nUse /question to try again.',
+      { parse_mode: 'Markdown' }
+    );
+  });
+
+  // Handle text messages - now just guides users to use buttons
+  bot.on('text', async (ctx) => {
+    const telegramId = ctx.from.id.toString();
+    const session = betSessions.get(telegramId);
+
+    // Legacy support for old sessions that expect text input
+    if (session && session.awaitingAmount) {
+      try {
+        const amount = parseFloat(ctx.message.text.replace('$', '').trim());
+
+        if (isNaN(amount) || amount < 1) {
+          await ctx.reply('Please enter a valid amount (minimum $1), or use /question to start over with button selection.');
+          return;
+        }
+
+        const user = await telegramStorage.getUserByTelegramId(telegramId);
+        if (!user) {
+          betSessions.delete(telegramId);
+          await ctx.reply('Please use /start to register first!');
+          return;
+        }
+
+        const balance = parseFloat(user.balance);
+        if (amount > balance) {
+          await ctx.reply(`Insufficient balance. You have ${formatMoney(balance)}`);
+          return;
+        }
+
+        const question = await telegramStorage.getQuestion(session.questionId);
+        if (!question || !question.isActive) {
+          betSessions.delete(telegramId);
+          await ctx.reply('This question is no longer active.');
+          return;
+        }
+
+        // Check again if already voted
+        const existingBet = await telegramStorage.getBet(user.id, session.questionId);
+        if (existingBet) {
+          betSessions.delete(telegramId);
+          await ctx.reply('You already voted on this question!');
+          return;
+        }
+
+        // Deduct from balance
+        await telegramStorage.updateUser(user.id, {
+          balance: (balance - amount).toFixed(2),
+          totalWagered: (parseFloat(user.totalWagered) + amount).toFixed(2),
+        });
+
+        // Create bet
+        await telegramStorage.createBet({
+          userId: user.id,
+          questionId: session.questionId,
+          choice: session.choice,
+          betAmount: amount.toFixed(2),
+        });
+
+        betSessions.delete(telegramId);
+
+        const optionText = session.choice === 'A' ? question.optionA
+          : session.choice === 'B' ? question.optionB
+          : session.choice === 'C' ? question.optionC
+          : question.optionD;
+
+        await ctx.replyWithMarkdown(
+          `✅ *Bet placed!*\n\n` +
+          `🎯 Your pick: *${session.choice} - ${optionText}*\n` +
+          `💵 Bet amount: *${formatMoney(amount)}*\n` +
+          `💰 Remaining balance: *${formatMoney(balance - amount)}*\n\n` +
+          `Results will be revealed tomorrow! Good luck! 🍀`
+        );
+      } catch (error) {
+        console.error('Error placing bet:', error);
+        betSessions.delete(telegramId);
+        await ctx.reply('Something went wrong. Please try again with /question');
+      }
+    }
+    // Ignore other text messages - don't spam the user
   });
 
   // Handle noop button
