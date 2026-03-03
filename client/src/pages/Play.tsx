@@ -85,7 +85,9 @@ export default function Play() {
 
   useEffect(() => {
     if (currentUser) {
-      setUserPoints(DEFAULT_POINTS);
+      // Use actual balance from server, not default
+      const balance = parseFloat(currentUser.balance) || 0;
+      setUserPoints(balance);
     }
   }, [currentUser]);
 
@@ -158,7 +160,11 @@ export default function Play() {
         description: 'If the crowd agrees with you, you win.',
       });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, variables: VoteData) => {
+      // Restore points that were optimistically deducted
+      const betAmount = parseFloat(variables.betAmount) || 0;
+      setUserPoints((prev) => prev + betAmount);
+
       if (error instanceof ApiError && error.status === 404) {
         setLocation('/create-profile');
       } else {
@@ -180,6 +186,25 @@ export default function Play() {
   const handleConfirm = useCallback(() => {
     if (!selectedOptionId || hasConfirmed) return;
 
+    // Validate wager amount doesn't exceed available balance
+    if (wagerAmount > userPoints) {
+      toast({
+        title: 'Insufficient balance',
+        description: `You only have ${userPoints} WP available`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (wagerAmount < 1) {
+      toast({
+        title: 'Invalid wager',
+        description: 'Minimum wager is 1 WP',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     const voteData: VoteData = {
       questionId: question!.id,
       choice: selectedOptionId,
@@ -196,16 +221,30 @@ export default function Play() {
     setUserPoints((prev) => prev - wagerAmount);
     setHasConfirmed(true);
     voteMutation.mutate(voteData);
-  }, [selectedOptionId, hasConfirmed, question, authenticated, user, login, wagerAmount, voteMutation]);
+  }, [selectedOptionId, hasConfirmed, question, authenticated, user, login, wagerAmount, userPoints, toast, voteMutation]);
 
   useEffect(() => {
     if (pendingVote && authenticated && user && currentUser) {
-      setUserPoints((prev) => prev - wagerAmount);
+      const betAmount = parseFloat(pendingVote.betAmount) || 0;
+      const balance = parseFloat(currentUser.balance) || 0;
+
+      // Validate balance before submitting pending vote
+      if (betAmount > balance) {
+        toast({
+          title: 'Insufficient balance',
+          description: `You only have ${balance} WP available`,
+          variant: 'destructive',
+        });
+        setPendingVote(null);
+        return;
+      }
+
+      setUserPoints((prev) => prev - betAmount);
       setHasConfirmed(true);
       voteMutation.mutate(pendingVote);
       setPendingVote(null);
     }
-  }, [pendingVote, authenticated, user, currentUser, wagerAmount, voteMutation]);
+  }, [pendingVote, authenticated, user, currentUser, toast, voteMutation]);
 
   const handleViewHistory = useCallback(() => {
     setLocation('/history');
