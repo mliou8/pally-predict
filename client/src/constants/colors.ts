@@ -1,3 +1,7 @@
+// Colors constant - maintained for backward compatibility
+// These values match the CSS variables in index.css
+// New code should prefer using Tailwind classes (bg-background, text-foreground, etc.)
+
 const Colors = {
   dark: {
     // Core backgrounds - true black for contrast

@@ -9,7 +9,7 @@ export default function TabBar() {
   const tabs = [
     { icon: Crosshair, label: 'Play', path: '/play' },
     { icon: Trophy, label: 'Ranks', path: '/leaderboard' },
-    { icon: Clock, label: 'Polls', path: '/history' },
+    { icon: Clock, label: 'History', path: '/history' },
     { icon: User, label: 'Profile', path: '/profile' },
   ];
 

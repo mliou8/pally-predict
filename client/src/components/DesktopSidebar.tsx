@@ -11,7 +11,7 @@ export default function DesktopSidebar() {
   const navItems = [
     { icon: Crosshair, label: 'Play', path: '/play' },
     { icon: Trophy, label: 'Leaderboard', path: '/leaderboard' },
-    { icon: Clock, label: 'Past Polls', path: '/history' },
+    { icon: Clock, label: 'History', path: '/history' },
     { icon: User, label: 'Profile', path: '/profile' },
   ];
 

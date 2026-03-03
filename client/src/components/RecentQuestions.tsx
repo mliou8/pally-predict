@@ -12,7 +12,7 @@ interface VoteWithDetails {
   results: QuestionResults | null;
 }
 
-export default function RecentPolls() {
+export default function RecentQuestions() {
   const { user } = usePrivy();
 
   const { data: votes = [] } = useQuery<Vote[]>({
@@ -52,7 +52,7 @@ export default function RecentPolls() {
     return null;
   }
 
-  const recentPolls = votesWithDetails.slice(0, 5);
+  const recentQuestions = votesWithDetails.slice(0, 5);
 
   const getOutcome = (vote: Vote, results: QuestionResults | null) => {
     if (!results) return 'pending';
@@ -77,7 +77,7 @@ export default function RecentPolls() {
           className="text-sm font-semibold uppercase tracking-wider"
           style={{ color: Colors.dark.textMuted }}
         >
-          Recent Polls
+          Recent Questions
         </h3>
         <Link href="/history">
           <a
@@ -99,7 +99,7 @@ export default function RecentPolls() {
             />
           ))}
         </div>
-      ) : recentPolls.length === 0 ? (
+      ) : recentQuestions.length === 0 ? (
         <p
           className="text-sm text-center py-6"
           style={{ color: Colors.dark.textMuted }}
@@ -108,7 +108,7 @@ export default function RecentPolls() {
         </p>
       ) : (
         <div className="space-y-3">
-          {recentPolls.map(({ vote, question, results }) => {
+          {recentQuestions.map(({ vote, question, results }) => {
             const outcome = getOutcome(vote, results);
             const isPending = outcome === 'pending';
             const isCorrect = outcome === 'correct';

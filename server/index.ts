@@ -312,6 +312,11 @@ server.listen(port, "0.0.0.0", () => {
 // Initialize everything else in the background
 (async () => {
   try {
+    // Run auto-migrations to add any missing columns
+    console.log('[startup] Running auto-migrations...');
+    const { runAutoMigrations } = await import('./db');
+    await runAutoMigrations();
+
     console.log('[startup] Registering routes...');
     await registerRoutes(app, server);
     console.log('[startup] Routes registered');

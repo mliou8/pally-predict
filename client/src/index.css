@@ -119,59 +119,72 @@
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
-  --background: 240 5% 4%;
-  --foreground: 240 5% 92%;
-  --border: 240 7% 14%;
+  /* True black backgrounds for high contrast */
+  --background: 0 0% 0%;
+  --foreground: 0 0% 100%;
+  --border: 0 0% 10%;
 
-  --card: 240 6% 7%;
-  --card-foreground: 240 5% 92%;
-  --card-border: 240 7% 11%;
+  --card: 0 0% 7%;
+  --card-foreground: 0 0% 100%;
+  --card-border: 0 0% 10%;
 
-  --sidebar: 240 7% 10%;
-  --sidebar-foreground: 240 5% 92%;
-  --sidebar-border: 240 7% 14%;
+  --sidebar: 0 0% 7%;
+  --sidebar-foreground: 0 0% 100%;
+  --sidebar-border: 0 0% 10%;
 
-  --sidebar-primary: 172 89% 56%;
-  --sidebar-primary-foreground: 172 89% 98%;
+  --sidebar-primary: 75 100% 50%;
+  --sidebar-primary-foreground: 0 0% 0%;
 
-  --sidebar-accent: 240 8% 15%;
-  --sidebar-accent-foreground: 240 5% 92%;
+  --sidebar-accent: 0 0% 10%;
+  --sidebar-accent-foreground: 0 0% 100%;
 
-  --sidebar-ring: 172 89% 56%;
+  --sidebar-ring: 75 100% 50%;
 
-  --popover: 240 7% 12%;
-  --popover-foreground: 240 5% 92%;
-  --popover-border: 240 7% 16%;
+  --popover: 0 0% 7%;
+  --popover-foreground: 0 0% 100%;
+  --popover-border: 0 0% 14%;
 
-  --primary: 172 89% 56%;
-  --primary-foreground: 172 89% 98%;
+  /* Lime green primary - #BFFF00 */
+  --primary: 75 100% 50%;
+  --primary-foreground: 0 0% 0%;
 
-  --secondary: 240 8% 16%;
-  --secondary-foreground: 240 5% 92%;
+  --secondary: 0 0% 10%;
+  --secondary-foreground: 0 0% 100%;
 
-  --muted: 240 8% 13%;
-  --muted-foreground: 240 4% 68%;
+  --muted: 0 0% 7%;
+  --muted-foreground: 0 0% 40%;
 
-  --accent: 240 9% 14%;
-  --accent-foreground: 240 5% 92%;
+  --accent: 0 0% 10%;
+  --accent-foreground: 0 0% 100%;
 
-  --destructive: 353 91% 67%;
-  --destructive-foreground: 353 91% 98%;
+  --destructive: 345 100% 60%;
+  --destructive-foreground: 0 0% 100%;
 
-  --success: 147 71% 52%;
-  --success-foreground: 147 71% 98%;
+  --success: 155 100% 50%;
+  --success-foreground: 0 0% 0%;
 
-  --warning: 33 100% 56%;
-  --warning-foreground: 33 100% 98%;
+  --warning: 54 100% 50%;
+  --warning-foreground: 0 0% 0%;
 
   --gold: 48 100% 75%;
   --gold-foreground: 48 100% 10%;
 
-  --brand-magenta: 303 89% 65%;
-  --brand-magenta-foreground: 303 89% 98%;
+  --brand-magenta: 320 100% 50%;
+  --brand-magenta-foreground: 0 0% 100%;
 
-  --input: 240 7% 22%;
-  --ring: 172 89% 56%;
+  /* Surface colors for game UI */
+  --surface: 0 0% 7%;
+  --surface-light: 0 0% 10%;
+  --surface-highlight: 0 0% 13%;
+
+  /* Text variants */
+  --text-secondary: 0 0% 60%;
+
+  /* Accent dim for background highlights */
+  --accent-dim: 75 100% 50% / 0.08;
+
+  --input: 0 0% 14%;
+  --ring: 75 100% 50%;
 
   --chart-1: 172 89% 65%;
   --chart-2: 303 89% 75%;

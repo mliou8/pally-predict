@@ -10,7 +10,7 @@ import CountdownTimer from '@/components/game/CountdownTimer';
 import WagerSelector from '@/components/game/WagerSelector';
 import ActivityFeed from '@/components/game/ActivityFeed';
 import ConfettiEffect from '@/components/game/ConfettiEffect';
-import RecentPolls from '@/components/RecentPolls';
+import RecentQuestions from '@/components/RecentQuestions';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, ApiError } from '@/lib/api';
 import { queryClient } from '@/lib/queryClient';
@@ -21,7 +21,7 @@ interface VoteData {
   questionId: string;
   choice: VoteChoice;
   isPublic: boolean;
-  wagerAmount?: string;
+  betAmount?: string;
 }
 
 const DEFAULT_POINTS = 1000;
@@ -103,6 +103,18 @@ export default function Play() {
 
   const question = activeQuestions[0];
 
+  // Fetch safe stats (total participants and pool only - no distribution to prevent collusion)
+  const { data: questionStats } = useQuery<{ totalBets: number; totalAmount: number }>({
+    queryKey: ['/api/questions', question?.id, 'safe-stats'],
+    queryFn: async () => {
+      const response = await fetch(`/api/questions/${question!.id}/live-stats`);
+      const data = await response.json();
+      // Only return safe stats, not distribution
+      return { totalBets: data.totalBets, totalAmount: data.totalAmount };
+    },
+    enabled: !!question,
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
 
   // User votes
   const { data: userVotes = [] } = useQuery<Vote[]>({
@@ -158,9 +170,9 @@ export default function Play() {
     },
   });
 
-  const handleSelectOption = useCallback((index: number) => {
+  const handleSelectOption = useCallback((optionId: VoteChoice) => {
     if (hasConfirmed) return;
-    setSelectedOptionId(OPTION_LABELS[index]);
+    setSelectedOptionId(optionId);
   }, [hasConfirmed]);
 
   const handleConfirm = useCallback(() => {
@@ -170,7 +182,7 @@ export default function Play() {
       questionId: question!.id,
       choice: selectedOptionId,
       isPublic: true,
-      wagerAmount: undefined,
+      betAmount: wagerAmount.toString(),
     };
 
     if (!authenticated || !user) {
@@ -193,9 +205,34 @@ export default function Play() {
     }
   }, [pendingVote, authenticated, user, currentUser, wagerAmount, voteMutation]);
 
-  const handleViewPastPolls = useCallback(() => {
+  const handleViewHistory = useCallback(() => {
     setLocation('/history');
   }, [setLocation]);
+
+  const handleEnableNotifications = useCallback(async () => {
+    if (!('Notification' in window)) {
+      toast({
+        title: 'Not supported',
+        description: 'Your browser does not support notifications',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      toast({
+        title: 'Notifications enabled',
+        description: "We'll notify you when new questions drop and results are revealed",
+      });
+    } else {
+      toast({
+        title: 'Notifications blocked',
+        description: 'Please enable notifications in your browser settings',
+        variant: 'destructive',
+      });
+    }
+  }, [toast]);
 
   // Seeded random shuffle to prevent collusion via "everyone pick option 1"
   // Each user sees options in a different order based on their ID + question ID
@@ -266,6 +303,7 @@ export default function Play() {
           Check back soon for the next prediction challenge
         </p>
         <button
+          onClick={handleEnableNotifications}
           className={cn(
             'flex items-center gap-2 px-6 py-3 rounded-xl transition-all',
             'active:scale-[0.98]'
@@ -291,7 +329,7 @@ export default function Play() {
 
       <div className="max-w-6xl mx-auto px-5 py-8 pb-28 md:pb-8">
         <div className="flex flex-col lg:flex-row gap-8">
-          {/* Main Poll Column */}
+          {/* Main Question Column */}
           <div className="flex-1 max-w-xl">
         {/* Header */}
         <div
@@ -386,7 +424,7 @@ export default function Play() {
               index={index}
               isSelected={selectedOptionId === option.id}
               isLocked={hasConfirmed}
-              onPress={() => handleSelectOption(index)}
+              onPress={() => handleSelectOption(option.id as VoteChoice)}
             />
           ))}
         </div>
@@ -498,6 +536,7 @@ export default function Play() {
             </div>
 
             <button
+              onClick={handleEnableNotifications}
               className={cn(
                 'w-full flex items-center justify-center gap-2 py-4 rounded-xl transition-all',
                 'active:scale-[0.98]'
@@ -521,7 +560,7 @@ export default function Play() {
             )}
 
             <button
-              onClick={handleViewPastPolls}
+              onClick={handleViewHistory}
               className={cn(
                 'w-full flex items-center justify-center gap-2 py-4 rounded-xl transition-all',
                 'active:scale-[0.98]'
@@ -532,14 +571,14 @@ export default function Play() {
                 className="text-base font-semibold"
                 style={{ color: Colors.dark.text }}
               >
-                Past Polls
+                History
               </span>
               <ArrowRight size={18} color={Colors.dark.textSecondary} />
             </button>
           </div>
         )}
 
-        {/* Total Volume */}
+        {/* Prize Pool Stats */}
         <div
           className={cn(
             'mt-8 transition-all duration-500 delay-300',
@@ -547,22 +586,32 @@ export default function Play() {
           )}
         >
           <div
-            className="rounded-xl p-4 flex items-center justify-between"
+            className="rounded-xl p-4"
             style={{ backgroundColor: Colors.dark.surface }}
           >
-            <div className="flex items-center gap-3">
-              <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center"
-                style={{ backgroundColor: Colors.dark.accentDim }}
-              >
-                <TrendingUp size={16} color={Colors.dark.accent} />
-              </div>
-              <div>
-                <div className="text-xs uppercase tracking-wider" style={{ color: Colors.dark.textMuted }}>
-                  Total Volume
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ backgroundColor: Colors.dark.accentDim }}
+                >
+                  <TrendingUp size={16} color={Colors.dark.accent} />
                 </div>
-                <div className="text-lg font-bold" style={{ color: Colors.dark.textMuted }}>
-                  Coming soon
+                <div>
+                  <div className="text-xs uppercase tracking-wider" style={{ color: Colors.dark.textMuted }}>
+                    Prize Pool
+                  </div>
+                  <div className="text-lg font-bold" style={{ color: Colors.dark.text }}>
+                    {questionStats ? `${Math.round(questionStats.totalAmount).toLocaleString()} pts` : '—'}
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs uppercase tracking-wider" style={{ color: Colors.dark.textMuted }}>
+                  Players
+                </div>
+                <div className="text-lg font-bold" style={{ color: Colors.dark.text }}>
+                  {questionStats ? questionStats.totalBets.toLocaleString() : '—'}
                 </div>
               </div>
             </div>
@@ -571,10 +620,10 @@ export default function Play() {
 
           </div>
 
-          {/* Sidebar - Past Polls (Desktop only) */}
+          {/* Sidebar - History (Desktop only) */}
           <div className="hidden lg:block w-80 flex-shrink-0">
             <div className="sticky top-8">
-              <RecentPolls />
+              <RecentQuestions />
             </div>
           </div>
         </div>
