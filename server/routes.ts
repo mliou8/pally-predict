@@ -384,7 +384,7 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
         console.warn(`[ANTI-COLLUSION] Suspicious: ${usersFromIP.size} users voting from IP ${clientIP}`);
       }
 
-      const { questionId, choice, isPublic = true, wagerAmount } = req.body;
+      const { questionId, choice, isPublic = true, betAmount, wagerAmount } = req.body;
 
       // Check if question exists and is active
       const question = await storage.getQuestion(questionId);
@@ -402,18 +402,19 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
         return res.status(400).json({ error: 'Already voted on this question' });
       }
 
-      // Create the vote with optional wager
+      // Get the points wagered - frontend sends as betAmount string
+      const pointsWagered = betAmount || wagerAmount || '100';
+
+      // Create the vote with the wager points
       const voteData: any = {
         userId: user.id,
         questionId,
         choice,
         isPublic,
+        // Store in both fields for compatibility
+        betAmount: String(pointsWagered),
+        wagerAmount: BigInt(pointsWagered),
       };
-
-      // Add wagerAmount if provided (convert string to BigInt)
-      if (wagerAmount !== undefined && wagerAmount !== null) {
-        voteData.wagerAmount = BigInt(wagerAmount);
-      }
 
       const parsedVoteData = insertVoteSchema.parse(voteData);
 
@@ -449,8 +450,10 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
           ? handle.slice(0, 2) + '***' + handle.slice(-1)
           : '***';
 
-        // Show points locked in (betAmount), default to 100 if not set
-        const points = vote.betAmount ? parseInt(vote.betAmount) : 100;
+        // Show points locked in - check both betAmount and wagerAmount for compatibility
+        const points = vote.betAmount && vote.betAmount !== '0.00'
+          ? parseInt(vote.betAmount)
+          : (vote.wagerAmount ? Number(vote.wagerAmount) : 100);
 
         return {
           id: vote.id,
