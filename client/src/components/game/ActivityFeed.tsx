@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import Colors, { OPTION_COLORS } from '@/constants/colors';
+import Colors from '@/constants/colors';
 
 interface ActivityItem {
   id: string;
   handle: string;
-  choice: 'A' | 'B' | 'C' | 'D';
+  points: number;
   timeAgo: string;
 }
 
@@ -32,11 +32,6 @@ export default function ActivityFeed({ questionId }: ActivityFeedProps) {
     return null;
   }
 
-  const getChoiceColor = (choice: 'A' | 'B' | 'C' | 'D') => {
-    const index = choice.charCodeAt(0) - 65; // A=0, B=1, etc.
-    return OPTION_COLORS[index % OPTION_COLORS.length];
-  };
-
   return (
     <div
       className="rounded-xl p-4 mb-6"
@@ -51,7 +46,6 @@ export default function ActivityFeed({ questionId }: ActivityFeedProps) {
       <div className="space-y-2">
         <AnimatePresence mode="popLayout">
           {activity.slice(0, 5).map((item, index) => {
-            const colors = getChoiceColor(item.choice);
             return (
               <motion.div
                 key={item.id}
@@ -62,15 +56,15 @@ export default function ActivityFeed({ questionId }: ActivityFeedProps) {
                 className="flex items-center gap-2 text-sm"
               >
                 <span style={{ color: Colors.dark.textMuted }}>@{item.handle}</span>
-                <span style={{ color: Colors.dark.textMuted }}>picked</span>
+                <span style={{ color: Colors.dark.textMuted }}>locked in</span>
                 <span
                   className="px-2 py-0.5 rounded font-bold text-xs"
                   style={{
-                    backgroundColor: colors.bgDim,
-                    color: colors.textAlt,
+                    backgroundColor: Colors.dark.accentDim,
+                    color: Colors.dark.accent,
                   }}
                 >
-                  {item.choice}
+                  {item.points} pts
                 </span>
                 <span
                   className="ml-auto text-xs"

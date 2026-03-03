@@ -368,6 +368,7 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
   });
 
   // Get recent activity feed (public votes, anonymized)
+  // NOTE: We intentionally do NOT reveal the choice to prevent collusion
   app.get('/api/activity/recent', async (req, res) => {
     try {
       const limit = Math.min(parseInt(req.query.limit as string) || 10, 20);
@@ -375,7 +376,7 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
 
       const recentVotes = await storage.getRecentPublicVotes(limit, questionId);
 
-      // Anonymize and format for display
+      // Anonymize and format for display - only show points, not choice
       const activity = await Promise.all(recentVotes.map(async (vote) => {
         const user = await storage.getUser(vote.userId);
         const handle = user?.handle || 'Anonymous';
@@ -384,10 +385,13 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
           ? handle.slice(0, 2) + '***' + handle.slice(-1)
           : '***';
 
+        // Show points locked in (betAmount), default to 100 if not set
+        const points = vote.betAmount ? parseInt(vote.betAmount) : 100;
+
         return {
           id: vote.id,
           handle: displayHandle,
-          choice: vote.choice,
+          points: points,
           timestamp: vote.votedAt,
           timeAgo: getTimeAgo(new Date(vote.votedAt)),
         };

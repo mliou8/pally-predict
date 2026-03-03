@@ -16,15 +16,6 @@ import { apiRequest, ApiError } from '@/lib/api';
 import { queryClient } from '@/lib/queryClient';
 import type { VoteChoice, Question, Vote, User } from '@shared/schema';
 
-interface LiveStats {
-  totalVotes: number;
-  distribution: {
-    A: { votes: number; percent: number; multiplier: number };
-    B: { votes: number; percent: number; multiplier: number };
-    C: { votes: number; percent: number; multiplier: number };
-    D: { votes: number; percent: number; multiplier: number };
-  };
-}
 
 interface VoteData {
   questionId: string;
@@ -112,18 +103,6 @@ export default function Play() {
 
   const question = activeQuestions[0];
 
-  // Fetch live stats for the current question
-  const { data: liveStats } = useQuery<LiveStats>({
-    queryKey: ['/api/questions', question?.id, 'live-stats'],
-    queryFn: async () => {
-      const res = await fetch(`/api/questions/${question!.id}/live-stats`);
-      if (!res.ok) throw new Error('Failed to fetch stats');
-      return res.json();
-    },
-    enabled: !!question?.id,
-    refetchInterval: 30000, // Refresh every 30 seconds
-    staleTime: 10000,
-  });
 
   // User votes
   const { data: userVotes = [] } = useQuery<Vote[]>({
@@ -400,22 +379,16 @@ export default function Play() {
             contentVisible ? 'opacity-100' : 'opacity-0'
           )}
         >
-          {options.map((option, index) => {
-            const optionKey = option.id as 'A' | 'B' | 'C' | 'D';
-            const stats = liveStats?.distribution[optionKey];
-            return (
-              <AnswerCard
-                key={option.id}
-                text={option.text}
-                index={index}
-                isSelected={selectedOptionId === option.id}
-                isLocked={hasConfirmed}
-                onPress={() => handleSelectOption(index)}
-                percent={stats?.percent}
-                multiplier={stats?.multiplier}
-              />
-            );
-          })}
+          {options.map((option, index) => (
+            <AnswerCard
+              key={option.id}
+              text={option.text}
+              index={index}
+              isSelected={selectedOptionId === option.id}
+              isLocked={hasConfirmed}
+              onPress={() => handleSelectOption(index)}
+            />
+          ))}
         </div>
 
         {/* Wager & Confirm */}

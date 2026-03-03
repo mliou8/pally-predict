@@ -9,11 +9,9 @@ interface AnswerCardProps {
   isSelected: boolean;
   isLocked: boolean;
   onPress: () => void;
-  percent?: number;
-  multiplier?: number;
 }
 
-export default function AnswerCard({ text, index, isSelected, isLocked, onPress, percent, multiplier }: AnswerCardProps) {
+export default function AnswerCard({ text, index, isSelected, isLocked, onPress }: AnswerCardProps) {
   const [isAnimated, setIsAnimated] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
   const colors = OPTION_COLORS[index % OPTION_COLORS.length];
