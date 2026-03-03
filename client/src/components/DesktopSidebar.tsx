@@ -166,11 +166,17 @@ export default function DesktopSidebar() {
                   className="text-sm"
                   style={{ color: Colors.dark.textMuted }}
                 >
-                  Install App
+                  Install App (PWA)
                 </span>
               </button>
             </li>
           </ul>
+          <p
+            className="text-xs px-4 mt-3"
+            style={{ color: Colors.dark.textMuted }}
+          >
+            iOS App coming soon
+          </p>
         </div>
       </nav>
 

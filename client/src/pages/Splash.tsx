@@ -109,8 +109,14 @@ export default function Splash() {
               data-testid="link-pwa"
             >
               <Download size={18} />
-              <span className="text-sm font-medium">Install App</span>
+              <span className="text-sm font-medium">App (PWA)</span>
             </button>
+          </div>
+          <div
+            className="text-xs text-center"
+            style={{ color: Colors.dark.textMuted }}
+          >
+            iOS App coming soon
           </div>
         </div>
 
