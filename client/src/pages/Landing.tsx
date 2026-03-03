@@ -110,21 +110,28 @@ export default function Landing() {
 
             {/* Title */}
             <h1
-              className="text-4xl lg:text-5xl font-bold leading-tight mb-6"
+              className="text-4xl lg:text-5xl font-bold leading-tight mb-4"
               style={{ color: Colors.dark.text }}
             >
-              Think like the crowd.
+              The opinion-based
               <br />
-              <span style={{ color: Colors.dark.accent }}>Win the prize.</span>
+              <span style={{ color: Colors.dark.accent }}>prediction market.</span>
             </h1>
 
             {/* Subtitle */}
             <p
-              className="text-lg lg:text-xl mb-8"
+              className="text-lg lg:text-xl mb-4"
               style={{ color: Colors.dark.textSecondary }}
             >
-              Daily questions, one simple rule: <strong style={{ color: Colors.dark.text }}>pick what most people pick</strong>.
-              The majority answer wins and splits the pot.
+              Get rewarded for being in consensus. Pick what most people pick and <strong style={{ color: Colors.dark.text }}>split the pot</strong>.
+            </p>
+
+            {/* Comparison */}
+            <p
+              className="text-sm mb-8"
+              style={{ color: Colors.dark.textMuted }}
+            >
+              Polymarket and Kalshi trade on what already happened. <strong style={{ color: Colors.dark.text }}>Pally Feud lets you make money on your opinions.</strong>
             </p>
 
             {/* CTA Buttons */}

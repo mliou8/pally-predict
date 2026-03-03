@@ -41,13 +41,13 @@ export default function Splash() {
             className="text-lg font-semibold mb-2"
             style={{ color: Colors.dark.accent }}
           >
-            Think like the crowd. Win the prize.
+            The opinion-based prediction market.
           </p>
           <p
             className="text-sm"
             style={{ color: Colors.dark.textMuted }}
           >
-            Daily consensus game. Pick what most people pick to win.
+            Get rewarded for being in consensus. Make money on your opinions.
           </p>
         </div>
 
