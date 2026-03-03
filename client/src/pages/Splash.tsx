@@ -52,7 +52,7 @@ export default function Splash() {
         </div>
 
         {/* Login Button */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           <button
             onClick={() => login({ loginMethods: ['twitter'] })}
             className={cn(
@@ -74,6 +74,46 @@ export default function Splash() {
           </p>
         </div>
 
+        {/* Alternative Options */}
+        <div className="pt-2 space-y-3">
+          <div
+            className="text-xs font-medium"
+            style={{ color: Colors.dark.textMuted }}
+          >
+            OR PLAY ON
+          </div>
+          <div className="flex gap-3">
+            <a
+              href="https://t.me/PallyPredict_Bot"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                'flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl transition-all',
+                'hover:opacity-90 border'
+              )}
+              style={{ borderColor: Colors.dark.border, color: Colors.dark.text }}
+              data-testid="link-telegram"
+            >
+              <SiTelegram size={18} />
+              <span className="text-sm font-medium">Telegram</span>
+            </a>
+            <button
+              onClick={() => {
+                alert('To install the app, tap the share button in your browser and select "Add to Home Screen"');
+              }}
+              className={cn(
+                'flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl transition-all',
+                'hover:opacity-90 border'
+              )}
+              style={{ borderColor: Colors.dark.border, color: Colors.dark.text }}
+              data-testid="link-pwa"
+            >
+              <Download size={18} />
+              <span className="text-sm font-medium">Install App</span>
+            </button>
+          </div>
+        </div>
+
         {/* Links */}
         <div className="pt-6 space-x-4" style={{ color: Colors.dark.textMuted }}>
           <Link href="/terms">
@@ -87,32 +127,6 @@ export default function Splash() {
               Privacy Policy
             </span>
           </Link>
-        </div>
-
-        {/* Additional Options */}
-        <div className="pt-4 flex justify-center gap-6">
-          <a
-            href="https://t.me/PallyPredict_Bot"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 text-sm hover:opacity-80 transition-opacity"
-            style={{ color: Colors.dark.textMuted }}
-            data-testid="link-telegram"
-          >
-            <SiTelegram size={18} />
-            <span>Play on Telegram</span>
-          </a>
-          <button
-            onClick={() => {
-              alert('To install the app, tap the share button in your browser and select "Add to Home Screen"');
-            }}
-            className="flex items-center gap-2 text-sm hover:opacity-80 transition-opacity"
-            style={{ color: Colors.dark.textMuted }}
-            data-testid="link-pwa"
-          >
-            <Download size={18} />
-            <span>Install App</span>
-          </button>
         </div>
       </div>
     </div>
