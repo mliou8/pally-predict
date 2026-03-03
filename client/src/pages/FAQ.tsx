@@ -14,8 +14,8 @@ const faqs: FAQItem[] = [
   // Getting Started
   {
     category: 'Getting Started',
-    question: 'What is Pally Predict?',
-    answer: 'Pally Predict is a daily consensus game with one simple rule: pick what most people will pick. Every day at noon ET, a new question drops with 4 options. The most popular answer wins, and everyone who picked it shares the prize pool. It\'s not about being "right" - it\'s about thinking like the crowd.',
+    question: 'What is Pally Feud?',
+    answer: 'Pally Feud is a daily consensus game with one simple rule: pick what most people will pick. Every day at noon ET, a new question drops with 4 options. The most popular answer wins, and everyone who picked it shares the prize pool. It\'s not about being "right" - it\'s about thinking like the crowd.',
   },
   {
     category: 'Getting Started',
@@ -143,7 +143,7 @@ export default function FAQ() {
             </h1>
           </div>
           <p className="text-lg" style={{ color: Colors.dark.textSecondary }}>
-            Everything you need to know about Pally Predict.
+            Everything you need to know about Pally Feud.
           </p>
         </div>
 

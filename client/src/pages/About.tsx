@@ -60,7 +60,7 @@ export default function About() {
           )}
         >
           <h1 className="text-3xl font-bold mb-4" style={{ color: Colors.dark.text }}>
-            About Pally Predict
+            About Pally Feud
           </h1>
           <p className="text-lg" style={{ color: Colors.dark.textSecondary }}>
             The daily consensus game that rewards you for thinking like the crowd.
@@ -85,7 +85,7 @@ export default function About() {
             </h2>
           </div>
           <p className="text-base leading-relaxed" style={{ color: Colors.dark.textSecondary }}>
-            Pally Predict turns collective intelligence into a game. Every day, thousands of players
+            Pally Feud turns collective intelligence into a game. Every day, thousands of players
             answer the same question, and those who best predict the consensus are rewarded.
             It's not about being right - it's about understanding how others think.
           </p>

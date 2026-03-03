@@ -119,8 +119,8 @@ export default function Results() {
     const userPct = result.distribution.find(d => d.optionId === result.userOptionId)?.percentage ?? 0;
 
     const message = result.userWon
-      ? `I picked ${userOption?.text} with ${userPct}% of players on Pally Predict!`
-      : `I missed the crowd on Pally Predict today. ${winningOption?.text} won with the majority vote!`;
+      ? `I picked ${userOption?.text} with ${userPct}% of players on Pally Feud!`
+      : `I missed the crowd on Pally Feud today. ${winningOption?.text} won with the majority vote!`;
 
     try {
       if (navigator.share) {

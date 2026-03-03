@@ -132,8 +132,8 @@ export default function Profile() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Join Pally Predict',
-          text: 'Think you can predict what the crowd will pick? Join me on Pally Predict and we both get 500 points!',
+          title: 'Join Pally Feud',
+          text: 'Think you can predict what the crowd will pick? Join me on Pally Feud and we both get 500 points!',
           url: referralLink,
         });
       } catch (err) {

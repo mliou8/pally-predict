@@ -81,7 +81,7 @@ export default function HowItWorks() {
             How It Works
           </h1>
           <p className="text-lg mb-6" style={{ color: Colors.dark.textSecondary }}>
-            Pally Predict is a daily consensus game with one simple rule:
+            Pally Feud is a daily consensus game with one simple rule:
           </p>
           <div
             className="p-4 rounded-xl border-2 text-center"

@@ -139,7 +139,7 @@ export default function LinkTelegram() {
               disabled={loading}
             />
             <p className="text-xs text-muted-foreground">
-              Get this code by sending /link to the Pally Predict Telegram bot
+              Get this code by sending /link to the Pally Feud Telegram bot
             </p>
           </div>
 

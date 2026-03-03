@@ -264,7 +264,7 @@ export default function Landing() {
             className="text-2xl lg:text-3xl font-bold text-center mb-12"
             style={{ color: Colors.dark.text }}
           >
-            Why Play Pally Predict?
+            Why Play Pally Feud?
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
             {features.map((feature) => {
@@ -457,7 +457,7 @@ export default function Landing() {
             <div className="flex items-center gap-3">
               <Logo size="sm" />
               <span className="font-semibold text-foreground">
-                Pally Predict
+                Pally Feud
               </span>
             </div>
             <div className="flex items-center gap-8 text-sm">
