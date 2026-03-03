@@ -5,16 +5,19 @@ import { cn } from '@/lib/utils';
 
 interface AnswerCardProps {
   text: string;
+  optionId: string;
   index: number;
   isSelected: boolean;
   isLocked: boolean;
   onPress: () => void;
 }
 
-export default function AnswerCard({ text, index, isSelected, isLocked, onPress }: AnswerCardProps) {
+export default function AnswerCard({ text, optionId, index, isSelected, isLocked, onPress }: AnswerCardProps) {
   const [isAnimated, setIsAnimated] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
-  const colors = OPTION_COLORS[index % OPTION_COLORS.length];
+  // Use the actual option ID (A, B, C, D) for colors, not the visual position
+  const optionIndex = optionId.charCodeAt(0) - 65; // A=0, B=1, C=2, D=3
+  const colors = OPTION_COLORS[optionIndex % OPTION_COLORS.length];
 
   useEffect(() => {
     const timer = setTimeout(() => setIsAnimated(true), index * 60 + 100);
@@ -28,9 +31,8 @@ export default function AnswerCard({ text, index, isSelected, isLocked, onPress 
     onPress();
   };
 
-  // Large watermark letter (A, B, C, D)
-  const optionLabels = ['A', 'B', 'C', 'D'];
-  const optionLabel = optionLabels[index] || String.fromCharCode(65 + index);
+  // Large watermark letter - use the actual option ID (A, B, C, D)
+  const optionLabel = optionId;
 
   return (
     <div

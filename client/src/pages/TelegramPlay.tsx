@@ -361,6 +361,7 @@ export default function TelegramPlay() {
             <AnswerCard
               key={option.id}
               text={option.text}
+              optionId={option.id}
               index={index}
               isSelected={selectedOptionId === option.id}
               isLocked={hasConfirmed}
