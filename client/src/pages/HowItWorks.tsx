@@ -40,10 +40,10 @@ export default function HowItWorks() {
   ];
 
   const rewards = [
-    { place: '1st Place', points: '100 pts', payout: 'Share of pot', color: 'text-yellow-500' },
-    { place: '2nd Place', points: '75 pts', payout: '25% back', color: 'text-gray-400' },
-    { place: '3rd Place', points: '50 pts', payout: '15% back', color: 'text-orange-500' },
-    { place: '4th Place', points: '25 pts', payout: '10% back', color: 'text-slate-400' },
+    { place: '1st Place', wp: 'Share of pot', pp: '+5 PP', payout: 'Share of pot', color: 'text-yellow-500' },
+    { place: '2nd Place', wp: '25% back', pp: '+2 PP', payout: '25% back', color: 'text-gray-400' },
+    { place: '3rd Place', wp: '15% back', pp: '+1 PP', payout: '15% back', color: 'text-orange-500' },
+    { place: '4th Place', wp: '10% back', pp: '—', payout: '10% back', color: 'text-slate-400' },
   ];
 
   const bonuses = [
@@ -194,8 +194,8 @@ export default function HowItWorks() {
               style={{ borderColor: Colors.dark.border, color: Colors.dark.textMuted }}
             >
               <div>Placement</div>
-              <div>Points</div>
-              <div>Payout</div>
+              <div>WP Return</div>
+              <div style={{ color: '#FFD700' }}>PP Earned</div>
             </div>
             {rewards.map((reward) => (
               <div
@@ -204,28 +204,43 @@ export default function HowItWorks() {
                 style={{ borderColor: Colors.dark.border }}
               >
                 <div className={cn('font-semibold', reward.color)}>{reward.place}</div>
-                <div style={{ color: Colors.dark.text }}>{reward.points}</div>
-                <div style={{ color: Colors.dark.textSecondary }}>{reward.payout}</div>
+                <div style={{ color: Colors.dark.text }}>{reward.wp}</div>
+                <div style={{ color: '#FFD700' }}>{reward.pp}</div>
               </div>
             ))}
           </div>
           <p className="text-sm mt-4" style={{ color: Colors.dark.textMuted }}>
-            Everyone who participates earns 10 participation points, even if they don't place.
+            Everyone who participates earns WP from the pool distribution, and top performers earn PP.
           </p>
 
-          {/* Alpha Points Explainer */}
-          <div
-            className="mt-6 p-5 rounded-xl border"
-            style={{ backgroundColor: Colors.dark.surface, borderColor: Colors.dark.border }}
-          >
-            <h3 className="font-semibold mb-2" style={{ color: Colors.dark.text }}>
-              What are Alpha Points?
-            </h3>
-            <p className="text-sm" style={{ color: Colors.dark.textMuted }}>
-              Alpha Points track your prediction skill and determine your leaderboard ranking.
-              Earn points by picking the majority answer. Higher placements = more points.
-              Top performers on the leaderboard unlock exclusive rewards each season.
-            </p>
+          {/* Dual Points System Explainer */}
+          <div className="mt-6 space-y-4">
+            <div
+              className="p-5 rounded-xl border"
+              style={{ backgroundColor: Colors.dark.surface, borderColor: Colors.dark.border }}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-lg font-bold" style={{ color: '#FFD700' }}>PP</span>
+                <h3 className="font-semibold" style={{ color: Colors.dark.text }}>Pally Points</h3>
+              </div>
+              <p className="text-sm" style={{ color: Colors.dark.textMuted }}>
+                Rare points that track your prediction skill and determine your tier (Wood to Diamond).
+                PP counts toward airdrop eligibility and exclusive rewards. Earned by winning consistently.
+              </p>
+            </div>
+            <div
+              className="p-5 rounded-xl border"
+              style={{ backgroundColor: Colors.dark.surface, borderColor: Colors.dark.border }}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-lg font-bold" style={{ color: Colors.dark.accent }}>WP</span>
+                <h3 className="font-semibold" style={{ color: Colors.dark.text }}>Wager Points</h3>
+              </div>
+              <p className="text-sm" style={{ color: Colors.dark.textMuted }}>
+                Gameplay currency used to bet on your predictions. Everyone starts with 1,000 WP.
+                Win more by picking the majority answer. WP can be earned through quests and referrals.
+              </p>
+            </div>
           </div>
         </div>
 

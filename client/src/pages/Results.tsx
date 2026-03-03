@@ -250,7 +250,7 @@ export default function Results() {
                 Wagered
               </span>
               <span className="text-xl font-black tabular-nums" style={{ color: Colors.dark.warning }}>
-                {(result.wagerAmount ?? 0).toLocaleString()}
+                {(result.wagerAmount ?? 0).toLocaleString()} <span className="text-xs">WP</span>
               </span>
             </div>
 
@@ -277,7 +277,7 @@ export default function Results() {
                 className="text-xl font-black tabular-nums"
                 style={{ color: result.userWon ? Colors.dark.success : Colors.dark.error }}
               >
-                {result.userWon ? `+${(result.payoutPoints ?? 0).toLocaleString()}` : `-${(result.wagerAmount ?? 0).toLocaleString()}`}
+                {result.userWon ? `+${(result.payoutPoints ?? 0).toLocaleString()}` : `-${(result.wagerAmount ?? 0).toLocaleString()}`} <span className="text-xs">WP</span>
               </span>
             </div>
           </div>
@@ -291,7 +291,7 @@ export default function Results() {
                 Net profit
               </span>
               <span className="text-base font-black tabular-nums" style={{ color: Colors.dark.success }}>
-                +{((result.payoutPoints ?? 0) - (result.wagerAmount ?? 0)).toLocaleString()} pts
+                +{((result.payoutPoints ?? 0) - (result.wagerAmount ?? 0)).toLocaleString()} WP
               </span>
             </div>
           )}

@@ -56,10 +56,10 @@ export default function ProfileHeader({
           <div className="text-xs text-muted-foreground">Streak</div>
         </div>
         <div className="text-center p-4 rounded-xl bg-muted">
-          <div className="text-2xl font-bold font-mono text-foreground" data-testid="text-points">
+          <div className="text-2xl font-bold font-mono" style={{ color: '#FFD700' }} data-testid="text-points">
             {(totalPoints ?? 0).toLocaleString()}
           </div>
-          <div className="text-xs text-muted-foreground">Points</div>
+          <div className="text-xs" style={{ color: '#FFD700' }}>PP</div>
         </div>
       </div>
     </div>

@@ -26,14 +26,14 @@ export default function TermsOfService() {
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4 text-foreground">2. Description of Service</h2>
             <p className="text-foreground mb-4">
-              Pally Feud is a competitive prediction game where users make daily predictions about various topics to earn Alpha points and compete on leaderboards. The service includes:
+              Pally Feud is a daily consensus game where users predict what the majority will pick. The service uses a dual points system:
             </p>
             <ul className="list-disc pl-6 mb-4 text-foreground space-y-2">
               <li>Daily multiple-choice prediction questions</li>
-              <li>Public and private voting modes with different point multipliers</li>
-              <li>Alpha points accumulation based on prediction accuracy and rarity</li>
+              <li><strong>WP (Wager Points)</strong>: Gameplay currency used to bet on predictions. Everyone starts with 1,000 WP.</li>
+              <li><strong>PP (Pally Points)</strong>: Rare points earned by top performers that determine tier ranking and airdrop eligibility.</li>
               <li>Leaderboard rankings and seasonal competitions</li>
-              <li>User profiles with badges, streaks, and achievement tracking</li>
+              <li>User profiles with tiers (Wood to Diamond), streaks, and achievement tracking</li>
             </ul>
           </section>
 
@@ -54,12 +54,13 @@ export default function TermsOfService() {
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4 text-foreground">4. Game Rules and Points</h2>
             <p className="text-foreground mb-4">
-              Alpha points are awarded based on the accuracy and rarity of your predictions:
+              Points are distributed based on your prediction performance:
             </p>
             <ul className="list-disc pl-6 mb-4 text-foreground space-y-2">
               <li>Users may vote once per question</li>
-              <li>Points are awarded based on your placement (1st = 100pts, 2nd = 75pts, etc.)</li>
-              <li>Points are calculated and awarded after the reveal time for each question</li>
+              <li><strong>WP Distribution</strong>: Winners (majority pickers) share the WP pool. Partial refunds for other placements.</li>
+              <li><strong>PP Awards</strong>: Top performers earn PP (+5 for 1st, +2 for 2nd, +1 for 3rd place)</li>
+              <li>Results are calculated and revealed after the voting period closes</li>
               <li>We reserve the right to adjust point calculations to maintain fairness</li>
             </ul>
           </section>
@@ -68,9 +69,9 @@ export default function TermsOfService() {
             <h2 className="text-2xl font-semibold mb-4 text-foreground">5. Prohibited Conduct</h2>
             <p className="text-foreground mb-4">You agree not to:</p>
             <ul className="list-disc pl-6 mb-4 text-foreground space-y-2">
-              <li>Create multiple accounts to manipulate rankings or points</li>
+              <li>Create multiple accounts to manipulate rankings or earn extra points</li>
               <li>Use bots, scripts, or automated tools to interact with the platform</li>
-              <li>Attempt to manipulate, exploit, or abuse the voting or points system</li>
+              <li>Attempt to manipulate, exploit, or abuse the voting or rewards system</li>
               <li>Harass, threaten, or harm other users</li>
               <li>Share or sell your account credentials</li>
               <li>Reverse engineer, decompile, or attempt to extract source code</li>
@@ -89,7 +90,7 @@ export default function TermsOfService() {
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4 text-foreground">7. No Monetary Value</h2>
             <p className="text-foreground mb-4">
-              Alpha points have no monetary value and cannot be exchanged for cash or any form of compensation. They are solely for entertainment and competitive purposes within the Pally Feud platform.
+              PP (Pally Points) and WP (Wager Points) have no monetary value and cannot be exchanged for cash or any form of compensation. They are solely for entertainment and competitive purposes within the Pally Feud platform. Future airdrops or rewards are at our sole discretion.
             </p>
           </section>
 

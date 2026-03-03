@@ -86,10 +86,10 @@ export default function WagerSelector({
             {wagerAmount}
           </span>
           <span
-            className="text-xs font-medium -mt-1"
-            style={{ color: Colors.dark.textMuted }}
+            className="text-xs font-semibold -mt-1"
+            style={{ color: Colors.dark.accent }}
           >
-            points
+            WP
           </span>
         </div>
 

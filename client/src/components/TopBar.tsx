@@ -111,16 +111,17 @@ export default function TopBar({ alphaPoints }: TopBarProps) {
   return (
     <div className="sticky top-0 z-40 bg-background/80 backdrop-blur border-b border-border">
       <div className="grid grid-cols-3 items-center px-4 md:px-6 py-3">
-        {/* Left: Alpha Points */}
+        {/* Left: Pally Points (PP) */}
         <div className="flex justify-start">
-          <div 
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-primary/20 to-brand-magenta/20 border border-primary/50"
-            data-testid="alpha-points-pill"
+          <div
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border"
+            style={{ backgroundColor: 'rgba(255, 215, 0, 0.1)', borderColor: 'rgba(255, 215, 0, 0.3)' }}
+            data-testid="pally-points-pill"
           >
-            <span className="text-gold font-bold" style={{ fontSize: '14px' }}>α</span>
-            <span className="text-sm font-bold font-mono text-foreground">
+            <span className="text-sm font-bold font-mono" style={{ color: '#FFD700' }}>
               {(alphaPoints ?? 0).toLocaleString()}
             </span>
+            <span className="text-xs font-semibold" style={{ color: '#FFD700' }}>PP</span>
           </div>
         </div>
         

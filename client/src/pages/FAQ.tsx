@@ -25,7 +25,7 @@ const faqs: FAQItem[] = [
   {
     category: 'Getting Started',
     question: 'Is it free to play?',
-    answer: 'Yes! You can play for free and earn Alpha Points. If you want to bet for real rewards, you can optionally wager SOL on your predictions.',
+    answer: 'Yes! Everyone starts with 1,000 WP (Wager Points) to bet on predictions. Win more WP by picking the majority answer, and earn rare PP (Pally Points) for top performance.',
   },
 
   // Gameplay
@@ -53,24 +53,24 @@ const faqs: FAQItem[] = [
   // Points & Rewards
   {
     category: 'Points & Rewards',
-    question: 'What are Alpha Points?',
-    answer: 'Alpha Points are the in-game currency that tracks your prediction skill. You earn points based on how well you predict the consensus. Points unlock future rewards and determine your leaderboard ranking.',
+    question: 'What are PP (Pally Points)?',
+    answer: 'PP (Pally Points) are rare points that track your prediction skill. They determine your tier (Wood → Diamond) and count toward airdrop eligibility. PP is earned by consistently picking the majority answer - only top performers earn PP each round.',
   },
   {
     category: 'Points & Rewards',
-    question: 'How are points calculated?',
-    answer: 'Points are based on your placement:\n• 1st place (majority pick): 100 points\n• 2nd place: 75 points\n• 3rd place: 50 points\n• 4th place: 25 points\n• Participation: 10 points',
+    question: 'What are WP (Wager Points)?',
+    answer: 'WP (Wager Points) are the gameplay currency you bet with. Everyone starts with 1,000 WP. When you win (pick the majority), you get a share of the total WP pool. You can earn more WP through quests, referrals, and winning predictions.',
   },
   {
     category: 'Points & Rewards',
     question: 'How do payouts work?',
-    answer: 'If you bet SOL and pick the winning answer (majority choice), you receive a proportional share of the total pot based on your bet size. 2nd place gets 25% back, 3rd gets 15%, and 4th gets 10%. This ensures even near-misses get some reward.',
+    answer: 'When results are revealed, WP is distributed based on placement:\n• 1st place (majority pick): Share of the pot\n• 2nd place: 25% of wager back\n• 3rd place: 15% back\n• 4th place: 10% back\n\nPP is awarded to top performers: +5 PP for 1st, +2 PP for 2nd, +1 PP for 3rd.',
   },
   // Leaderboard
   {
     category: 'Leaderboard',
     question: 'How does the leaderboard work?',
-    answer: 'There are two leaderboards: Points (ranked by Alpha Points) and Earnings (ranked by total SOL won). Both reset weekly for fresh competition, with seasonal rewards for top performers.',
+    answer: 'The leaderboard ranks players by PP (Pally Points). You can view Weekly, Monthly, or All Time rankings. Top performers on the leaderboard earn bonus rewards and unlock higher tiers.',
   },
   {
     category: 'Leaderboard',

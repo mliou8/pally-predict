@@ -346,17 +346,17 @@ export default function Play() {
             <span
               className="text-sm font-bold tabular-nums"
               style={{
-                color: Colors.dark.text,
+                color: Colors.dark.accent,
                 fontFamily: 'JetBrains Mono, monospace',
               }}
             >
               {userPoints.toLocaleString()}
             </span>
             <span
-              className="text-xs font-medium ml-1"
-              style={{ color: Colors.dark.textMuted }}
+              className="text-xs font-semibold ml-1"
+              style={{ color: Colors.dark.accent }}
             >
-              pts
+              WP
             </span>
           </div>
         </div>
@@ -443,7 +443,7 @@ export default function Play() {
                 className="text-base font-bold"
                 style={{ color: '#000' }}
               >
-                {voteMutation.isPending ? 'Locking...' : `Lock in for ${wagerAmount} pts`}
+                {voteMutation.isPending ? 'Locking...' : `Lock in for ${wagerAmount} WP`}
               </span>
               <ArrowRight size={18} color="#000" strokeWidth={2.5} />
             </button>
@@ -583,8 +583,8 @@ export default function Play() {
                   <div className="text-xs uppercase tracking-wider" style={{ color: Colors.dark.textMuted }}>
                     Prize Pool
                   </div>
-                  <div className="text-lg font-bold" style={{ color: Colors.dark.text }}>
-                    {questionStats?.totalAmount != null ? `${Math.round(questionStats.totalAmount).toLocaleString()} pts` : '—'}
+                  <div className="text-lg font-bold" style={{ color: Colors.dark.accent }}>
+                    {questionStats?.totalAmount != null ? `${Math.round(questionStats.totalAmount).toLocaleString()} WP` : '—'}
                   </div>
                 </div>
               </div>

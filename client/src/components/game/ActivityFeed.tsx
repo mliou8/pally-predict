@@ -64,7 +64,7 @@ export default function ActivityFeed({ questionId }: ActivityFeedProps) {
                     color: Colors.dark.accent,
                   }}
                 >
-                  {item.points} pts
+                  {item.points} WP
                 </span>
                 <span
                   className="ml-auto text-xs"

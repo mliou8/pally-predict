@@ -8,7 +8,7 @@ interface VoteTypeToggleProps {
 
 export default function VoteTypeToggle({ value, onChange }: VoteTypeToggleProps) {
   const multiplier = value === 'public' ? 2 : 1;
-  const helperText = value === 'public' 
+  const helperText = value === 'public'
     ? 'Your answer will appear on your profile & public feeds.'
     : 'Only you can see this in History.';
 
@@ -25,7 +25,7 @@ export default function VoteTypeToggle({ value, onChange }: VoteTypeToggleProps)
           data-testid="toggle-public"
         >
           <Eye className="inline mr-2" size={16} />
-          Public (×2 points)
+          Public (×2 PP)
         </button>
 
         <button
@@ -38,7 +38,7 @@ export default function VoteTypeToggle({ value, onChange }: VoteTypeToggleProps)
           data-testid="toggle-private"
         >
           <EyeOff className="inline mr-2" size={16} />
-          Private (×1 point)
+          Private (×1 PP)
         </button>
       </div>
 
@@ -46,12 +46,13 @@ export default function VoteTypeToggle({ value, onChange }: VoteTypeToggleProps)
         <p className="text-xs text-muted-foreground">
           {helperText}
         </p>
-        <Badge 
-          variant="secondary" 
-          className="bg-gradient-to-r from-primary/20 to-brand-magenta/20 border-primary/50"
+        <Badge
+          variant="secondary"
+          className="border"
+          style={{ backgroundColor: 'rgba(255, 215, 0, 0.1)', borderColor: 'rgba(255, 215, 0, 0.3)' }}
         >
-          <span className="text-gold font-bold mr-1" style={{ fontSize: '12px' }}>α</span>
-          ×{multiplier} Point{multiplier > 1 ? 's' : ''}
+          <span className="font-bold mr-1" style={{ fontSize: '12px', color: '#FFD700' }}>×{multiplier}</span>
+          <span style={{ color: '#FFD700' }}>PP</span>
         </Badge>
       </div>
     </div>

@@ -62,13 +62,19 @@ export default function Leaderboard() {
     <div className="min-h-screen pb-20 md:pb-6" style={{ backgroundColor: Colors.dark.background }}>
       <div className="max-w-2xl mx-auto px-4 py-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="mb-6">
           <h1
-            className="text-2xl font-bold"
+            className="text-2xl font-bold mb-1"
             style={{ color: Colors.dark.text }}
           >
             Leaderboard
           </h1>
+          <p
+            className="text-sm"
+            style={{ color: Colors.dark.textMuted }}
+          >
+            Ranked by <span style={{ color: '#FFD700' }}>Pally Points (PP)</span> earned from winning predictions
+          </p>
         </div>
 
         {/* Period Tabs */}
@@ -224,7 +230,7 @@ export default function Leaderboard() {
             >
               <span className="w-12">Rank</span>
               <span className="flex-1">User</span>
-              <span className="w-20 text-right">PP</span>
+              <span className="w-20 text-right" style={{ color: '#FFD700' }}>Pally Pts</span>
             </div>
 
             {/* Leaderboard List */}

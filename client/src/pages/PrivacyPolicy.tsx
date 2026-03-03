@@ -40,7 +40,7 @@ export default function PrivacyPolicy() {
             <p className="text-foreground mb-4">When you use our service, we automatically collect:</p>
             <ul className="list-disc pl-6 mb-4 text-foreground space-y-2">
               <li>Voting history and prediction choices</li>
-              <li>Alpha points, streaks, and badge achievements</li>
+              <li>PP (Pally Points), WP (Wager Points), streaks, and tier progress</li>
               <li>Session information and usage patterns</li>
               <li>Device information (browser type, operating system)</li>
               <li>IP addresses and location data</li>
@@ -72,7 +72,7 @@ export default function PrivacyPolicy() {
             </p>
             <ul className="list-disc pl-6 mb-4 text-foreground space-y-2">
               <li>Your username/handle</li>
-              <li>Your total Alpha points and leaderboard ranking</li>
+              <li>Your Pally Points (PP) total and leaderboard ranking</li>
               <li>Your public votes (if you choose public voting mode)</li>
               <li>Your badges, streaks, and achievements</li>
             </ul>

@@ -107,7 +107,7 @@ export default function HistoryCard({
           <div className="flex items-center gap-2">
             {betAmount > 0 && (
               <Badge variant="secondary" className="text-xs font-mono">
-                Bet: {betAmount.toFixed(0)} pts
+                Bet: {betAmount.toFixed(0)} WP
               </Badge>
             )}
             {!isPending && payout !== null && (
@@ -115,7 +115,7 @@ export default function HistoryCard({
                 variant="outline"
                 className={`text-xs font-mono ${isCorrect ? 'text-success border-success' : 'text-destructive border-destructive'}`}
               >
-                {isCorrect ? '+' : ''}{(payout - betAmount).toFixed(0)} pts
+                {isCorrect ? '+' : ''}{(payout - betAmount).toFixed(0)} WP
               </Badge>
             )}
           </div>
