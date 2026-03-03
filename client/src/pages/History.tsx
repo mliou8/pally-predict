@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { usePrivy } from '@privy-io/react-auth';
+import { Clock } from 'lucide-react';
 import HistoryCard from '@/components/HistoryCard';
 import { Skeleton } from '@/components/ui/skeleton';
+import EmptyState from '@/components/ui/EmptyState';
 import type { Vote, Question, QuestionResults } from '@shared/schema';
 
 interface VoteWithDetails {
@@ -71,12 +73,11 @@ export default function History() {
               ))}
             </>
           ) : votesWithDetails.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground mb-2">No history yet</p>
-              <p className="text-sm text-muted-foreground">
-                Start voting on questions to build your track record
-              </p>
-            </div>
+            <EmptyState
+              icon={Clock}
+              title="No history yet"
+              description="Start voting on questions to build your track record"
+            />
           ) : (
             votesWithDetails.map(({ vote, question, results }) => {
               const optionLabels: Record<string, string> = {

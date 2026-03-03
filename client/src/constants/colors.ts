@@ -11,6 +11,7 @@ const Colors = {
     surfaceLight: '#1A1A1A',
     surfaceHighlight: '#222222',
     surfaceBright: '#2A2A2A',
+    card: '#111111',
 
     // Borders - subtle
     border: '#1A1A1A',

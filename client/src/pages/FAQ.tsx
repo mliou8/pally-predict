@@ -122,7 +122,7 @@ export default function FAQ() {
   };
 
   // Group FAQs by category
-  const categories = [...new Set(faqs.map(f => f.category))];
+  const categories = Array.from(new Set(faqs.map(f => f.category)));
 
   return (
     <div className="min-h-screen pb-20" style={{ backgroundColor: Colors.dark.background }}>

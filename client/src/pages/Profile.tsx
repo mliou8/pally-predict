@@ -215,14 +215,30 @@ export default function Profile() {
 
       const userChoiceLabel = optionLabels[vote.choice] || vote.choice;
       const pointsEarned = vote.pointsEarned || 0;
-      const crowdSplitA = results?.percentA || 0;
-      const crowdSplitB = results?.percentB || 0;
+      const betAmount = vote.betAmount ? parseFloat(vote.betAmount) : 0;
+      const payout = vote.payout ? parseFloat(vote.payout) : null;
 
       let outcome: 'correct' | 'incorrect' | 'pending' = 'pending';
+      let winningChoice = '';
 
       if (results) {
-        outcome = pointsEarned > 0 ? 'correct' : 'incorrect';
+        const percentages = [
+          { choice: 'A', percent: results.percentA },
+          { choice: 'B', percent: results.percentB },
+          { choice: 'C', percent: results.percentC || 0 },
+          { choice: 'D', percent: results.percentD || 0 },
+        ];
+        const sorted = [...percentages].sort((a, b) => b.percent - a.percent);
+        winningChoice = sorted[0].choice;
+        outcome = vote.choice === winningChoice ? 'correct' : 'incorrect';
       }
+
+      const allOptions = results ? [
+        { choice: 'A', label: question.optionA, percent: results.percentA, isUserChoice: vote.choice === 'A', isWinner: winningChoice === 'A' },
+        { choice: 'B', label: question.optionB, percent: results.percentB, isUserChoice: vote.choice === 'B', isWinner: winningChoice === 'B' },
+        ...(question.optionC ? [{ choice: 'C', label: question.optionC, percent: results.percentC || 0, isUserChoice: vote.choice === 'C', isWinner: winningChoice === 'C' }] : []),
+        ...(question.optionD ? [{ choice: 'D', label: question.optionD, percent: results.percentD || 0, isUserChoice: vote.choice === 'D', isWinner: winningChoice === 'D' }] : []),
+      ] : [];
 
       return (
         <HistoryCard
@@ -232,10 +248,12 @@ export default function Profile() {
           userChoiceLabel={userChoiceLabel}
           outcome={outcome}
           pointsEarned={pointsEarned}
+          betAmount={betAmount}
+          payout={payout}
           timestamp={vote.votedAt.toString()}
-          crowdSplitA={crowdSplitA}
-          crowdSplitB={crowdSplitB}
           isPublic={vote.isPublic}
+          allOptions={allOptions}
+          totalVotes={results?.totalVotes || 0}
         />
       );
     });
