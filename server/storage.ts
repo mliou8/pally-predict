@@ -77,6 +77,7 @@ export interface IStorage {
 
   // Leaderboard operations
   getLeaderboard(limit?: number): Promise<LeaderboardEntry[]>;
+  getLeaderboardByPeriod(limit?: number, sinceDate?: Date | null): Promise<LeaderboardEntry[]>;
   getPPLeaderboard(limit?: number): Promise<LeaderboardEntry[]>;
   getEarningsLeaderboard(limit?: number): Promise<LeaderboardEntry[]>;
   getUnifiedLeaderboard(limit?: number): Promise<LeaderboardEntry[]>;
@@ -832,6 +833,49 @@ export class DbStorage implements IStorage {
         return { ...user, accuracy };
       })
     );
+
+    return usersWithAccuracy;
+  }
+
+  // Leaderboard by time period - includes ALL users (even with 0 points)
+  async getLeaderboardByPeriod(limit: number = 50, sinceDate: Date | null = null): Promise<LeaderboardEntry[]> {
+    let allUsers;
+
+    if (sinceDate) {
+      // For weekly/monthly: get users who signed up OR voted since the date
+      // First, get user IDs who voted in this period
+      const recentVoterIds = await db
+        .selectDistinct({ userId: votes.userId })
+        .from(votes)
+        .where(gte(votes.votedAt, sinceDate));
+
+      const voterIdSet = new Set(recentVoterIds.map(v => v.userId));
+
+      // Get all users, then filter to those who signed up recently OR voted recently
+      const allUsersRaw = await db
+        .select()
+        .from(users)
+        .orderBy(desc(users.pallyPoints), desc(users.createdAt));
+
+      allUsers = allUsersRaw.filter(user =>
+        user.createdAt >= sinceDate || voterIdSet.has(user.id)
+      ).slice(0, limit);
+    } else {
+      // All time: just get everyone sorted by pallyPoints
+      allUsers = await db
+        .select()
+        .from(users)
+        .orderBy(desc(users.pallyPoints), desc(users.createdAt))
+        .limit(limit);
+    }
+
+    // Return with basic accuracy calculation
+    const usersWithAccuracy = allUsers.map((user) => ({
+      ...user,
+      accuracy: user.totalPredictions > 0
+        ? Math.round((user.correctPredictions / user.totalPredictions) * 100)
+        : 0,
+    }));
 
     return usersWithAccuracy;
   }

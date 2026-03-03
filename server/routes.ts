@@ -895,11 +895,23 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
 
   // ===== LEADERBOARD ROUTE =====
   
-  // Points leaderboard (sorted by alpha points)
+  // Points leaderboard (sorted by pally points, supports time period filtering)
   app.get('/api/leaderboard', async (req, res) => {
     try {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
-      const leaders = await storage.getLeaderboard(limit);
+      const period = req.query.period as string || 'allTime';
+
+      // Calculate date filter based on period
+      let dateFilter: Date | null = null;
+      if (period === 'weekly') {
+        dateFilter = new Date();
+        dateFilter.setDate(dateFilter.getDate() - 7);
+      } else if (period === 'monthly') {
+        dateFilter = new Date();
+        dateFilter.setDate(dateFilter.getDate() - 30);
+      }
+
+      const leaders = await storage.getLeaderboardByPeriod(limit, dateFilter);
       res.json(leaders);
     } catch (error: any) {
       console.error('API Error:', error);
