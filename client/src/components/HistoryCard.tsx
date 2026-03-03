@@ -130,7 +130,7 @@ export default function HistoryCard({
         </div>
       </button>
 
-      {/* Claim rewards button */}
+      {/* Claim rewards button - only shown for winners */}
       {canClaim && voteId && onClaim && (
         <div className="px-4 pb-4">
           <button
@@ -139,26 +139,17 @@ export default function HistoryCard({
               onClaim(voteId);
             }}
             disabled={isClaiming}
-            className={`w-full py-3 px-4 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-opacity disabled:opacity-50 ${
-              isCorrect
-                ? 'bg-gradient-to-r from-primary to-brand-magenta text-white hover:opacity-90'
-                : 'bg-muted text-muted-foreground hover:bg-muted/80'
-            }`}
+            className="w-full py-3 px-4 bg-gradient-to-r from-primary to-brand-magenta text-white rounded-xl font-semibold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50"
           >
             {isClaiming ? (
               <>
                 <Loader2 size={16} className="animate-spin" />
-                Processing...
-              </>
-            ) : isCorrect ? (
-              <>
-                <Gift size={16} />
-                Claim Rewards
+                Claiming...
               </>
             ) : (
               <>
-                <XCircle size={16} />
-                Acknowledge Loss
+                <Gift size={16} />
+                Claim Rewards
               </>
             )}
           </button>

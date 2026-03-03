@@ -179,8 +179,8 @@ export default function History() {
               // Use votedAt if available, otherwise fall back to question dropsAt
               const displayDate = vote.votedAt || question.dropsAt;
 
-              // Can claim if: revealed, payout not yet processed, and user placed a bet
-              const canClaim = outcome !== 'pending' && payout === null && betAmount > 0;
+              // Can claim if: revealed, user won, payout not yet processed, and user placed a bet
+              const canClaim = outcome === 'correct' && payout === null && betAmount > 0;
 
               return (
                 <HistoryCard
