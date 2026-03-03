@@ -54,6 +54,8 @@ function getDeviceFingerprint(req: any): string {
 function serializeBigInt<T>(obj: T): T {
   if (obj === null || obj === undefined) return obj;
   if (typeof obj === 'bigint') return obj.toString() as any;
+  // Preserve Date objects - they serialize correctly via JSON.stringify
+  if (obj instanceof Date) return obj as any;
   if (Array.isArray(obj)) return obj.map(serializeBigInt) as any;
   if (typeof obj === 'object') {
     const result: any = {};
