@@ -161,8 +161,8 @@ export default function Play() {
       setHasConfirmed(true);
       setShowConfetti(true);
       toast({
-        title: 'Locked in',
-        description: 'Your prediction has been recorded.',
+        title: 'Locked in!',
+        description: 'If the crowd agrees with you, you win.',
       });
     },
     onError: (error: Error) => {
@@ -375,11 +375,21 @@ export default function Play() {
 
             {/* Question text */}
             <h1
-              className="text-3xl md:text-4xl font-bold leading-tight"
+              className="text-3xl md:text-4xl font-bold leading-tight mb-3"
               style={{ color: Colors.dark.text }}
             >
               {question.prompt}
             </h1>
+
+            {/* Consensus game explainer */}
+            <div
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg"
+              style={{ backgroundColor: Colors.dark.surface }}
+            >
+              <span className="text-sm" style={{ color: Colors.dark.accent }}>
+                Pick what most people will pick to win
+              </span>
+            </div>
           </div>
         )}
 
@@ -453,28 +463,36 @@ export default function Play() {
             )}
           >
             <div
-              className="flex items-center gap-3 p-4 rounded-xl"
+              className="p-4 rounded-xl"
               style={{ backgroundColor: Colors.dark.surface }}
             >
-              <div
-                className="w-10 h-10 rounded-lg flex items-center justify-center"
-                style={{ backgroundColor: Colors.dark.accentDim }}
-              >
-                <Lock size={18} color={Colors.dark.accent} />
+              <div className="flex items-center gap-3 mb-3">
+                <div
+                  className="w-10 h-10 rounded-lg flex items-center justify-center"
+                  style={{ backgroundColor: Colors.dark.accentDim }}
+                >
+                  <Lock size={18} color={Colors.dark.accent} />
+                </div>
+                <div className="flex-1">
+                  <div
+                    className="text-sm font-semibold mb-1"
+                    style={{ color: Colors.dark.text }}
+                  >
+                    Prediction locked
+                  </div>
+                  <div
+                    className="text-sm font-medium"
+                    style={{ color: Colors.dark.accent }}
+                  >
+                    {selectedOption?.text}
+                  </div>
+                </div>
               </div>
-              <div className="flex-1">
-                <div
-                  className="text-sm font-semibold mb-1"
-                  style={{ color: Colors.dark.text }}
-                >
-                  Prediction locked
-                </div>
-                <div
-                  className="text-sm font-medium"
-                  style={{ color: Colors.dark.accent }}
-                >
-                  {selectedOption?.text}
-                </div>
+              <div
+                className="text-xs pt-3 border-t"
+                style={{ borderColor: Colors.dark.border, color: Colors.dark.textMuted }}
+              >
+                If this is the most popular answer, you win a share of the prize pool
               </div>
             </div>
 

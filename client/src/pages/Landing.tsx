@@ -56,36 +56,36 @@ export default function Landing() {
   const features = [
     {
       icon: Users,
-      title: 'Predict the Consensus',
-      description: 'Pick what you think the majority will choose. Think like the crowd to win.',
+      title: 'Majority Wins',
+      description: 'The most popular answer wins. Pick what you think most people will pick.',
     },
     {
       icon: Trophy,
-      title: 'Earn Rewards',
-      description: 'Winners share the pot. Top predictors climb the leaderboard.',
+      title: 'Split the Pot',
+      description: 'Everyone who picks the winning answer shares the prize pool.',
     },
     {
       icon: Clock,
-      title: 'Daily Questions',
-      description: 'New question every day at noon ET. Results revealed 24 hours later.',
+      title: 'Daily Game',
+      description: 'New question at noon ET. Results and payouts 24 hours later.',
     },
   ];
 
   const steps = [
     {
       number: '01',
-      title: 'New question daily at noon ET',
-      description: 'Crypto, tech, markets, culture - predict what happens next',
+      title: 'See the daily question',
+      description: 'Topics range from crypto to culture. One question per day.',
     },
     {
       number: '02',
-      title: 'Pick the majority answer',
-      description: 'Choose A, B, C, or D - the most popular pick wins',
+      title: 'Pick what most people will pick',
+      description: 'Think like the crowd. The most popular answer wins.',
     },
     {
       number: '03',
-      title: 'Win and climb the leaderboard',
-      description: 'Earn Alpha Points and share the pot with other winners',
+      title: 'Winners split the prize',
+      description: 'If you picked the majority answer, you share the pot.',
     },
   ];
 
@@ -120,9 +120,9 @@ export default function Landing() {
               className="text-4xl lg:text-5xl font-bold leading-tight mb-6"
               style={{ color: Colors.dark.text }}
             >
-              Predict. Compete.
+              Think like the crowd.
               <br />
-              <span style={{ color: Colors.dark.accent }}>Get rewarded.</span>
+              <span style={{ color: Colors.dark.accent }}>Win the prize.</span>
             </h1>
 
             {/* Subtitle */}
@@ -130,8 +130,8 @@ export default function Landing() {
               className="text-lg lg:text-xl mb-8"
               style={{ color: Colors.dark.textSecondary }}
             >
-              The daily consensus game where the best predictors
-              earn real rewards. Think you know what everyone else will pick?
+              Daily questions, one simple rule: <strong style={{ color: Colors.dark.text }}>pick what most people pick</strong>.
+              The majority answer wins and splits the pot.
             </p>
 
             {/* CTA Buttons */}
@@ -427,13 +427,13 @@ export default function Landing() {
             className="text-2xl lg:text-3xl font-bold mb-4"
             style={{ color: Colors.dark.text }}
           >
-            Ready to test your prediction skills?
+            Think you know what others will pick?
           </h2>
           <p
             className="text-lg mb-8"
             style={{ color: Colors.dark.textSecondary }}
           >
-            Sign up in seconds with your Twitter account. No wallet required to start.
+            Join thousands playing the daily consensus game. Sign up free with Twitter.
           </p>
           <button
             onClick={handleStartPlaying}

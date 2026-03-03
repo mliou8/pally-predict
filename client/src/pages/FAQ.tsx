@@ -15,7 +15,7 @@ const faqs: FAQItem[] = [
   {
     category: 'Getting Started',
     question: 'What is Pally Predict?',
-    answer: 'Pally Predict is a daily consensus game where you predict what the majority of players will choose. Every day at noon ET, a new question drops with 4 possible answers. Pick the answer you think most people will pick, and if you\'re right, you win a share of the pot.',
+    answer: 'Pally Predict is a daily consensus game with one simple rule: pick what most people will pick. Every day at noon ET, a new question drops with 4 options. The most popular answer wins, and everyone who picked it shares the prize pool. It\'s not about being "right" - it\'s about thinking like the crowd.',
   },
   {
     category: 'Getting Started',
@@ -32,7 +32,7 @@ const faqs: FAQItem[] = [
   {
     category: 'Gameplay',
     question: 'How does the consensus game work?',
-    answer: 'Unlike traditional prediction markets where you guess the "correct" answer, in Pally Predict you\'re trying to predict what everyone else will pick. The winning answer is whatever gets the most votes. Think of it like a collective mind-reading game!',
+    answer: 'There is no "correct" answer decided by real-world events. The winning answer is simply whatever option gets the most votes. If 55% of players pick Option A, then A wins - regardless of what the question was about. Your goal is to predict what the majority will choose, not what\'s factually correct.',
   },
   {
     category: 'Gameplay',

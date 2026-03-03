@@ -17,25 +17,25 @@ export default function HowItWorks() {
       number: '01',
       icon: Clock,
       title: 'New Question Daily',
-      description: 'Every day at noon ET, a new prediction question drops. Topics range from crypto and tech to markets and culture.',
+      description: 'Every day at noon ET, a new question drops. Topics range from crypto and tech to markets and culture.',
     },
     {
       number: '02',
       icon: Users,
-      title: 'Predict the Consensus',
-      description: 'Your goal is to predict what the majority will pick. Think like the crowd to maximize your rewards.',
+      title: 'Think Like the Crowd',
+      description: 'Your goal: pick the answer that most people will pick. Not what\'s "correct" - what\'s popular.',
     },
     {
       number: '03',
       icon: CheckCircle,
-      title: 'Lock In Your Answer',
-      description: 'Choose A, B, C, or D and confirm your prediction. You have 24 hours before results are revealed.',
+      title: 'Lock In Your Pick',
+      description: 'Choose A, B, C, or D and confirm. You have 24 hours before the majority is revealed.',
     },
     {
       number: '04',
       icon: Trophy,
-      title: 'Results & Rewards',
-      description: 'At noon the next day, see how you did. Winners who picked the majority answer share the pot.',
+      title: 'Majority Wins',
+      description: 'The most popular answer wins. Everyone who picked it shares the prize pool.',
     },
   ];
 
@@ -85,9 +85,17 @@ export default function HowItWorks() {
           <h1 className="text-3xl font-bold mb-4" style={{ color: Colors.dark.text }}>
             How It Works
           </h1>
-          <p className="text-lg" style={{ color: Colors.dark.textSecondary }}>
-            Pally Predict is a daily consensus game. Predict what the majority will choose and climb the leaderboard.
+          <p className="text-lg mb-6" style={{ color: Colors.dark.textSecondary }}>
+            Pally Predict is a daily consensus game with one simple rule:
           </p>
+          <div
+            className="p-4 rounded-xl border-2 text-center"
+            style={{ borderColor: Colors.dark.accent, backgroundColor: Colors.dark.surface }}
+          >
+            <p className="text-xl font-bold" style={{ color: Colors.dark.accent }}>
+              Pick what most people will pick. The majority answer wins.
+            </p>
+          </div>
         </div>
 
         {/* Steps */}
@@ -137,6 +145,35 @@ export default function HowItWorks() {
                 </div>
               );
             })}
+          </div>
+        </div>
+
+        {/* Key Concept */}
+        <div
+          className={cn(
+            'mb-16 transition-all duration-500 delay-150',
+            contentVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+          )}
+        >
+          <div
+            className="p-6 rounded-2xl border-2"
+            style={{
+              backgroundColor: Colors.dark.card,
+              borderColor: Colors.dark.accent,
+            }}
+          >
+            <h2 className="text-xl font-semibold mb-4" style={{ color: Colors.dark.accent }}>
+              The Key: It's Not About Being "Right"
+            </h2>
+            <p className="text-base mb-4" style={{ color: Colors.dark.textSecondary }}>
+              This isn't a trivia game or a prediction market. There's no "correct" answer decided by real-world events.
+            </p>
+            <p className="text-base mb-4" style={{ color: Colors.dark.textSecondary }}>
+              <strong style={{ color: Colors.dark.text }}>The winning answer is simply whatever most people picked.</strong> Your job is to think like the crowd and predict the consensus.
+            </p>
+            <p className="text-base" style={{ color: Colors.dark.textSecondary }}>
+              If 60% of players pick Option B, then Option B wins - and everyone who picked B shares the prize.
+            </p>
           </div>
         </div>
 
