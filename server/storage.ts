@@ -246,16 +246,72 @@ export class DbStorage implements IStorage {
   }
 
   async revealExpiredQuestions(now: Date): Promise<void> {
-    // Update all questions that should be revealed in a single efficient query
-    await db
-      .update(questions)
-      .set({ isRevealed: true })
+    // Get questions that need to be revealed
+    const questionsToReveal = await db
+      .select()
+      .from(questions)
       .where(
         and(
           eq(questions.isRevealed, false),
           lte(questions.revealsAt, now)
         )
       );
+
+    // For each question, calculate results and mark as revealed
+    for (const question of questionsToReveal) {
+      // Check if results already exist
+      const existingResults = await this.getQuestionResults(question.id);
+      if (!existingResults) {
+        // Calculate results from votes
+        const questionVotes = await this.getQuestionVotes(question.id);
+
+        let votesA = 0, votesB = 0, votesC = 0, votesD = 0;
+        let amountA = 0, amountB = 0, amountC = 0, amountD = 0;
+        let totalPool = 0;
+
+        for (const vote of questionVotes) {
+          const amount = parseFloat(vote.betAmount) || 0;
+          totalPool += amount;
+
+          switch (vote.choice) {
+            case 'A': votesA++; amountA += amount; break;
+            case 'B': votesB++; amountB += amount; break;
+            case 'C': votesC++; amountC += amount; break;
+            case 'D': votesD++; amountD += amount; break;
+          }
+        }
+
+        const totalVotes = votesA + votesB + votesC + votesD;
+
+        // Calculate percentages (avoid division by zero)
+        const percentA = totalVotes > 0 ? Math.round((votesA / totalVotes) * 100) : 0;
+        const percentB = totalVotes > 0 ? Math.round((votesB / totalVotes) * 100) : 0;
+        const percentC = totalVotes > 0 ? Math.round((votesC / totalVotes) * 100) : 0;
+        const percentD = totalVotes > 0 ? Math.round((votesD / totalVotes) * 100) : 0;
+
+        // Create results record
+        await this.createQuestionResults({
+          questionId: question.id,
+          totalVotes,
+          percentA,
+          percentB,
+          percentC,
+          percentD,
+          votesA,
+          votesB,
+          votesC,
+          votesD,
+          amountA: amountA.toFixed(2),
+          amountB: amountB.toFixed(2),
+          amountC: amountC.toFixed(2),
+          amountD: amountD.toFixed(2),
+          totalPoolAmount: totalPool.toFixed(2),
+        });
+      }
+
+      // Mark question as revealed
+      await this.updateQuestion(question.id, { isRevealed: true, isActive: false });
+    }
   }
 
   async fastTrackQuestions(newDropsAt: Date, newRevealsAt: Date): Promise<number> {
