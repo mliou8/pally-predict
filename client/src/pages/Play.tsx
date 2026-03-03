@@ -586,7 +586,7 @@ export default function Play() {
                     Prize Pool
                   </div>
                   <div className="text-lg font-bold" style={{ color: Colors.dark.text }}>
-                    {questionStats ? `${Math.round(questionStats.totalAmount).toLocaleString()} pts` : '—'}
+                    {questionStats?.totalAmount != null ? `${Math.round(questionStats.totalAmount).toLocaleString()} pts` : '—'}
                   </div>
                 </div>
               </div>
@@ -595,7 +595,7 @@ export default function Play() {
                   Players
                 </div>
                 <div className="text-lg font-bold" style={{ color: Colors.dark.text }}>
-                  {questionStats ? questionStats.totalBets.toLocaleString() : '—'}
+                  {questionStats?.totalBets != null ? questionStats.totalBets.toLocaleString() : '—'}
                 </div>
               </div>
             </div>

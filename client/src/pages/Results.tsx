@@ -255,7 +255,7 @@ export default function Results() {
                 Wagered
               </span>
               <span className="text-xl font-black tabular-nums" style={{ color: Colors.dark.warning }}>
-                {result.wagerAmount.toLocaleString()}
+                {(result.wagerAmount ?? 0).toLocaleString()}
               </span>
             </div>
 
@@ -282,7 +282,7 @@ export default function Results() {
                 className="text-xl font-black tabular-nums"
                 style={{ color: result.userWon ? Colors.dark.success : Colors.dark.error }}
               >
-                {result.userWon ? `+${result.payoutPoints.toLocaleString()}` : `-${result.wagerAmount.toLocaleString()}`}
+                {result.userWon ? `+${(result.payoutPoints ?? 0).toLocaleString()}` : `-${(result.wagerAmount ?? 0).toLocaleString()}`}
               </span>
             </div>
           </div>
@@ -323,7 +323,7 @@ export default function Results() {
               </span>
             </div>
             <span className="text-[11px] tabular-nums font-medium" style={{ color: Colors.dark.textMuted }}>
-              {result.totalVotes.toLocaleString()} votes
+              {(result.totalVotes ?? 0).toLocaleString()} votes
             </span>
           </div>
           <p className="text-[17px] font-bold leading-6" style={{ color: Colors.dark.text }}>
