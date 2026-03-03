@@ -594,51 +594,44 @@ export default function Play() {
           </div>
         )}
 
-        {/* Prize Pool Stats */}
-        <div
-          className={cn(
-            'mt-8 transition-all duration-500 delay-300',
-            contentVisible ? 'opacity-100' : 'opacity-0'
-          )}
-        >
-          <div
-            className="rounded-xl p-4"
-            style={{ backgroundColor: Colors.dark.surface }}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center"
-                  style={{ backgroundColor: Colors.dark.accentDim }}
-                >
-                  <TrendingUp size={16} color={Colors.dark.accent} />
-                </div>
-                <div>
-                  <div className="text-xs uppercase tracking-wider" style={{ color: Colors.dark.textMuted }}>
-                    Prize Pool
-                  </div>
-                  <div className="text-lg font-bold" style={{ color: Colors.dark.accent }}>
-                    {questionStats?.totalAmount != null ? `${Math.round(questionStats.totalAmount).toLocaleString()} WP` : '—'}
-                  </div>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-xs uppercase tracking-wider" style={{ color: Colors.dark.textMuted }}>
-                  Players
-                </div>
-                <div className="text-lg font-bold" style={{ color: Colors.dark.text }}>
-                  {questionStats?.totalBets != null ? questionStats.totalBets.toLocaleString() : '—'}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
           </div>
 
           {/* Sidebar (Desktop only) */}
           <div className="hidden lg:block w-80 flex-shrink-0">
-            <div className="sticky top-8 space-y-6">
+            <div className="sticky top-8 space-y-4">
+              {/* Prize Pool Stats */}
+              <div
+                className="rounded-xl p-4"
+                style={{ backgroundColor: Colors.dark.surface }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center"
+                      style={{ backgroundColor: Colors.dark.accentDim }}
+                    >
+                      <TrendingUp size={16} color={Colors.dark.accent} />
+                    </div>
+                    <div>
+                      <div className="text-xs uppercase tracking-wider" style={{ color: Colors.dark.textMuted }}>
+                        Prize Pool
+                      </div>
+                      <div className="text-lg font-bold" style={{ color: Colors.dark.accent }}>
+                        {questionStats?.totalAmount != null ? `${Math.round(questionStats.totalAmount).toLocaleString()} WP` : '—'}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs uppercase tracking-wider" style={{ color: Colors.dark.textMuted }}>
+                      Players
+                    </div>
+                    <div className="text-lg font-bold" style={{ color: Colors.dark.text }}>
+                      {questionStats?.totalBets != null ? questionStats.totalBets.toLocaleString() : '—'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Live Activity Feed */}
               {question && (
                 <ActivityFeed questionId={question.id} />
