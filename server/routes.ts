@@ -403,22 +403,27 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
       }
 
       // Get the points wagered - frontend sends as betAmount string
-      const pointsWagered = betAmount || wagerAmount || '100';
+      const pointsWagered = parseFloat(betAmount || wagerAmount || '100');
 
-      // Create the vote with the wager points
-      const voteData: any = {
+      // Validate bet amount
+      if (isNaN(pointsWagered) || pointsWagered < 1) {
+        return res.status(400).json({ error: 'Invalid bet amount' });
+      }
+
+      // Check user has enough balance
+      const currentBalance = parseFloat(user.balance);
+      if (pointsWagered > currentBalance) {
+        return res.status(400).json({ error: 'Insufficient balance' });
+      }
+
+      // Create the vote AND deduct balance atomically
+      const vote = await storage.createVoteWithBet({
         userId: user.id,
         questionId,
         choice,
-        isPublic,
-        // Store in both fields for compatibility
-        betAmount: String(pointsWagered),
-        wagerAmount: BigInt(pointsWagered),
-      };
-
-      const parsedVoteData = insertVoteSchema.parse(voteData);
-
-      const vote = await storage.createVote(parsedVoteData);
+        betAmount: pointsWagered,
+        platform: 'web',
+      });
 
       // Update rate limiter after successful vote
       voteRateLimiter.set(user.id, now);
