@@ -59,19 +59,13 @@ const faqs: FAQItem[] = [
   {
     category: 'Points & Rewards',
     question: 'How are points calculated?',
-    answer: 'Points are based on your placement:\n• 1st place (majority pick): 100 points\n• 2nd place: 75 points\n• 3rd place: 50 points\n• 4th place: 25 points\n• Participation: 10 points\n\nYou also get a 2x multiplier if you make your vote public!',
+    answer: 'Points are based on your placement:\n• 1st place (majority pick): 100 points\n• 2nd place: 75 points\n• 3rd place: 50 points\n• 4th place: 25 points\n• Participation: 10 points',
   },
   {
     category: 'Points & Rewards',
     question: 'How do payouts work?',
     answer: 'If you bet SOL and pick the winning answer (majority choice), you receive a proportional share of the total pot based on your bet size. 2nd place gets 25% back, 3rd gets 15%, and 4th gets 10%. This ensures even near-misses get some reward.',
   },
-  {
-    category: 'Points & Rewards',
-    question: 'What is the Public Vote bonus?',
-    answer: 'When you make your vote public (visible to other players), you earn 2x the normal points. It\'s a risk-reward tradeoff: more visibility for more points.',
-  },
-
   // Leaderboard
   {
     category: 'Leaderboard',

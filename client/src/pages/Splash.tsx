@@ -2,7 +2,8 @@ import { useLogin } from '@privy-io/react-auth';
 import { Link } from 'wouter';
 import BrandMark from '@/components/BrandMark';
 import { Button } from '@/components/ui/button';
-import { SiX } from 'react-icons/si';
+import { SiX, SiTelegram } from 'react-icons/si';
+import { Download } from 'lucide-react';
 
 export default function Splash() {
   const { login } = useLogin({
@@ -59,6 +60,36 @@ export default function Splash() {
           >
             Privacy Policy
           </Link>
+        </div>
+
+        <div className="pt-4 flex justify-center gap-6">
+          <a
+            href="https://t.me/PallyPredict_Bot"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            data-testid="link-telegram"
+          >
+            <SiTelegram size={18} />
+            <span>Play on Telegram</span>
+          </a>
+          <a
+            href="/"
+            onClick={(e) => {
+              e.preventDefault();
+              // Check if the app can be installed
+              if ('BeforeInstallPromptEvent' in window || window.matchMedia('(display-mode: standalone)').matches) {
+                alert('To install the app, tap the share button in your browser and select "Add to Home Screen"');
+              } else {
+                alert('To install the app, tap the share button in your browser and select "Add to Home Screen"');
+              }
+            }}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            data-testid="link-pwa"
+          >
+            <Download size={18} />
+            <span>Install App</span>
+          </a>
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
-import { Crosshair, Trophy, Clock, User, LogOut, HelpCircle, Info, BookOpen } from 'lucide-react';
+import { Crosshair, Trophy, Clock, User, LogOut, HelpCircle, Info, BookOpen, Download } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import { usePrivy } from '@privy-io/react-auth';
+import { SiTelegram } from 'react-icons/si';
 import Colors from '@/constants/colors';
 import { cn } from '@/lib/utils';
 import Logo from '@/components/ui/Logo';
@@ -115,6 +116,60 @@ export default function DesktopSidebar() {
                 </li>
               );
             })}
+          </ul>
+        </div>
+
+        {/* Get the App section */}
+        <div className="pt-4 border-t" style={{ borderColor: Colors.dark.border }}>
+          <div className="text-xs font-medium px-4 mb-2" style={{ color: Colors.dark.textMuted }}>
+            GET THE APP
+          </div>
+          <ul className="space-y-1">
+            <li>
+              <a
+                href="https://t.me/PallyPredict_Bot"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(
+                  'flex items-center gap-3 px-4 py-2 rounded-xl transition-all',
+                  'hover:bg-white/5'
+                )}
+              >
+                <SiTelegram
+                  size={18}
+                  color={Colors.dark.textMuted}
+                />
+                <span
+                  className="text-sm"
+                  style={{ color: Colors.dark.textMuted }}
+                >
+                  Play on Telegram
+                </span>
+              </a>
+            </li>
+            <li>
+              <button
+                onClick={() => {
+                  alert('To install the app, tap the share button in your browser and select "Add to Home Screen"');
+                }}
+                className={cn(
+                  'flex items-center gap-3 px-4 py-2 rounded-xl transition-all w-full',
+                  'hover:bg-white/5'
+                )}
+              >
+                <Download
+                  size={18}
+                  color={Colors.dark.textMuted}
+                  strokeWidth={1.5}
+                />
+                <span
+                  className="text-sm"
+                  style={{ color: Colors.dark.textMuted }}
+                >
+                  Install App
+                </span>
+              </button>
+            </li>
           </ul>
         </div>
       </nav>

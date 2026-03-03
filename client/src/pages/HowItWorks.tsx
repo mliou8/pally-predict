@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
-import { ArrowLeft, Clock, Users, Trophy, Coins, CheckCircle, TrendingUp, Share2 } from 'lucide-react';
+import { ArrowLeft, Clock, Users, Trophy, Coins, CheckCircle, TrendingUp } from 'lucide-react';
 import Colors from '@/constants/colors';
 import { cn } from '@/lib/utils';
 
@@ -47,11 +47,6 @@ export default function HowItWorks() {
   ];
 
   const bonuses = [
-    {
-      icon: Share2,
-      title: 'Public Vote Bonus',
-      description: 'Share your prediction publicly to earn 2x points on that vote.',
-    },
     {
       icon: TrendingUp,
       title: 'Streak Rewards',
@@ -199,7 +194,7 @@ export default function HowItWorks() {
               style={{ borderColor: Colors.dark.border, color: Colors.dark.textMuted }}
             >
               <div>Placement</div>
-              <div>Alpha Points</div>
+              <div>Points</div>
               <div>Payout</div>
             </div>
             {rewards.map((reward) => (
@@ -217,6 +212,21 @@ export default function HowItWorks() {
           <p className="text-sm mt-4" style={{ color: Colors.dark.textMuted }}>
             Everyone who participates earns 10 participation points, even if they don't place.
           </p>
+
+          {/* Alpha Points Explainer */}
+          <div
+            className="mt-6 p-5 rounded-xl border"
+            style={{ backgroundColor: Colors.dark.surface, borderColor: Colors.dark.border }}
+          >
+            <h3 className="font-semibold mb-2" style={{ color: Colors.dark.text }}>
+              What are Alpha Points?
+            </h3>
+            <p className="text-sm" style={{ color: Colors.dark.textMuted }}>
+              Alpha Points track your prediction skill and determine your leaderboard ranking.
+              Earn points by picking the majority answer. Higher placements = more points.
+              Top performers on the leaderboard unlock exclusive rewards each season.
+            </p>
+          </div>
         </div>
 
         {/* Bonuses */}
@@ -229,7 +239,7 @@ export default function HowItWorks() {
           <h2 className="text-xl font-semibold mb-6" style={{ color: Colors.dark.text }}>
             Bonus Multipliers
           </h2>
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2">
             {bonuses.map((bonus) => {
               const Icon = bonus.icon;
               return (

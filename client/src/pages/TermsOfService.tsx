@@ -58,8 +58,7 @@ export default function TermsOfService() {
             </p>
             <ul className="list-disc pl-6 mb-4 text-foreground space-y-2">
               <li>Users may vote once per question</li>
-              <li>Public votes earn a ×2 point multiplier; private votes earn ×1</li>
-              <li>Correct predictions earn base points inversely proportional to popularity (rarer choices = more points)</li>
+              <li>Points are awarded based on your placement (1st = 100pts, 2nd = 75pts, etc.)</li>
               <li>Points are calculated and awarded after the reveal time for each question</li>
               <li>We reserve the right to adjust point calculations to maintain fairness</li>
             </ul>
