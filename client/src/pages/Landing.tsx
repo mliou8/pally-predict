@@ -62,8 +62,8 @@ export default function Landing() {
     },
     {
       icon: Clock,
-      title: 'Every 8 Hours',
-      description: 'New questions 3x daily. Results and payouts 8 hours later.',
+      title: 'Daily Game',
+      description: 'New question every day at noon ET. Results 24 hours later.',
     },
   ];
 
@@ -87,7 +87,7 @@ export default function Landing() {
 
   const stats = [
     { value: '1,000+', label: 'Players' },
-    { value: '8hr', label: 'Question Cycle' },
+    { value: '24hr', label: 'Question Cycle' },
     { value: '100pts', label: 'Winner Reward' },
   ];
 

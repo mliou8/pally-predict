@@ -15,7 +15,7 @@ const faqs: FAQItem[] = [
   {
     category: 'Getting Started',
     question: 'What is Pally Feud?',
-    answer: 'Pally Feud is a consensus game with one simple rule: pick what most people will pick. New questions drop every 8 hours (3x daily at 6am, 2pm, and 10pm ET) with 4 options. The most popular answer wins, and everyone who picked it shares the prize pool. It\'s not about being "right" - it\'s about thinking like the crowd.',
+    answer: 'Pally Feud is a daily consensus game with one simple rule: pick what most people will pick. Every day at noon ET, a new question drops with 4 options. The most popular answer wins, and everyone who picked it shares the prize pool. It\'s not about being "right" - it\'s about thinking like the crowd.',
   },
   {
     category: 'Getting Started',
@@ -37,7 +37,7 @@ const faqs: FAQItem[] = [
   {
     category: 'Gameplay',
     question: 'When are new questions posted?',
-    answer: 'New questions are posted every 8 hours: at 6:00 AM, 2:00 PM, and 10:00 PM Eastern Time. Results from the previous question are revealed when the new question drops.',
+    answer: 'New questions are posted every day at 12:00 PM Eastern Time. Results from the previous day\'s question are also revealed at this time.',
   },
   {
     category: 'Gameplay',

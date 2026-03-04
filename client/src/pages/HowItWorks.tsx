@@ -16,7 +16,7 @@ export default function HowItWorks() {
     {
       number: '01',
       icon: Clock,
-      title: 'New Question Every 8 Hours',
+      title: 'New Question Daily',
       description: 'Every day at noon ET, a new question drops. Topics range from crypto and tech to markets and culture.',
     },
     {
@@ -29,7 +29,7 @@ export default function HowItWorks() {
       number: '03',
       icon: CheckCircle,
       title: 'Lock In Your Pick',
-      description: 'Choose A, B, C, or D and confirm. You have 8 hours before the majority is revealed.',
+      description: 'Choose A, B, C, or D and confirm. You have 24 hours before the majority is revealed.',
     },
     {
       number: '04',
