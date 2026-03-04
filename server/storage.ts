@@ -785,7 +785,7 @@ export class DbStorage implements IStorage {
       return { success: false, payout: 0, message: 'Results not available' };
     }
 
-    // Determine winning choice (majority)
+    // Determine winning choices (all tied for highest percentage are winners)
     const percentages = [
       { choice: 'A' as VoteChoice, percent: results.percentA },
       { choice: 'B' as VoteChoice, percent: results.percentB },
@@ -793,9 +793,14 @@ export class DbStorage implements IStorage {
       { choice: 'D' as VoteChoice, percent: results.percentD || 0 },
     ];
     const sorted = [...percentages].sort((a, b) => b.percent - a.percent);
-    const winningChoice = sorted[0].choice;
+    const highestPercent = sorted[0].percent;
 
-    const isCorrect = vote.choice === winningChoice;
+    // All choices tied for highest percentage are winners
+    const winningChoices = sorted
+      .filter(p => p.percent === highestPercent && p.percent > 0)
+      .map(p => p.choice);
+
+    const isCorrect = winningChoices.includes(vote.choice as VoteChoice);
     const betAmount = parseFloat(vote.betAmount);
 
     if (!isCorrect) {
@@ -816,7 +821,8 @@ export class DbStorage implements IStorage {
     for (const v of allVotes) {
       const amount = parseFloat(v.betAmount);
       totalPot += amount;
-      if (v.choice === winningChoice) {
+      // All tied winning choices share the pot
+      if (winningChoices.includes(v.choice as VoteChoice)) {
         winningPot += amount;
       }
     }

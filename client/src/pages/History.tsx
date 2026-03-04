@@ -145,7 +145,7 @@ export default function History() {
               // Determine outcome based on results
               let outcome: 'correct' | 'incorrect' | 'pending' = 'pending';
               let outcomeDescription: string | undefined;
-              let winningChoice = '';
+              let winningChoices: string[] = [];
 
               if (results) {
                 const percentages = [
@@ -155,13 +155,23 @@ export default function History() {
                   { choice: 'D', percent: results.percentD || 0 },
                 ];
                 const sorted = [...percentages].sort((a, b) => b.percent - a.percent);
-                winningChoice = sorted[0].choice;
-                const isMajority = vote.choice === winningChoice;
+                const highestPercent = sorted[0].percent;
+
+                // All choices tied for highest percentage are winners
+                winningChoices = sorted
+                  .filter(p => p.percent === highestPercent && p.percent > 0)
+                  .map(p => p.choice);
+
+                const isMajority = winningChoices.includes(vote.choice);
 
                 outcome = isMajority ? 'correct' : 'incorrect';
-                outcomeDescription = isMajority
-                  ? `You predicted the majority (${sorted[0].percent}%)`
-                  : `Majority chose ${winningChoice} (${sorted[0].percent}%)`;
+                if (isMajority) {
+                  outcomeDescription = winningChoices.length > 1
+                    ? `Tied for majority (${highestPercent}%)`
+                    : `You predicted the majority (${highestPercent}%)`;
+                } else {
+                  outcomeDescription = `Majority chose ${winningChoices[0]} (${highestPercent}%)`;
+                }
               }
 
               const pointsEarned = vote.pointsEarned || 0;
@@ -170,10 +180,10 @@ export default function History() {
 
               // Build all options for expanded view
               const allOptions = results ? [
-                { choice: 'A', label: question.optionA, percent: results.percentA, isUserChoice: vote.choice === 'A', isWinner: winningChoice === 'A' },
-                { choice: 'B', label: question.optionB, percent: results.percentB, isUserChoice: vote.choice === 'B', isWinner: winningChoice === 'B' },
-                ...(question.optionC ? [{ choice: 'C', label: question.optionC, percent: results.percentC || 0, isUserChoice: vote.choice === 'C', isWinner: winningChoice === 'C' }] : []),
-                ...(question.optionD ? [{ choice: 'D', label: question.optionD, percent: results.percentD || 0, isUserChoice: vote.choice === 'D', isWinner: winningChoice === 'D' }] : []),
+                { choice: 'A', label: question.optionA, percent: results.percentA, isUserChoice: vote.choice === 'A', isWinner: winningChoices.includes('A') },
+                { choice: 'B', label: question.optionB, percent: results.percentB, isUserChoice: vote.choice === 'B', isWinner: winningChoices.includes('B') },
+                ...(question.optionC ? [{ choice: 'C', label: question.optionC, percent: results.percentC || 0, isUserChoice: vote.choice === 'C', isWinner: winningChoices.includes('C') }] : []),
+                ...(question.optionD ? [{ choice: 'D', label: question.optionD, percent: results.percentD || 0, isUserChoice: vote.choice === 'D', isWinner: winningChoices.includes('D') }] : []),
               ] : [];
 
               // Use votedAt if available, otherwise fall back to question dropsAt
