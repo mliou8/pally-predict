@@ -63,6 +63,7 @@ export default function History() {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
+          'x-privy-user-id': user?.id || '',
         },
       });
 
