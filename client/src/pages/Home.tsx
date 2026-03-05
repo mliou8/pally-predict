@@ -26,6 +26,9 @@ interface ResultWithQuestion {
   userVote: Vote | null;
 }
 
+// MAINTENANCE MODE: Set to true to show migration message instead of questions
+const MAINTENANCE_MODE = true;
+
 export default function Home() {
   const { user, authenticated, ready } = usePrivy();
   const { toast } = useToast();
@@ -342,11 +345,15 @@ export default function Home() {
                 <Skeleton className="h-64 w-full rounded-3xl" />
                 <Skeleton className="h-64 w-full rounded-3xl" />
               </>
-            ) : activeQuestions.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground mb-2">No active questions</p>
+            ) : MAINTENANCE_MODE || activeQuestions.length === 0 ? (
+              <div className="text-center py-12 px-6">
+                <div className="text-4xl mb-4">🚀</div>
+                <p className="text-xl font-semibold text-foreground mb-2">We're migrating to mobile!</p>
+                <p className="text-muted-foreground mb-4">
+                  Pally Predict is getting a major upgrade. We're working hard to bring you a native mobile experience.
+                </p>
                 <p className="text-sm text-muted-foreground">
-                  Check back soon for new predictions!
+                  Please check back in a few days. Your points and history are safe!
                 </p>
               </div>
             ) : (
