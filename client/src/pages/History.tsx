@@ -55,6 +55,15 @@ export default function History() {
   });
 
   const handleClaimRewards = useCallback(async (voteId: string) => {
+    if (!user?.id) {
+      toast({
+        title: 'Not authenticated',
+        description: 'Please log in to claim rewards',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setClaimingVoteId(voteId);
     try {
       const token = await getAccessToken();
@@ -63,7 +72,7 @@ export default function History() {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
-          'x-privy-user-id': user?.id || '',
+          'x-privy-user-id': user.id,
         },
       });
 
@@ -101,7 +110,7 @@ export default function History() {
     } finally {
       setClaimingVoteId(null);
     }
-  }, [getAccessToken, queryClient, toast]);
+  }, [user, getAccessToken, queryClient, toast]);
 
   if (!user) {
     return (
