@@ -2168,4 +2168,209 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
     }
   });
 
+  // ===== MOBILE AUTH ROUTES =====
+
+  // Mobile auth - get user by JWT token
+  app.get('/api/mobile/me', mobileAuthMiddleware, async (req, res) => {
+    try {
+      if (!req.mobileUser) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+      res.json(serializeBigInt(req.mobileUser));
+    } catch (error: any) {
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
+    }
+  });
+
+  // Mobile auth - authenticate with Privy token and get JWT
+  // This allows mobile app to exchange a Privy session for a JWT token
+  app.post('/api/mobile/auth', async (req, res) => {
+    try {
+      const privyUserId = req.header('x-privy-user-id');
+      if (!privyUserId) {
+        return res.status(401).json({ error: 'Privy user ID required' });
+      }
+
+      let user = await storage.getUserByPrivyId(privyUserId);
+
+      // If user doesn't exist, we need them to create a profile first
+      if (!user) {
+        return res.status(404).json({
+          error: 'User not found',
+          needsProfile: true,
+        });
+      }
+
+      // Generate JWT token for mobile
+      const token = generateToken(user.id);
+
+      res.json({
+        token,
+        user: serializeBigInt(user),
+      });
+    } catch (error: any) {
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
+    }
+  });
+
+  // Mobile auth - create profile and get JWT
+  app.post('/api/mobile/register', async (req, res) => {
+    try {
+      const privyUserId = req.header('x-privy-user-id');
+      if (!privyUserId) {
+        return res.status(401).json({ error: 'Privy user ID required' });
+      }
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByPrivyId(privyUserId);
+      if (existingUser) {
+        // User exists, just return token
+        const token = generateToken(existingUser.id);
+        return res.json({
+          token,
+          user: serializeBigInt(existingUser),
+        });
+      }
+
+      const { handle, referralCode } = req.body;
+      if (!handle) {
+        return res.status(400).json({ error: 'Handle is required' });
+      }
+
+      // Check if handle is already taken
+      const existing = await storage.getUserByHandle(handle);
+      if (existing) {
+        return res.status(400).json({ error: 'Handle already taken' });
+      }
+
+      // Handle referral if provided
+      let referrer = null;
+      if (referralCode) {
+        referrer = await storage.getUserByHandle(referralCode);
+      }
+
+      const userData = insertUserSchema.parse({ privyUserId, handle });
+      const user = await storage.createUser(userData);
+
+      // Award bonuses
+      const REFERRAL_WP_BONUS = 500;
+      const REGISTRATION_PP_BONUS = 10;
+
+      await storage.updateUser(user.id, {
+        pallyPoints: REGISTRATION_PP_BONUS,
+        twitterVerified: true,
+      });
+
+      if (referrer) {
+        const newUserWP = (user.wagerPoints || 1000) + REFERRAL_WP_BONUS;
+        await storage.updateUser(user.id, {
+          wagerPoints: newUserWP,
+          referredBy: referrer.id,
+        });
+
+        const referrerWP = (referrer.wagerPoints || 1000) + REFERRAL_WP_BONUS;
+        await storage.updateUser(referrer.id, {
+          wagerPoints: referrerWP,
+          referralCount: (referrer.referralCount || 0) + 1,
+        });
+      }
+
+      const updatedUser = await storage.getUser(user.id);
+      const token = generateToken(user.id);
+
+      res.status(201).json({
+        token,
+        user: serializeBigInt(updatedUser),
+      });
+    } catch (error: any) {
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
+    }
+  });
+
+  // Mobile votes - submit vote (uses JWT auth)
+  app.post('/api/mobile/votes', mobileAuthMiddleware, async (req, res) => {
+    try {
+      const user = req.mobileUser;
+      if (!user) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const { questionId, selectedOption, wagerAmount } = req.body;
+
+      if (!questionId || !selectedOption) {
+        return res.status(400).json({ error: 'Question ID and selected option are required' });
+      }
+
+      // Validate wager amount
+      const wagerPoints = wagerAmount ? Number(wagerAmount) : 100;
+      if (wagerPoints < 10) {
+        return res.status(400).json({ error: 'Minimum wager is 10 WP' });
+      }
+      if (wagerPoints > (user.wagerPoints || 0)) {
+        return res.status(400).json({ error: 'Insufficient wager points' });
+      }
+
+      // Check if question exists and is active
+      const question = await storage.getQuestion(questionId);
+      if (!question) {
+        return res.status(404).json({ error: 'Question not found' });
+      }
+
+      if (!question.isActive || question.isRevealed) {
+        return res.status(400).json({ error: 'Question is not open for voting' });
+      }
+
+      // Check if user has already voted on this question
+      const existingVote = await storage.getVote(user.id, questionId);
+      if (existingVote) {
+        return res.status(400).json({ error: 'Already voted on this question' });
+      }
+
+      // Deduct wager points
+      await storage.updateUser(user.id, {
+        wagerPoints: (user.wagerPoints || 0) - wagerPoints,
+      });
+
+      // Create the vote
+      const voteData = {
+        userId: user.id,
+        questionId,
+        choice: selectedOption,
+        isPublic: true,
+        wagerAmount: BigInt(wagerPoints),
+      };
+
+      const parsedVoteData = insertVoteSchema.parse(voteData);
+      const vote = await storage.createVote(parsedVoteData);
+
+      res.status(201).json(serializeBigInt(vote));
+    } catch (error: any) {
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
+    }
+  });
+
+  // Mobile - get user's vote for a question
+  app.get('/api/mobile/votes/:questionId', mobileAuthMiddleware, async (req, res) => {
+    try {
+      const user = req.mobileUser;
+      if (!user) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const vote = await storage.getVote(user.id, req.params.questionId);
+      if (!vote) {
+        return res.status(404).json({ error: 'Vote not found' });
+      }
+
+      res.json(serializeBigInt(vote));
+    } catch (error: any) {
+      console.error('API Error:', error);
+      res.status(500).json({ error: error.message || String(error) || 'Unknown error' });
+    }
+  });
+
 }
