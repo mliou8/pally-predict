@@ -2,6 +2,7 @@ import { eq, desc, and, gte, lte, sql, isNull, lt } from 'drizzle-orm';
 import { db } from './db';
 import { broadcastPoolUpdate } from './websocket';
 import { QUESTION_CYCLE_MS } from './config';
+import { sendSolPayout, isTreasuryConfigured } from './solana';
 import {
   users,
   questions,
@@ -753,7 +754,7 @@ export class DbStorage implements IStorage {
   }
 
   // Claim rewards for a consensus question (majority wins)
-  async claimVoteRewards(voteId: string, userId: string): Promise<{ success: boolean; payout: number; solPayout?: number; message: string }> {
+  async claimVoteRewards(voteId: string, userId: string): Promise<{ success: boolean; payout: number; solPayout?: number; payoutTxSig?: string | null; message: string }> {
     // Get the vote
     const [vote] = await db
       .select()
@@ -851,14 +852,29 @@ export class DbStorage implements IStorage {
       solPayoutLamports = (userWager * totalSolPot) / winningSolPot;
     }
 
+    // Send SOL payout if user had a SOL wager and treasury is configured
+    let payoutTxSig: string | null = null;
+    if (hasSolWager && solPayoutLamports > BigInt(0) && isTreasuryConfigured()) {
+      const user = await this.getUser(userId);
+      if (user?.solanaAddress) {
+        payoutTxSig = await sendSolPayout(user.solanaAddress, solPayoutLamports);
+        if (!payoutTxSig) {
+          console.error(`Failed to send SOL payout to ${user.solanaAddress}`);
+        }
+      } else {
+        console.warn(`User ${userId} has no Solana address for SOL payout`);
+      }
+    }
+
     // Update vote record
     await this.updateVote(vote.id, {
       isCorrect: true,
       payout: payout.toFixed(2),
       ...(hasSolWager && { payoutAmount: solPayoutLamports }),
+      ...(payoutTxSig && { payoutTxSig }),
     });
 
-    // Update user balance (PP/WP only - SOL payout handled separately)
+    // Update user balance (PP/WP only)
     const user = await this.getUser(userId);
     if (user) {
       await this.updateUser(userId, {
@@ -875,7 +891,10 @@ export class DbStorage implements IStorage {
     const solPayout = Number(solPayoutLamports) / 1e9;
 
     if (hasSolWager && solPayoutLamports > BigInt(0)) {
-      return { success: true, payout, solPayout, message: `Claimed ${payout.toFixed(2)} WP + ${solPayout.toFixed(4)} SOL` };
+      const solMessage = payoutTxSig
+        ? `Claimed ${payout.toFixed(2)} WP + ${solPayout.toFixed(4)} SOL (sent)`
+        : `Claimed ${payout.toFixed(2)} WP + ${solPayout.toFixed(4)} SOL (pending)`;
+      return { success: true, payout, solPayout, payoutTxSig, message: solMessage };
     }
 
     return { success: true, payout, message: `Claimed ${payout.toFixed(2)} WP` };
