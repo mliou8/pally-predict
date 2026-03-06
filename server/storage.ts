@@ -60,7 +60,7 @@ export interface IStorage {
   getQuestionVotesCount(questionId: string): Promise<number>;
   getRecentPublicVotes(limit: number, questionId?: string): Promise<Vote[]>;
   createVote(vote: InsertVote): Promise<Vote>;
-  createVoteWithBet(data: { userId: string; questionId: string; choice: VoteChoice; betAmount: number; platform: PlatformType }): Promise<Vote>;
+  createVoteWithBet(data: { userId: string; questionId: string; choice: VoteChoice; betAmount: number; platform: PlatformType; wagerTxSig?: string }): Promise<Vote>;
   updateVote(voteId: string, updates: Partial<Vote>): Promise<Vote | undefined>;
 
   // Question results operations
@@ -455,6 +455,7 @@ export class DbStorage implements IStorage {
     choice: VoteChoice;
     betAmount: number;
     platform: PlatformType;
+    wagerTxSig?: string;
   }): Promise<Vote> {
     // Use a database transaction to ensure atomicity and prevent race conditions
     const result = await db.transaction(async (tx) => {
@@ -496,6 +497,7 @@ export class DbStorage implements IStorage {
         betAmount: data.betAmount.toFixed(2),
         platform: data.platform,
         isPublic: true,
+        ...(data.wagerTxSig && { wagerTxSig: data.wagerTxSig }),
       }]).returning();
 
       return insertResult[0];
@@ -751,7 +753,7 @@ export class DbStorage implements IStorage {
   }
 
   // Claim rewards for a consensus question (majority wins)
-  async claimVoteRewards(voteId: string, userId: string): Promise<{ success: boolean; payout: number; message: string }> {
+  async claimVoteRewards(voteId: string, userId: string): Promise<{ success: boolean; payout: number; solPayout?: number; message: string }> {
     // Get the vote
     const [vote] = await db
       .select()
@@ -802,14 +804,16 @@ export class DbStorage implements IStorage {
 
     const isCorrect = winningChoices.includes(vote.choice as VoteChoice);
     const betAmount = parseFloat(vote.betAmount);
+    const hasSolWager = !!vote.wagerTxSig;
 
     if (!isCorrect) {
       // User lost - mark as processed with 0 payout
       await this.updateVote(vote.id, {
         isCorrect: false,
         payout: '0.00',
+        ...(hasSolWager && { payoutAmount: BigInt(0) }),
       });
-      return { success: true, payout: 0, message: 'You did not pick the majority choice' };
+      return { success: true, payout: 0, solPayout: 0, message: 'You did not pick the majority choice' };
     }
 
     // Calculate payout for winner
@@ -817,26 +821,44 @@ export class DbStorage implements IStorage {
     const allVotes = await this.getQuestionVotes(vote.questionId);
     let totalPot = 0;
     let winningPot = 0;
+    let totalSolPot = BigInt(0);
+    let winningSolPot = BigInt(0);
 
     for (const v of allVotes) {
       const amount = parseFloat(v.betAmount);
       totalPot += amount;
+      // Track SOL wagers separately
+      if (v.wagerAmount) {
+        totalSolPot += BigInt(v.wagerAmount);
+      }
       // All tied winning choices share the pot
       if (winningChoices.includes(v.choice as VoteChoice)) {
         winningPot += amount;
+        if (v.wagerAmount) {
+          winningSolPot += BigInt(v.wagerAmount);
+        }
       }
     }
 
     // Winner gets proportional share of total pot
     const payout = winningPot > 0 ? (betAmount / winningPot) * totalPot : betAmount;
 
+    // Calculate SOL payout if user had a SOL wager
+    let solPayoutLamports = BigInt(0);
+    if (hasSolWager && vote.wagerAmount && winningSolPot > BigInt(0)) {
+      // Proportional share of total SOL pot based on user's SOL wager
+      const userWager = BigInt(vote.wagerAmount);
+      solPayoutLamports = (userWager * totalSolPot) / winningSolPot;
+    }
+
     // Update vote record
     await this.updateVote(vote.id, {
       isCorrect: true,
       payout: payout.toFixed(2),
+      ...(hasSolWager && { payoutAmount: solPayoutLamports }),
     });
 
-    // Update user balance
+    // Update user balance (PP/WP only - SOL payout handled separately)
     const user = await this.getUser(userId);
     if (user) {
       await this.updateUser(userId, {
@@ -847,6 +869,13 @@ export class DbStorage implements IStorage {
         totalWon: (parseFloat(user.totalWon) + payout).toFixed(2),
         balance: (parseFloat(user.balance) + payout).toFixed(2),
       });
+    }
+
+    // Convert lamports to SOL for response (1 SOL = 1e9 lamports)
+    const solPayout = Number(solPayoutLamports) / 1e9;
+
+    if (hasSolWager && solPayoutLamports > BigInt(0)) {
+      return { success: true, payout, solPayout, message: `Claimed ${payout.toFixed(2)} WP + ${solPayout.toFixed(4)} SOL` };
     }
 
     return { success: true, payout, message: `Claimed ${payout.toFixed(2)} WP` };

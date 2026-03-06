@@ -1904,7 +1904,7 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
   app.post('/api/mobile/votes', mobileAuthMiddleware, async (req, res) => {
     try {
       const user = req.mobileUser!;
-      const { questionId, choice, betAmount } = req.body;
+      const { questionId, choice, betAmount, wagerTxSig } = req.body;
 
       if (!questionId || !choice) {
         return res.status(400).json({ error: 'Question ID and choice are required' });
@@ -1937,13 +1937,14 @@ export async function registerRoutes(app: Express, server?: Server): Promise<voi
         return res.status(400).json({ error: 'Insufficient balance' });
       }
 
-      // Create vote with bet
+      // Create vote with bet (and optional SOL wager transaction signature)
       const vote = await storage.createVoteWithBet({
         userId: user.id,
         questionId,
         choice: choice as VoteChoice,
         betAmount: amount,
         platform: 'mobile',
+        wagerTxSig,
       });
 
       // Get updated user
