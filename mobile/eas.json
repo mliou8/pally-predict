@@ -4,21 +4,20 @@
     "appVersionSource": "local"
   },
   "build": {
-    "base": {
-      "node": "20.18.0",
-      "android": {
-        "packageManager": "npm"
-      }
-    },
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "node": "20.18.0",
       "android": {
         "buildType": "apk"
       }
     },
     "preview": {
       "distribution": "internal",
+      "node": "20.18.0",
+      "env": {
+        "EXPO_USE_NPM": "true"
+      },
       "android": {
         "buildType": "apk"
       }
