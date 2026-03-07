@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "PredictSol",
+    "slug": "predictsol",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0A0A0A"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0A0A0A"
+      },
+      "package": "app.predictsol.mobile"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "d0469a0f-249e-4d8c-8061-23bdee2b323e"
+      }
+    },
+    "owner": "mliou"
+  }
+}

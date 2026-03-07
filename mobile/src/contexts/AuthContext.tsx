@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { Alert } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
@@ -61,9 +62,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         path: 'auth',
       });
 
+      console.log('Redirect URL:', redirectUrl);
       const authUrl = `${API_BASE_URL}/api/auth/twitter/mobile?redirect_uri=${encodeURIComponent(redirectUrl)}`;
+      console.log('Auth URL:', authUrl);
 
       const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl);
+      console.log('Auth result:', result);
 
       if (result.type === 'success' && result.url) {
         // Extract token from redirect URL
@@ -73,10 +77,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (token) {
           await SecureStore.setItemAsync(TOKEN_KEY, token);
           await refreshUser();
+        } else {
+          Alert.alert('Login Error', 'No token received from server');
         }
+      } else if (result.type === 'cancel') {
+        // User cancelled, no alert needed
+      } else if (result.type === 'dismiss') {
+        // Browser dismissed
+      } else {
+        Alert.alert('Login Error', `Authentication failed: ${result.type}`);
       }
     } catch (error) {
       console.error('Login failed:', error);
+      Alert.alert('Login Error', error instanceof Error ? error.message : 'An error occurred');
     } finally {
       setIsLoading(false);
     }

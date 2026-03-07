@@ -18,6 +18,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.pallypredict.app"
     },
+    "scheme": "pallypredict",
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -26,6 +27,19 @@
       "package": "com.pallypredict.app",
       "permissions": [
         "android.permission.INTERNET"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "pallypredict",
+              "host": "auth"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
       ]
     },
     "plugins": [
